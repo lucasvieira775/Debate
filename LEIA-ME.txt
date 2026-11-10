@@ -1,0 +1,50 @@
+DEBATE PRESIDENCIAL ONLINE - protótipo jogável
+==============================================
+
+COMO JOGAR NESTE COMPUTADOR
+  1. Dê dois cliques em INICIAR.bat (abre o servidor e o jogo no navegador).
+  2. Para testar sozinho com vários candidatos, abra outras abas do Chrome
+     em http://localhost:3000 (cada aba é um jogador).
+
+COMO JOGAR COM AMIGOS PELA INTERNET
+  1. Dê dois cliques em JOGAR-ONLINE.bat.
+  2. Na janela preta aparece um endereço https://....trycloudflare.com
+  3. Mande esse link para os amigos (até 5 candidatos por sala).
+     O link muda toda vez que você abre o JOGAR-ONLINE.bat.
+
+JOGAR CONTRA A IA (SOZINHO)
+  Menu JOGAR > cartão "CONTRA A IA": escolha de 1 a 4 adversários e a dificuldade.
+  Na sala, o anfitrião também pode completar vagas com o botão "+ Candidato IA".
+
+DUBLAGEM DO JORNALISTA (Google Gemini)
+  A chave fica no arquivo .env (não compartilhe esse arquivo).
+  A cada partida é sorteado(a) a jornalista Helena Prado ou o jornalista Ricardo Alves.
+  Os áudios ficam guardados em dados/audio e são reaproveitados nas próximas partidas.
+  Os candidatos da IA também falam com voz do Gemini (masculina, feminina ou neutra, conforme o avatar).
+  ATENÇÃO: o plano gratuito do Gemini permite só ~10 vozes por dia em cada modelo (~40/dia).
+  Quando acaba, o jogo usa a voz do navegador na hora (sem travar) e volta no dia seguinte.
+  Para vozes sem limite, ative o faturamento da chave em https://aistudio.google.com/
+
+MODERAÇÃO
+  Xingamentos (burro, idiota...): o(a) jornalista intervém, a plateia vaia e a nota cai 2,5 pontos.
+  Ofensas graves (racismo, LGBTfobia, misoginia, palavrões pesados, ameaças, violência, nazismo):
+  o candidato é banido na hora e sai da apuração.
+
+REQUISITOS
+  - Google Chrome ou Microsoft Edge (são eles que transcrevem a voz).
+  - Internet (o reconhecimento de voz do navegador usa a internet).
+  - Permita o microfone quando o navegador pedir.
+
+CONTROLES NA PARTIDA
+  - Arrastar o mouse (ou setas do teclado): olhar em volta.
+  - Microfone (botão, tecla V ou botão vermelho do púlpito): falar.
+  - Confirmar (botão verde, Ctrl+Enter ou botão verde do púlpito): encerra a fala.
+    Depois de confirmar, não dá mais para editar.
+  - No confronto: clique no púlpito do adversário para escolhê-lo.
+
+ESTRUTURA
+  server/   servidor (salas online, regras da partida, ranking)
+  shared/   regras compartilhadas (partidos, temas dos 27 estados, notas, votação)
+  public/   jogo 3D (Three.js) e interface
+  dados/    ranking salvo
+  prototipo-html/  primeira versão em uma página só (antiga)

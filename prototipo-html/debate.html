@@ -1,0 +1,1155 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Debate Presidencial</title>
+<style>
+:root{
+  --bg:#060b1a; --panel:#0f1730; --panel2:#17213f; --line:#24315c;
+  --text:#e8ecf8; --muted:#93a0c4; --gold:#f2c14e; --red:#ef4444; --green:#22c55e;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#132049 0%,var(--bg) 55%);color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;
+  border-bottom:1px solid var(--line);background:rgba(6,11,26,.85);position:sticky;top:0;z-index:50;flex-wrap:wrap}
+.logo{font-weight:800;letter-spacing:.08em;font-size:15px}
+.logo span{color:var(--gold)}
+main{max-width:1100px;margin:0 auto;padding:18px 16px 60px}
+h1{font-size:28px;margin:6px 0 4px} h2{font-size:20px;margin:0 0 12px} h3{font-size:16px;margin:0 0 8px}
+p{line-height:1.5}
+.muted{color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input,select,textarea{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:inherit}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);outline-offset:0}
+textarea{width:100%;min-height:110px;resize:vertical;line-height:1.5}
+textarea[readonly]{opacity:.9}
+textarea.trancado{border-color:#3b4a80;background:#121a33}
+textarea.gravando{border-color:var(--red)}
+button{font:inherit;font-weight:600;border-radius:9px;padding:10px 16px;cursor:pointer;background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+button:hover{filter:brightness(1.15)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.btn-gold{background:var(--gold);color:#1a1300;border-color:var(--gold)}
+.btn-red{background:var(--red);color:#fff;border-color:var(--red)}
+.btn-green{background:var(--green);color:#04210f;border-color:var(--green)}
+.steps{display:flex;gap:6px;flex-wrap:wrap}
+.step{font-size:12px;padding:6px 10px;border-radius:20px;border:1px solid var(--line);color:var(--muted)}
+.step.on{background:var(--gold);color:#1a1300;border-color:var(--gold);font-weight:700}
+.step.done{color:var(--text);border-color:#3b4a80}
+.aviso{background:#3b1d1d;border:1px solid var(--red);border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:12px;line-height:1.45}
+.ok{background:#12301f;border:1px solid var(--green);border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:12px}
+.dica{background:#1d2a52;border:1px solid #3b5bb5;border-radius:10px;padding:9px 12px;font-size:14px;margin-bottom:10px}
+.rec-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--red);margin-right:6px;animation:pisca 1s infinite}
+@keyframes pisca{50%{opacity:.2}}
+.timer{font-variant-numeric:tabular-nums;font-size:40px;font-weight:800}
+.timer.alerta{color:var(--red)}
+.barra{height:6px;background:var(--panel2);border-radius:4px;overflow:hidden;margin:6px 0 12px}
+.barra>div{height:100%;background:var(--gold);transition:width .2s linear}
+.vu{height:6px;width:140px;background:var(--panel2);border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;margin-left:8px}
+.vu>div{height:100%;width:0;background:var(--green);transition:width .08s}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.chip{font-size:12px;padding:4px 9px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+.chip.bom{border-color:var(--green);color:#86efac}.chip.ruim{border-color:var(--red);color:#fca5a5}
+.nota{font-size:34px;font-weight:800;color:var(--gold)}
+.badge{display:inline-block;font-size:11px;padding:2px 7px;border-radius:10px;font-weight:600}
+.contexto{background:var(--panel2);border-left:3px solid var(--gold);padding:8px 12px;border-radius:0 8px 8px 0;font-size:14px;margin-bottom:10px;line-height:1.45}
+
+/* ---------- Setup ---------- */
+.cand-card{display:grid;grid-template-columns:120px 1fr;gap:16px;padding:14px;border:1px solid var(--line);border-left:5px solid var(--c);border-radius:12px;margin-bottom:12px;background:var(--panel2)}
+.cand-av{text-align:center}
+.cand-av svg{width:110px;height:auto;background:radial-gradient(circle at 50% 40%,#1d3b8f,#0b1a45);border-radius:12px}
+.cand-campos .row{margin-bottom:8px}
+.cand-campos input[data-f=nome]{flex:2 1 160px}
+.cand-campos input[data-f=partido]{flex:1 1 90px;width:90px}
+.cand-campos input[data-f=numero]{width:64px}
+.sw-grupo{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);margin-right:8px}
+.sw{width:22px;height:22px;border-radius:50%;padding:0;border:2px solid transparent;cursor:pointer}
+.sw.sel{border-color:#fff;box-shadow:0 0 0 2px var(--gold)}
+label.chk{font-size:13px;display:inline-flex;align-items:center;gap:4px}
+@media (max-width:640px){.cand-card{grid-template-columns:1fr}.cand-av svg{width:90px}}
+
+/* ---------- Avatar ---------- */
+.av .boca-a{opacity:0;transform-box:fill-box;transform-origin:center}
+.av.falando .boca-a{opacity:1;animation:boca .16s infinite alternate}
+.av.falando .boca-f{opacity:0}
+@keyframes boca{from{transform:scaleY(.25)}to{transform:scaleY(1.15)}}
+.av .olhos{transform-box:fill-box;transform-origin:center;animation:piscar 5s infinite}
+@keyframes piscar{0%,95%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+
+/* ---------- TV / Estúdio ---------- */
+.tv{position:relative;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#050a18;container-type:inline-size;
+  box-shadow:0 20px 60px rgba(0,0,0,.55);border:1px solid #1e2a55;margin-bottom:16px}
+.cena{position:absolute;inset:0}
+.led{position:absolute;left:0;right:0;top:0;height:64%;background:linear-gradient(180deg,#0d2f7a 0%,#0a1f55 55%,#071433 100%);overflow:hidden}
+.led::before{content:"";position:absolute;inset:0;background:
+  repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 3cqw),
+  repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3cqw)}
+.led::after{content:"";position:absolute;inset:-50%;background:linear-gradient(115deg,transparent 45%,rgba(120,180,255,.16) 50%,transparent 55%);animation:brilho 8s linear infinite}
+@keyframes brilho{from{transform:translateX(-35%)}to{transform:translateX(35%)}}
+.led-titulo{position:absolute;left:60%;top:7%;transform:translateX(-50%);text-align:center;line-height:.95;white-space:nowrap;z-index:1}
+.led-titulo span{display:block;font-size:6cqw;font-weight:900;letter-spacing:.07em;color:#fff;text-shadow:0 0 2cqw rgba(120,170,255,.7)}
+.led-titulo b{display:block;font-size:2.9cqw;letter-spacing:.34em;color:var(--gold);margin-top:.4cqw}
+.led-sub{position:absolute;left:60%;top:31%;transform:translateX(-50%);font-size:1.2cqw;letter-spacing:.45em;color:#9fb7ff;white-space:nowrap;z-index:1}
+.led-tema{position:absolute;left:60%;top:38%;transform:translateX(-50%);display:flex;align-items:center;gap:1cqw;background:rgba(3,10,30,.7);
+  border:1px solid rgba(140,180,255,.35);border-radius:.8cqw;padding:.6cqw 1.4cqw;font-size:1.65cqw;font-weight:700;white-space:nowrap;z-index:1;color:#fff}
+.led-tema:empty{display:none}
+.led-tema .uf{background:var(--gold);color:#1a1300;font-weight:900;border-radius:.5cqw;padding:.2cqw .7cqw;font-size:2cqw}
+.led-tema small{display:block;font-size:1cqw;color:#9fb7ff;letter-spacing:.2em;font-weight:600}
+.led-tema.girando{border-color:var(--gold);box-shadow:0 0 2cqw rgba(242,193,78,.5)}
+.led-tema.revelado{animation:revela .6s ease}
+@keyframes revela{0%{transform:translateX(-50%) scale(1.25)}100%{transform:translateX(-50%) scale(1)}}
+.feixe{position:absolute;top:-5%;width:16cqw;height:95%;background:linear-gradient(180deg,rgba(190,215,255,.16),transparent 85%);
+  clip-path:polygon(42% 0,58% 0,100% 100%,0 100%);mix-blend-mode:screen;pointer-events:none;z-index:2}
+.f1{left:28%;transform:rotate(14deg)}.f2{left:52%}.f3{left:76%;transform:rotate(-14deg)}
+.piso{position:absolute;left:0;right:0;bottom:0;height:38%;background:radial-gradient(ellipse at 62% 0%,rgba(70,130,255,.35),transparent 62%),linear-gradient(#0a1838,#03060f)}
+.anel{position:absolute;left:27%;right:3%;top:14%;height:62%;border-radius:50%;border:.25cqw solid rgba(120,170,255,.4);box-shadow:0 0 3cqw rgba(80,140,255,.3) inset,0 0 2cqw rgba(80,140,255,.25)}
+.pulpito{position:absolute;transition:filter .3s}
+.pulpito .pul-av svg{width:100%;display:block}
+.pul-mesa{position:relative;width:118%;margin-left:-9%;height:9em;margin-top:-4.8em;background:linear-gradient(180deg,#1d3b8f,#0b1a45 70%,#060f2a);
+  border-top:.55em solid var(--c);clip-path:polygon(0 0,100% 0,93% 100%,7% 100%);text-align:center;color:#fff;padding-top:.7em}
+.pul-num{font-size:3.3em;font-weight:900;line-height:1}
+.pul-nome{font-size:1.05em;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 1em}
+.pulpito.lit::before{content:"";position:absolute;left:-40%;right:-40%;top:-30%;bottom:25%;background:radial-gradient(ellipse at 50% 45%,rgba(255,240,200,.38),transparent 65%);z-index:-1}
+.pulpito.lit .pul-mesa{box-shadow:inset 0 0 2.2em var(--c)}
+.pulpito.dim{filter:brightness(.5) saturate(.7)}
+.mediadora{position:absolute;left:13%;bottom:2%;width:11cqw;transform:translateX(-50%);font-size:1.1cqw;z-index:15;transition:filter .3s}
+.mediadora .pul-av svg{width:100%;display:block}
+.med-mesa{position:relative;width:170%;margin-left:-35%;height:7em;margin-top:-4.2em;background:linear-gradient(180deg,rgba(190,215,255,.32),rgba(30,60,130,.6));
+  border-top:.35em solid var(--gold);clip-path:polygon(0 0,100% 0,95% 100%,5% 100%);text-align:center;color:#fff;font-size:1em;letter-spacing:.3em;padding-top:1.3em;font-weight:800}
+.mediadora.dim{filter:brightness(.55)}
+.cena-close{position:absolute;inset:0;animation:corte .35s ease}
+@keyframes corte{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
+.close-bg{position:absolute;inset:0;overflow:hidden;background:
+  radial-gradient(circle at 62% 38%,color-mix(in srgb,var(--c) 40%,transparent),transparent 42%),
+  linear-gradient(180deg,#0d2f7a,#071433)}
+.close-bg::before{content:"";position:absolute;inset:0;background:
+  radial-gradient(circle at 12% 22%,rgba(150,190,255,.28) 0 2.2cqw,transparent 2.4cqw),
+  radial-gradient(circle at 28% 62%,rgba(150,190,255,.18) 0 3cqw,transparent 3.2cqw),
+  radial-gradient(circle at 88% 18%,rgba(242,193,78,.22) 0 2.6cqw,transparent 2.8cqw),
+  radial-gradient(circle at 92% 70%,rgba(150,190,255,.2) 0 3.4cqw,transparent 3.6cqw),
+  radial-gradient(circle at 40% 12%,rgba(150,190,255,.15) 0 1.6cqw,transparent 1.8cqw);filter:blur(.5cqw)}
+.close-bg span{position:absolute;left:3%;top:10%;font-size:9cqw;font-weight:900;color:rgba(255,255,255,.07);filter:blur(.35cqw);white-space:nowrap;letter-spacing:.04em;line-height:1}
+.close-av{position:absolute;left:62%;bottom:-16%;width:40cqw;transform:translateX(-50%)}
+.close-av svg{width:100%;display:block}
+.close-mesa{position:absolute;left:44%;width:36cqw;bottom:0;height:12%;background:linear-gradient(#1d3b8f,#060f2a);border-top:.6cqw solid var(--c);
+  clip-path:polygon(0 0,100% 0,96% 100%,4% 100%);color:#fff;font-size:4cqw;font-weight:900;text-align:center;line-height:1.5}
+.gc{position:absolute;left:3cqw;bottom:3cqw;max-width:56cqw;z-index:20;animation:entra .45s ease}
+@keyframes entra{from{transform:translateX(-4cqw);opacity:0}to{transform:none;opacity:1}}
+.gc-tag{display:inline-block;background:var(--c);color:#fff;font-weight:800;font-size:max(9px,1.2cqw);letter-spacing:.08em;padding:.35cqw .9cqw;text-transform:uppercase;max-width:56cqw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gc-box{background:linear-gradient(90deg,#fff,#e6ecf9);color:#0b1a45;border-left:.8cqw solid var(--c);padding:.55cqw 1.4cqw .65cqw}
+.gc-nome{font-size:max(13px,2.5cqw);font-weight:900;text-transform:uppercase;line-height:1.1}
+.gc-sub{font-size:max(10px,1.4cqw);color:#3b4a75;font-weight:600}
+.tv-timer{position:absolute;right:3cqw;bottom:3cqw;background:#0b1a45;border:.2cqw solid #3b5bb5;color:#fff;padding:.4cqw 1.4cqw;text-align:center;z-index:20}
+.tv-timer small{display:block;font-size:max(8px,1cqw);letter-spacing:.2em;color:#9fb7ff}
+.tv-timer span{font-size:max(16px,3.3cqw);font-weight:900;font-variant-numeric:tabular-nums}
+.tv-timer.alerta{background:#7f1d1d;border-color:var(--red)}
+.tv-legenda{position:absolute;left:50%;transform:translateX(-50%);bottom:12.5cqw;width:max-content;max-width:80cqw;background:rgba(0,0,0,.8);color:#fff;
+  font-size:max(11px,1.75cqw);line-height:1.35;padding:.5cqw 1.1cqw;z-index:19;text-align:center;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.tv-legenda:empty{display:none}
+.tv-aovivo{position:absolute;left:2cqw;top:2cqw;background:var(--red);color:#fff;font-weight:900;font-size:max(9px,1.2cqw);padding:.3cqw .9cqw;letter-spacing:.1em;z-index:20;display:flex;align-items:center;gap:.5cqw}
+.tv-aovivo::before{content:"";width:.8cqw;height:.8cqw;border-radius:50%;background:#fff;animation:pisca 1s infinite}
+.tv-marca{position:absolute;right:2cqw;top:2cqw;font-size:max(9px,1.25cqw);letter-spacing:.2em;color:rgba(255,255,255,.8);font-weight:800;z-index:20}
+.tv-marca b{color:var(--gold)}
+.tv-nota{position:absolute;right:3cqw;top:6cqw;background:var(--gold);color:#1a1300;font-weight:900;font-size:max(14px,3cqw);padding:.3cqw 1.2cqw;text-align:center;z-index:20;animation:entra .4s;line-height:1.1}
+.tv-nota small{display:block;font-size:max(7px,.9cqw);letter-spacing:.15em}
+.tv-overlay{position:absolute;inset:0;background:rgba(4,10,30,.85);backdrop-filter:blur(3px);z-index:25;display:flex;align-items:center;justify-content:center;animation:corte .4s}
+.poll{width:82%}
+.poll-tit{font-size:max(14px,2.5cqw);font-weight:900;color:var(--gold);letter-spacing:.06em;margin-bottom:1.6cqw;text-align:center}
+.poll-row{display:grid;grid-template-columns:5cqw 20cqw 1fr 8cqw;align-items:center;gap:1.2cqw;margin:.9cqw 0;font-size:max(11px,1.6cqw);font-weight:700}
+.poll-av{width:5cqw;height:5cqw;border-radius:50%;overflow:hidden;background:#1d3b8f;border:.2cqw solid var(--c)}
+.poll-av svg{width:100%;height:100%;display:block}
+.poll-bar{height:3cqw;background:rgba(255,255,255,.08);border-radius:.4cqw;overflow:hidden}
+.poll-pct{font-weight:900;font-size:max(13px,2.4cqw);text-align:right}
+.poll-rod{font-size:max(9px,1.1cqw);color:#9fb7ff;text-align:center;margin-top:1.6cqw}
+.bar-fill{height:100%;width:0;border-radius:6px;transition:width 1.4s cubic-bezier(.2,.8,.2,1)}
+.confete{position:absolute;inset:0;pointer-events:none;z-index:22;overflow:hidden}
+.confete i{position:absolute;top:-5%;width:1cqw;height:1.6cqw;animation:cai linear infinite}
+@keyframes cai{to{transform:translateY(62cqw) rotate(720deg)}}
+
+/* ---------- Resultado ---------- */
+.bar-row{margin:10px 0}
+.bar-top{display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px;gap:8px;align-items:center}
+.bar-bg{height:22px;background:var(--panel2);border-radius:6px;overflow:hidden}
+.mini-av{width:30px;height:30px;border-radius:50%;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px;background:#1d3b8f}
+.mini-av svg{width:100%;height:100%;display:block}
+.selo{display:inline-block;padding:3px 9px;border-radius:6px;font-size:12px;font-weight:800;margin-left:6px}
+.selo.eleito{background:var(--green);color:#04210f}.selo.turno{background:var(--gold);color:#1a1300}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.tablewrap{overflow-x:auto}
+details summary{cursor:pointer;font-weight:600}
+.ata-item{border-left:3px solid var(--c);padding:6px 10px;margin:8px 0;background:var(--panel2);border-radius:0 8px 8px 0;font-size:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:800px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">DEBATE <span>PRESIDENCIAL</span> 2026</div>
+  <div id="steps" class="steps"></div>
+</header>
+<main id="app"></main>
+
+<script>
+/* =====================================================================
+   DADOS
+   ===================================================================== */
+const JORN = 'Helena Prado';
+const JORN_AV = {pele:'#d19a6a',estilo:'chanel',corCabelo:'#2b1a10',roupa:'#7f1d1d',tipo:'blazer',gravata:'#f5f5f4',oculos:false,barba:false};
+const ELEITORADO = 158_000_000;
+const CORES = ['#e63946','#3a86ff','#ffbe0b','#2ec4b6','#b5179e'];
+const IDEO = {
+  'esquerda':        {nome:'Esquerda',        pos:-2, cor:'#dc2626', partido:'PFP'},
+  'centro-esquerda': {nome:'Centro-esquerda', pos:-1, cor:'#f97316', partido:'MSD'},
+  'centro':          {nome:'Centro',          pos: 0, cor:'#94a3b8', partido:'PUN'},
+  'centro-direita':  {nome:'Centro-direita',  pos: 1, cor:'#14b8a6', partido:'ALB'},
+  'direita':         {nome:'Direita',         pos: 2, cor:'#2563eb', partido:'POP'},
+};
+const IDEO_POR_POS = Object.fromEntries(Object.entries(IDEO).map(([k,v])=>[v.pos,k]));
+const SEGMENTOS = [
+  {id:'esquerda',pos:-2,peso:.18},{id:'centro-esquerda',pos:-1,peso:.17},{id:'centro',pos:0,peso:.28},
+  {id:'centro-direita',pos:1,peso:.17},{id:'direita',pos:2,peso:.20}
+];
+
+// Áreas temáticas (palavras-chave usadas para medir o foco no tema)
+const TEMA_BASE = {
+ saude:{nome:'Saúde',kw:['saude','=sus','hospita','medic','posto','fila','vacina','enfermeir','atendimento','doenca','remedio','=upa','cirurgia','sanitari','especialista']},
+ educacao:{nome:'Educação',kw:['educa','escola','professor','ensino','aluno','universidade','creche','alfabetiz','tempo integral','=enem','bolsa','tecnic','estudant','aprendiz']},
+ seguranca:{nome:'Segurança Pública',kw:['seguranca','policia','crime','violencia','facc','presidio','preso','=arma','=armas','droga','trafic','homicid','fronteira','inteligencia','delegacia','milicia']},
+ economia:{nome:'Economia e Emprego',kw:['econom','emprego','desemprego','inflacao','juros','=pib','salario','renda','industria','investiment','crescimento','empresa','trabalho','credito','divida']},
+ ambiente:{nome:'Meio Ambiente',kw:['ambient','amazonia','desmatamento','clima','energia','sustentav','floresta','carbono','agua','queimada','renovav','solar','eolica','biodiversidade','indigena']},
+ corrupcao:{nome:'Corrupção e Transparência',kw:['corrup','transparen','propina','desvio','lavagem','fiscaliz','controle','licitacao','etica','justica','impunidade','orcamento secreto','emenda','auditoria','denuncia']},
+ previdencia:{nome:'Previdência',kw:['previdencia','aposent','=inss','idoso','pensao','beneficio','contribui','deficit','expectativa de vida']},
+ impostos:{nome:'Impostos',kw:['imposto','tribut','=iva','icms','carga','taxa','sonega','arrecada','isencao','renda','fortuna','simplific','dividendo']},
+ moradia:{nome:'Moradia e Saneamento',kw:['moradia','=casa','=casas','habita','aluguel','minha casa','favela','urbaniza','saneamento','terreno','financiamento','sem teto','periferia']},
+ infra:{nome:'Infraestrutura',kw:['infraestrutura','estrada','rodovia','ferrovia','porto','aeroporto','transporte','mobilidade','metro','onibus','obra','logistic','ponte','concess']},
+ fome:{nome:'Fome e Assistência Social',kw:['fome','aliment','pobreza','miseria','cesta','bolsa familia','assistencia','vulnerav','renda basica','comida','cozinha','merenda','desigualdade']},
+ tecnologia:{nome:'Tecnologia e Inovação',kw:['tecnolog','inovacao','internet','digital','startup','ciencia','pesquisa','inteligencia artificial','=5g','dados','conectividade','programacao','semicondut']},
+ agro:{nome:'Agro e Campo',kw:['agro','agricultura','campo','produtor','rural','terra','reforma agraria','safra','exporta','pecuaria','familiar','assentamento','fazend','alimento']},
+};
+
+// Temas dos 27 estados (área base, título, pergunta da mediadora, palavras-chave locais)
+const UFS = [
+['AC','Acre','do Acre',[
+ ['ambiente','Queimadas e proteção da floresta','O Acre convive com queimadas e com a pressão do desmatamento. Como proteger a floresta e gerar renda para quem vive dela?','acre,queimada,extrativis,seringueir,floresta'],
+ ['seguranca','Fronteira com Bolívia e Peru','A fronteira do Acre é rota do tráfico de drogas. Como o governo federal vai controlar essa fronteira?','fronteira,bolivia,peru,trafico']]],
+['AL','Alagoas','de Alagoas',[
+ ['moradia','Afundamento de bairros em Maceió','O afundamento do solo em bairros de Maceió, causado pela mineração, desalojou milhares de famílias. O que o governo federal deve fazer?','maceio,afundamento,mineracao,indeniza,familias'],
+ ['fome','Pobreza no sertão alagoano','Alagoas tem alguns dos piores indicadores sociais do país. Como tirar o sertão alagoano da pobreza?','sertao,pobreza,renda']]],
+['AP','Amapá','do Amapá',[
+ ['ambiente','Petróleo na Margem Equatorial','Explorar petróleo na costa do Amapá, perto da foz do Amazonas, pode gerar riqueza, mas preocupa ambientalistas. Qual é a sua posição?','petroleo,margem equatorial,foz do amazonas,licenciamento,royalties'],
+ ['infra','Energia e o apagão no Amapá','O Amapá já ficou dias sem energia elétrica. Como garantir energia confiável para a região Norte?','apagao,energia,eletric,linha de transmissao']]],
+['AM','Amazonas','do Amazonas',[
+ ['impostos','Futuro da Zona Franca de Manaus','A Zona Franca de Manaus depende de incentivos fiscais. Ela deve ser mantida, ampliada ou revista?','zona franca,manaus,incentivo,industria,polo industrial'],
+ ['ambiente','Seca dos rios amazônicos','Secas históricas isolaram comunidades ribeirinhas no Amazonas. Como enfrentar a crise climática na Amazônia?','seca,=rio,=rios,estiagem,ribeirinh,navegacao']]],
+['BA','Bahia','da Bahia',[
+ ['seguranca','Violência e letalidade policial','A Bahia está entre os estados com mais mortes violentas, inclusive em ações policiais. Como reduzir a violência sem aumentar as mortes?','salvador,letalidade,policia,faccao,camera'],
+ ['tecnologia','Energia eólica e solar no sertão','O sertão baiano virou polo de energia eólica e solar. Como garantir que essa riqueza fique com a população local?','eolica,solar,sertao,renovav,parque eolico,comunidade']]],
+['CE','Ceará','do Ceará',[
+ ['infra','Seca e acesso à água no semiárido','Milhares de famílias cearenses ainda dependem de carro-pipa. Como garantir água no semiárido?','seca,agua,transposicao,cisterna,semiarido,carro-pipa,acude'],
+ ['seguranca','Facções criminosas em Fortaleza','Facções disputam territórios em Fortaleza e no interior do Ceará. Qual é o seu plano?','faccao,fortaleza,territorio,crime organizado']]],
+['DF','Distrito Federal','do Distrito Federal',[
+ ['previdencia','Servidores públicos e Previdência','Brasília concentra o funcionalismo federal. Qual é a sua proposta para os servidores e para a Previdência do setor público?','servidor,funcionalismo,concurso,brasilia,reforma administrativa,aposentadoria'],
+ ['corrupcao','Transparência das emendas parlamentares','Bilhões em emendas parlamentares são distribuídos com pouca transparência. Como mudar isso?','emenda,orcamento secreto,congresso,transparencia,rastreab']]],
+['ES','Espírito Santo','do Espírito Santo',[
+ ['ambiente','Rio Doce e a reparação da tragédia','Anos depois do rompimento da barragem de Mariana, o Rio Doce ainda sofre. Como garantir a reparação às famílias capixabas?','rio doce,mariana,barragem,reparacao,lama,pescador'],
+ ['infra','Portos e logística capixaba','O Espírito Santo depende de portos e ferrovias. Como modernizar a logística do estado?','porto,vitoria,ferrovia,logistica,exportacao']]],
+['GO','Goiás','de Goiás',[
+ ['agro','Agronegócio no Centro-Oeste','Goiás é um dos motores do agro. Como manter o crescimento sem destruir o Cerrado?','soja,milho,cerrado,exportacao,produtor'],
+ ['ambiente','Água e nascentes do Cerrado','O Cerrado é a caixa d’água do Brasil e está sendo desmatado. Como proteger as nascentes?','cerrado,nascente,irrigacao,agua,desmatamento']]],
+['MA','Maranhão','do Maranhão',[
+ ['fome','Pobreza e baixo IDH','O Maranhão tem um dos menores IDHs do país. Como mudar essa realidade?','=idh,pobreza,renda,saneamento'],
+ ['tecnologia','Base de Alcântara e programa espacial','A Base de Alcântara pode colocar o Brasil no mercado espacial, mas há conflitos com comunidades quilombolas. Qual é o seu plano?','alcantara,espacial,foguete,quilombola,satelite']]],
+['MT','Mato Grosso','de Mato Grosso',[
+ ['infra','Escoamento da safra','Mato Grosso produz muito, mas a safra roda milhares de quilômetros em estradas ruins. Como resolver?','ferrovia,br-163,safra,escoamento,rodovia,ferrograo'],
+ ['ambiente','Pantanal em chamas','Incêndios destruíram grandes áreas do Pantanal. Como evitar novas tragédias?','pantanal,queimada,incendio,brigad,fogo']]],
+['MS','Mato Grosso do Sul','de Mato Grosso do Sul',[
+ ['agro','Conflitos por terras indígenas','Mato Grosso do Sul vive conflitos entre produtores e povos indígenas. Como resolver a questão da demarcação?','indigena,demarcacao,marco temporal,guarani,terra,conflito'],
+ ['seguranca','Fronteira com o Paraguai','A fronteira com o Paraguai é porta de entrada de drogas e armas. Qual é a sua estratégia?','fronteira,paraguai,contrabando,trafico,arma']]],
+['MG','Minas Gerais','de Minas Gerais',[
+ ['ambiente','Segurança das barragens de mineração','Depois de Mariana e Brumadinho, ainda existem barragens de risco em Minas. Como evitar outra tragédia?','barragem,brumadinho,mineracao,fiscaliza,rejeito'],
+ ['economia','Dívida de Minas com a União','Minas Gerais deve bilhões à União. Como ajudar o estado sem prejudicar as contas federais?','divida,=minas,renegocia,recuperacao fiscal,juros']]],
+['PA','Pará','do Pará',[
+ ['ambiente','Garimpo ilegal e desmatamento','O garimpo ilegal contamina rios do Pará com mercúrio. Como combater esse crime?','garimpo,mercurio,desmatamento,ilegal,=rio,=rios'],
+ ['infra','Saneamento e o legado da COP30','Belém recebeu a COP30, mas grande parte da cidade não tem esgoto tratado. Como deixar um legado real?','cop30,cop 30,belem,saneamento,esgoto,obras,legado']]],
+['PB','Paraíba','da Paraíba',[
+ ['infra','Transposição do Rio São Francisco','A transposição chegou à Paraíba, mas a água ainda não alcança todos. Como concluir e manter a obra?','transposicao,sao francisco,agua,canal,adutora'],
+ ['educacao','Educação no interior','Escolas do interior paraibano sofrem com falta de estrutura e de professores. O que fazer?','interior,escola,professor,ensino']]],
+['PR','Paraná','do Paraná',[
+ ['agro','Cooperativas e agroindústria','O Paraná é referência em cooperativas agrícolas. Como fortalecer a agroindústria nacional?','cooperativa,agroindustria,exportacao,frango,suino'],
+ ['infra','Pedágios nas rodovias','Os pedágios do Paraná sempre geraram polêmica. Como ter estradas boas com tarifas justas?','pedagio,rodovia,concessao,tarifa,estrada']]],
+['PE','Pernambuco','de Pernambuco',[
+ ['infra','Transnordestina e Porto de Suape','A ferrovia Transnordestina se arrasta há anos. Como destravar obras estratégicas para o Nordeste?','transnordestina,ferrovia,suape,porto,obra parada'],
+ ['moradia','Alagamentos e moradia no Recife','O Recife sofre com alagamentos e moradias em áreas de risco. Qual é a sua proposta?','recife,palafita,alagamento,area de risco,encosta,periferia']]],
+['PI','Piauí','do Piauí',[
+ ['economia','Hidrogênio verde e novas energias','O Piauí atrai investimentos em energia renovável e hidrogênio verde. Como transformar isso em emprego?','hidrogenio verde,eolica,solar,investimento,emprego'],
+ ['fome','Fome no semiárido piauiense','Muitas famílias do semiárido piauiense ainda passam fome. Como acabar com isso?','semiarido,fome,cisterna,alimento']]],
+['RJ','Rio de Janeiro','do Rio de Janeiro',[
+ ['seguranca','Milícias e crime organizado','Milícias e facções dominam territórios no Rio de Janeiro. Como o governo federal deve agir?','milicia,faccao,territorio,operacao,comunidade'],
+ ['economia','Royalties do petróleo e crise fiscal','O Rio depende dos royalties do petróleo e vive crises fiscais. Como equilibrar as contas do estado?','royalties,petroleo,crise fiscal,servidor,pre-sal']]],
+['RN','Rio Grande do Norte','do Rio Grande do Norte',[
+ ['economia','Turismo e energia potiguar','O Rio Grande do Norte vive do turismo e lidera a energia eólica. Como gerar mais empregos no estado?','turismo,=natal,eolica,emprego,litoral'],
+ ['seguranca','Ataques do crime organizado','O estado já sofreu ondas de ataques comandadas de dentro dos presídios. Como retomar o controle?','ataque,presidio,faccao,penitenciari']]],
+['RS','Rio Grande do Sul','do Rio Grande do Sul',[
+ ['infra','Reconstrução após as enchentes','As enchentes devastaram o Rio Grande do Sul. Como reconstruir e evitar que aconteça de novo?','enchente,reconstru,dique,prevencao,clima,porto alegre,defesa civil'],
+ ['agro','Estiagens e seguro rural','Produtores gaúchos alternam secas e enchentes. Como proteger quem produz?','estiagem,seguro rural,safra,produtor,clima']]],
+['RO','Rondônia','de Rondônia',[
+ ['ambiente','Desmatamento ao longo da BR-364','O desmatamento avança em Rondônia. Como conciliar pecuária e preservação?','br-364,desmatamento,pecuaria,floresta'],
+ ['infra','Hidrelétricas do Rio Madeira','As usinas do Rio Madeira geraram energia, mas também impactos. Qual modelo de energia você defende?','hidreletrica,energia,madeira,usina,impacto']]],
+['RR','Roraima','de Roraima',[
+ ['fome','Crise migratória venezuelana','Roraima recebe milhares de migrantes venezuelanos. Como acolher sem sobrecarregar o estado?','migrante,venezuela,refugiado,acolhida,fronteira,interioriza'],
+ ['saude','Garimpo e saúde Yanomami','O garimpo ilegal provocou uma crise de saúde na Terra Yanomami. Como proteger esses povos?','yanomami,garimpo,indigena,saude indigena,malaria,desnutricao']]],
+['SC','Santa Catarina','de Santa Catarina',[
+ ['tecnologia','Polo de tecnologia e inovação','Santa Catarina tem um forte polo de tecnologia. Como espalhar esse modelo pelo Brasil?','florianopolis,startup,software,inovacao,tecnologia'],
+ ['infra','Chuvas e deslizamentos','Santa Catarina sofre com chuvas extremas e deslizamentos. Como prevenir desastres?','chuva,deslizamento,defesa civil,prevencao,encosta']]],
+['SP','São Paulo','de São Paulo',[
+ ['saude','Cracolândia e dependência química','A Cracolândia desafia governos há décadas. Qual é a sua proposta para a dependência química?','cracolandia,dependencia,droga,tratamento,acolhimento,internacao'],
+ ['infra','Mobilidade na metrópole','Os paulistanos perdem horas no trânsito. Como melhorar a mobilidade nas grandes cidades?','metro,transito,onibus,=trem,mobilidade']]],
+['SE','Sergipe','de Sergipe',[
+ ['economia','Petróleo e gás em águas profundas','Novas descobertas de gás em Sergipe podem mudar a economia do estado. Como aproveitar essa chance?','=gas,petroleo,aguas profundas,emprego,royalties'],
+ ['moradia','Saneamento básico','Grande parte de Sergipe não tem esgoto tratado. Como universalizar o saneamento?','saneamento,esgoto,agua,aracaju,universaliz']]],
+['TO','Tocantins','do Tocantins',[
+ ['agro','Matopiba e a fronteira agrícola','O Tocantins está no Matopiba, a nova fronteira agrícola. Como crescer sem destruir o Cerrado?','matopiba,soja,cerrado,fronteira agricola'],
+ ['saude','Saúde no interior','Moradores do interior do Tocantins viajam centenas de quilômetros por um atendimento especializado. O que fazer?','interior,hospital,especialista,distancia,regionaliz']]],
+];
+const TEMAS_UF = [];
+UFS.forEach(([uf,estado,de,lista])=>lista.forEach(([base,titulo,pergunta,kw],k)=>TEMAS_UF.push({
+  key:uf+k,uf,estado,de,base,titulo,pergunta,kw:kw.split(',').map(s=>s.trim()).concat('='+normTxt(estado))})));
+const TUF = Object.fromEntries(TEMAS_UF.map(t=>[t.key,t]));
+const temaKw = key => TEMA_BASE[TUF[key].base].kw.concat(TUF[key].kw);
+const TODAS_KW = Object.values(TEMA_BASE).flatMap(t=>t.kw);
+
+const LEX = {
+  esq:['desigualdade','justica social','=sus','public','estatal','trabalhador','direitos','sindica','reforma agraria','bolsa familia','taxar','grandes fortunas','distribuicao de renda','inclus','minoria','cotas','salario minimo','soberania','banqueiro','super ricos','super-ricos','=ricos','estado forte','programa social','politicas sociais','diversidade','=lgbt','feminis','racismo','classe trabalhadora','reestatiz','estatiza'],
+  dir:['privatiz','livre mercado','livre iniciativa','empreendedor','reduzir impostos','menos impostos','cortar impostos','estado minimo','estado menor','propriedade','familia tradicional','=deus','=ordem','armas','porte de arma','legitima defesa','liberdade economica','desburocrat','responsabilidade fiscal','teto de gastos','agronegocio','meritocra','maioridade penal','concess','enxugar','cortar gastos','bandido','tolerancia zero','valores cristaos','patria','conservador','=liberal'],
+  cen:['dialogo','equilibrio','consenso','gestao','eficiencia','pacto','moderacao','pragmat','entendimento','nem esquerda nem direita','=uniao','concilia','planejamento','parceria','publico-privad'],
+};
+const PROPOSTA_KW = ['=vou','vamos','proponho','proposta','criar','criarei','investir','investirei','ampliar','reduzir','garantir','implementar','construir','=meta','programa','plano','dobrar','zerar','contratar','primeiro ano','bilho','milho','por cento','ate o fim','=mil'];
+const APELO_KW = ['=povo','brasileir','famil','juntos','esperanca','futuro','=voce','=gente','dignidade','oportunidade','orgulho','=pais','nacao','coracao','compromisso','=mae','=maes','filho','filha','crianca','jovens','trabalhador'];
+const VICIOS = ['=ne','tipo assim','=ahn','=hum','=eh','sei la','=hmm'];
+const ATAQUE_KW = ['mentir','mentiroso','fracass','corrupt','incompeten','vergonh','escandalo','hipocri','falso','farsa','enganar','irresponsav','desastre','roubo','=ladrao','demagog','populis','extremis','covard','omiss'];
+const MENCAO_GENERICA = ['adversari','oponente','=candidato','=candidata','o senhor','a senhora'];
+
+const SEGUNDOS = {proposta:60,pergunta:30,resposta:60,replica:45,treplica:45,final:60};
+const DUR_MULT = {curto:.5,normal:1,longo:1.5};
+const KIND_NOME = {proposta:'Apresentação de proposta',pergunta:'Pergunta',resposta:'Resposta',replica:'Réplica',treplica:'Tréplica',final:'Considerações finais'};
+const ETAPAS = ['Propostas','Confronto','Considerações finais'];
+
+// Avatares
+const PELES=['#f6d3b3','#e8b48a','#d19a6a','#a0673c','#6b4226','#4a2c1a'];
+const CABELO_CORES=['#1b1b1b','#3b2416','#6a4423','#b5651d','#d9b26f','#9ca3af','#eeeeee'];
+const ESTILOS={curto:'Curto',lateral:'Repartido',careca:'Careca',longo:'Longo',chanel:'Chanel',coque:'Coque',cacheado:'Cacheado'};
+const ROUPAS=['#1e3a8a','#1f2937','#0b0f1a','#6b7280','#7f1d1d','#a8a29e','#14532d'];
+
+/* =====================================================================
+   UTIL
+   ===================================================================== */
+function normTxt(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');}
+const norm = normTxt;
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const pick=a=>a[Math.random()*a.length|0];
+const gauss=()=>{let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+const fmtN=n=>Math.round(n).toLocaleString('pt-BR');
+const fmtP=n=>n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
+const fmtT=s=>`${String(Math.max(0,s)/60|0).padStart(2,'0')}:${String(Math.max(0,s)%60).padStart(2,'0')}`;
+const nomeCurto=n=>{const p=n.trim().split(/\s+/);return p.length>2?p[0]+' '+p[p.length-1]:n;};
+const reCache={};
+function hits(t,list){
+  let n=0;
+  for(const term of list){
+    let re=reCache[term];
+    if(!re){const ex=term.startsWith('=');const w=(ex?term.slice(1):term).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      re=reCache[term]=new RegExp('\\b'+w+(ex?'\\b':''),'g');}
+    const m=t.match(re); if(m) n+=m.length;
+  }
+  return n;
+}
+function shade(hex,p){const n=parseInt(hex.slice(1),16);let r=n>>16,g=n>>8&255,b=n&255;const f=v=>clamp(Math.round(v+(p<0?v*p/100:(255-v)*p/100)),0,255);return '#'+[f(r),f(g),f(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
+function avatarAleatorio(){
+  const estilo=pick(Object.keys(ESTILOS));
+  const feminino=['longo','chanel','coque'].includes(estilo);
+  return {pele:pick(PELES),estilo,corCabelo:pick(CABELO_CORES.slice(0,5)),roupa:pick(ROUPAS),tipo:feminino&&Math.random()<.7?'blazer':'gravata',
+    gravata:null,oculos:Math.random()<.3,barba:!feminino&&Math.random()<.3};
+}
+
+/* =====================================================================
+   AVATAR SVG
+   ===================================================================== */
+function avatarSVG(a,id,cor,opt={}){
+  const s=a.pele, sd=shade(s,-22), h=a.corCabelo, roupa=a.roupa, gr=a.gravata||cor||'#b91c1c';
+  const brow = h==='#eeeeee'?'#9a9a9a':shade(h,-10);
+  const vb = opt.rosto?'38 26 124 124':'0 0 200 220';
+  const delay = id? (id.split('').reduce((x,c)=>x+c.charCodeAt(0),0)%40)/10 : 0;
+  let atras='', frente='';
+  switch(a.estilo){
+    case 'longo':  atras=`<path d="M52,85 Q46,150 58,190 L142,190 Q154,150 148,85 Q100,40 52,85Z" fill="${h}"/>`;
+                   frente=`<path d="M56,94 Q50,36 100,35 Q150,36 144,94 Q138,58 100,52 Q66,58 56,94Z" fill="${h}"/>`; break;
+    case 'chanel': atras=`<path d="M53,82 Q47,128 58,142 L142,142 Q153,128 147,82 Q100,40 53,82Z" fill="${h}"/>`;
+                   frente=`<path d="M55,96 Q50,36 100,35 Q150,36 145,96 Q140,60 112,56 Q90,62 70,58 Q60,70 55,96Z" fill="${h}"/>`; break;
+    case 'coque':  frente=`<circle cx="100" cy="33" r="16" fill="${h}"/><path d="M57,88 Q54,42 100,41 Q146,42 143,88 Q136,60 100,55 Q64,60 57,88Z" fill="${h}"/>`; break;
+    case 'curto':  frente=`<path d="M57,88 Q52,38 100,36 Q148,38 143,88 Q140,62 118,56 Q100,64 82,56 Q60,62 57,88Z" fill="${h}"/>`; break;
+    case 'lateral':frente=`<path d="M57,90 Q50,36 104,36 Q150,40 143,90 Q141,66 128,58 Q100,62 70,62 Q61,70 57,90Z" fill="${h}"/>`; break;
+    case 'careca': frente=`<path d="M58,100 Q55,80 62,72 L65,100Z" fill="${h}"/><path d="M142,100 Q145,80 138,72 L135,100Z" fill="${h}"/>`; break;
+    case 'cacheado':{
+      let c='';for(let ang=195;ang<=345;ang+=15){const r=ang*Math.PI/180;c+=`<circle cx="${(100+45*Math.cos(r)).toFixed(1)}" cy="${(90+54*Math.sin(r)).toFixed(1)}" r="13" fill="${h}"/>`;}
+      atras=`<path d="M46,100 Q40,40 100,30 Q160,40 154,100 Q150,120 140,118 L60,118 Q50,120 46,100Z" fill="${h}"/>`; frente=c; break;}
+  }
+  const roupaEsc=shade(roupa,-18);
+  const torso = a.tipo==='gravata'
+    ? `<path d="M80,164 L100,202 L120,164Z" fill="#f8fafc"/><path d="M95,170 L105,170 L109,200 L100,213 L91,200Z" fill="${gr}"/><path d="M95,166 L105,166 L103,174 L97,174Z" fill="${shade(gr,-20)}"/>`
+    : `<path d="M80,164 L100,198 L120,164Z" fill="${gr}"/>`;
+  return `<svg class="av" ${id?`data-av="${id}"`:''} viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" style="--d:${delay}s">
+    ${atras}
+    <path d="M14,222 Q20,176 62,164 L138,164 Q180,176 186,222Z" fill="${roupa}"/>
+    <path d="M84,126 L84,168 Q100,180 116,168 L116,126Z" fill="${sd}"/>
+    ${torso}
+    <path d="M62,164 L80,164 L100,214 L86,222 Z" fill="${roupaEsc}"/><path d="M138,164 L120,164 L100,214 L114,222Z" fill="${roupaEsc}"/>
+    <ellipse cx="58" cy="96" rx="7" ry="11" fill="${s}"/><ellipse cx="142" cy="96" rx="7" ry="11" fill="${s}"/>
+    <ellipse cx="100" cy="92" rx="42" ry="50" fill="${s}"/>
+    ${a.barba?`<path d="M59,98 Q61,148 100,146 Q139,148 141,98 Q135,132 100,130 Q65,132 59,98Z" fill="${h}" opacity=".92"/>`:''}
+    <g class="olhos" style="animation-delay:${delay}s"><ellipse cx="84" cy="94" rx="4.2" ry="5" fill="#1a1a1a"/><ellipse cx="116" cy="94" rx="4.2" ry="5" fill="#1a1a1a"/>
+      <circle cx="85.5" cy="92.5" r="1.3" fill="#fff"/><circle cx="117.5" cy="92.5" r="1.3" fill="#fff"/></g>
+    <path d="M74,82 Q84,77 94,82" stroke="${brow}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M106,82 Q116,77 126,82" stroke="${brow}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M100,97 Q95,110 101,112" stroke="${sd}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="74" cy="110" rx="6" ry="3.5" fill="#e88" opacity=".18"/><ellipse cx="126" cy="110" rx="6" ry="3.5" fill="#e88" opacity=".18"/>
+    <path class="boca-f" d="M89,122 Q100,129 111,122" stroke="#7a2e2e" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <ellipse class="boca-a" cx="100" cy="124" rx="9" ry="6" fill="#5a1a1a"/>
+    ${frente}
+    ${a.oculos?`<g fill="rgba(200,220,255,.12)" stroke="#111" stroke-width="3"><rect x="70" y="84" width="27" height="20" rx="6"/><rect x="103" y="84" width="27" height="20" rx="6"/><path d="M97,92 L103,92" fill="none"/></g>`:''}
+  </svg>`;
+}
+const avatarDe=(c,opt)=>avatarSVG(c.av,opt&&opt.semId?null:c.id,IDEO[c.ideo].cor,opt);
+const bocaT={};
+function boca(id,ms=400){
+  document.querySelectorAll(`[data-av="${id}"]`).forEach(el=>el.classList.add('falando'));
+  clearTimeout(bocaT[id]);
+  bocaT[id]=setTimeout(()=>document.querySelectorAll(`[data-av="${id}"]`).forEach(el=>el.classList.remove('falando')),ms);
+}
+
+/* =====================================================================
+   ESTADO
+   ===================================================================== */
+const S = {
+  tela:'setup',
+  cands:[
+    {nome:'Ana Ribeiro',partido:'PFP',numero:'15',ideo:'esquerda',av:{pele:'#d19a6a',estilo:'longo',corCabelo:'#3b2416',roupa:'#7f1d1d',tipo:'blazer',gravata:null,oculos:false,barba:false}},
+    {nome:'Carlos Mendes',partido:'POP',numero:'27',ideo:'direita',av:{pele:'#f6d3b3',estilo:'lateral',corCabelo:'#6a4423',roupa:'#1e3a8a',tipo:'gravata',gravata:null,oculos:true,barba:false}},
+  ],
+  cfg:{dur:'normal',voz:true,notas:true},
+  fila:[], i:0, abst:.2, r1:null, r2:null, mostrar2:false,
+  usados:new Set(), temaAtual:null, roletando:false
+};
+const cand = id=>S.cands.find(c=>c.id===id);
+const passo = ()=>S.fila[S.i];
+
+function sortearTema(){
+  const ufsUsadas=new Set([...S.usados].map(k=>TUF[k].uf));
+  let livres=TEMAS_UF.filter(t=>!ufsUsadas.has(t.uf));
+  if(!livres.length) livres=TEMAS_UF.filter(t=>!S.usados.has(t.key));
+  if(!livres.length) livres=TEMAS_UF;
+  const t=pick(livres); S.usados.add(t.key); return t.key;
+}
+
+/* =====================================================================
+   ANÁLISE DA FALA
+   ===================================================================== */
+function analisar(texto, st){
+  const t = norm(texto);
+  const words = t.match(/[a-z0-9]+/g)||[];
+  const wc = words.length;
+  const extensao = Math.min(wc/Math.max(15,st.segundos*1.3),1);
+  const relevancia = st.kind==='final' ? Math.min(hits(t,TODAS_KW)/5,1) : Math.min(hits(t,temaKw(st.tema))/3,1);
+  const propHits = hits(t,PROPOSTA_KW) + (t.match(/\d+/g)||[]).length*.5 + (t.split('%').length-1)*.5;
+  const concretude = Math.min(propHits/4,1);
+  const apelo = Math.min(hits(t,APELO_KW)/3,1);
+  const vicios = hits(t,VICIOS);
+  const L=hits(t,LEX.esq), R=hits(t,LEX.dir), C=hits(t,LEX.cen);
+  const forca=L+R+C;
+  const lean = forca? clamp((R-L)/forca*2,-2,2) : null;
+  const outros = S.cands.filter(c=>c.id!==st.falante);
+  const mencionados = outros.filter(c=>norm(c.nome).split(/\s+/).filter(p=>p.length>=3).some(p=>hits(t,['='+p])>0) || hits(t,['='+norm(c.partido)])>0);
+  if(st.alvo && hits(t,MENCAO_GENERICA)>0 && !mencionados.some(c=>c.id===st.alvo)) mencionados.push(cand(st.alvo));
+  const ataque = Math.min(hits(t,ATAQUE_KW),3);
+  const W = {proposta:[.25,.30,.30,.15], pergunta:[.30,.40,.10,.20], resposta:[.25,.45,.20,.10],
+             replica:[.30,.30,.20,.20], treplica:[.30,.30,.20,.20], final:[.25,.10,.30,.35]}[st.kind];
+  let nota = 10*(W[0]*extensao + W[1]*relevancia + W[2]*concretude + W[3]*apelo) - Math.min(vicios*.3,2);
+  const fugiu = st.kind==='resposta' && wc>=5 && relevancia<.34;
+  if(fugiu) nota -= 1.5;
+  if(wc<5) nota = Math.min(nota,1);
+  nota = clamp(nota,0,10);
+  return {nota,wc,extensao,relevancia,concretude,apelo,vicios,lean,forca,ataque,mencionados:mencionados.map(c=>c.id),fugiu};
+}
+function aplicar(st, r){
+  const c = cand(st.falante);
+  const peso = st.etapa===3?1.4:1;
+  c.somaNotas += r.nota*peso; c.somaPesos += peso; c.nFalas++;
+  if(r.lean!==null){c.leanSum += r.lean*r.forca; c.leanW += r.forca;}
+  if(r.fugiu) c.fugas++;
+  r.danoEm=[];
+  if(r.ataque>0){
+    c.ataques += r.ataque;
+    for(const id of r.mencionados){ const a=cand(id); a.dano=Math.min(3,a.dano+r.ataque*.3); r.danoEm.push(id); }
+  }
+  r.rebateu=false;
+  if((st.kind==='resposta'||st.kind==='treplica') && r.nota>=6.5 && c.dano>0){ c.dano=Math.max(0,c.dano-.5); r.rebateu=true; }
+  if(!c.melhor || r.nota>c.melhor.nota) c.melhor={nota:r.nota,texto:st.texto,kind:st.kind};
+}
+const perf = c=> c.somaPesos? c.somaNotas/c.somaPesos : 5;
+function percebida(c){
+  const d = IDEO[c.ideo].pos;
+  if(!c.leanW) return d;
+  return clamp(d + (c.leanSum/c.leanW-d)*Math.min(c.leanW/8,.6),-2,2);
+}
+const rotuloPos = p=>IDEO[IDEO_POR_POS[Math.round(p)||0]].nome;
+
+/* =====================================================================
+   MODELO ELEITORAL (sistema brasileiro: maioria absoluta dos válidos)
+   ===================================================================== */
+function utilidade(c,g){
+  const d=Math.abs(g.pos-percebida(c));
+  const agr=c.ataques/Math.max(1,c.nFalas);
+  const tolerancia=[.15,.7,1.3,.7,.15][g.pos+2];
+  const mobiliza = Math.abs(g.pos)===2? agr*.25 : 0;
+  return .6*perf(c) - 1.5*Math.pow(d,1.25) - .7*c.dano - agr*tolerancia + mobiliza;
+}
+function apurar(lista, ruido, segundo){
+  const abst=Math.min(.35,S.abst+(segundo?.015:0));
+  const comparec=ELEITORADO*(1-abst);
+  const votos=new Map(lista.map(c=>[c.id,0])); let brancos=0,nulos=0; const seg=[];
+  for(const g of SEGMENTOS){
+    const tot=comparec*g.peso;
+    const us=lista.map(c=>utilidade(c,g)+gauss()*ruido);
+    const best=Math.max(...us);
+    const bn=clamp(.03+.045*Math.max(0,3.5-best)+(segundo?.02:0),.02,.45);
+    const ex=us.map(u=>Math.exp(u-best)); const sum=ex.reduce((a,b)=>a+b,0);
+    lista.forEach((c,k)=>votos.set(c.id,votos.get(c.id)+tot*(1-bn)*ex[k]/sum));
+    brancos+=tot*bn*.4; nulos+=tot*bn*.6;
+    seg.push({g,shares:lista.map((c,k)=>({c,p:ex[k]/sum})).sort((a,b)=>b.p-a.p)});
+  }
+  const validos=[...votos.values()].reduce((a,b)=>a+b,0);
+  const res=lista.map(c=>({c,votos:votos.get(c.id),pct:votos.get(c.id)/validos*100})).sort((a,b)=>b.pct-a.pct);
+  return {res,brancos,nulos,abst:ELEITORADO*abst,comparec,validos,seg};
+}
+
+/* =====================================================================
+   VOZ DA MEDIADORA (TTS)
+   ===================================================================== */
+let vozPt=null, jornIv=null;
+function carregarVozes(){ const vs=speechSynthesis.getVoices(); vozPt = vs.find(v=>/pt-BR/i.test(v.lang)&&/francisca|maria|luciana|thalita|female/i.test(v.name)) || vs.find(v=>/pt-BR/i.test(v.lang)) || vs.find(v=>/^pt/i.test(v.lang)) || null; }
+if('speechSynthesis' in window){ carregarVozes(); speechSynthesis.onvoiceschanged=carregarVozes; }
+function pararJornalista(){ if('speechSynthesis' in window) speechSynthesis.cancel(); clearInterval(jornIv); jornIv=null; }
+function falarJornalista(txt){
+  pararJornalista();
+  if(!S.cfg.voz||!('speechSynthesis' in window)){ // sem voz: anima a boca por um tempo proporcional ao texto
+    const fim=Date.now()+Math.min(6000,txt.length*45); jornIv=setInterval(()=>{ if(Date.now()>fim){clearInterval(jornIv);jornIv=null;} else boca('jorn',300); },220); return; }
+  const u=new SpeechSynthesisUtterance(txt); u.lang='pt-BR'; if(vozPt)u.voice=vozPt; u.rate=1.07;
+  u.onstart=()=>{ clearInterval(jornIv); jornIv=setInterval(()=>boca('jorn',300),220); };
+  u.onend=u.onerror=()=>{ clearInterval(jornIv); jornIv=null; };
+  speechSynthesis.speak(u);
+}
+
+/* =====================================================================
+   MICROFONE: reconhecimento de voz + medidor de volume
+   ===================================================================== */
+const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+const EH_ARQUIVO = location.protocol==='file:';
+function msgErroSR(code){
+  return ({
+    'not-allowed': EH_ARQUIVO ? 'O Chrome bloqueia a transcrição quando o jogo é aberto direto do arquivo. Feche esta aba e abra o jogo pelo INICIAR.bat.' : 'Permissão de microfone negada. Clique no ícone de cadeado/microfone ao lado do endereço e permita o microfone.',
+    'service-not-allowed': EH_ARQUIVO ? 'Abra o jogo pelo INICIAR.bat: a transcrição não funciona com o arquivo aberto direto.' : 'O navegador não permitiu o serviço de reconhecimento de voz. Use o Google Chrome.',
+    'audio-capture':'Nenhum microfone encontrado. Verifique se ele está conectado e selecionado no Windows.',
+    'network':'O reconhecimento de voz do Chrome precisa de internet. Verifique sua conexão.',
+    'language-not-supported':'Este navegador não reconhece português (pt-BR).',
+  })[code] || ('Erro no reconhecimento de voz: '+code);
+}
+const F = {status:'pronto',fim:0,timer:null,rec:null,recAtivo:false,mic:false,final:'',interim:'',erro:'',micMsg:''};
+const VU = {stream:null,ctx:null,raf:0,token:0};
+async function vuLigar(id){
+  const tk=++VU.token;
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    if(tk!==VU.token){stream.getTracks().forEach(t=>t.stop());return;}
+    VU.stream=stream; VU.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const an=VU.ctx.createAnalyser(); an.fftSize=512; VU.ctx.createMediaStreamSource(stream).connect(an);
+    const buf=new Uint8Array(an.fftSize);
+    const loop=()=>{ an.getByteTimeDomainData(buf); let s=0; for(const v of buf){const x=(v-128)/128;s+=x*x;}
+      const rms=Math.sqrt(s/buf.length); const el=$('#vu'); if(el) el.style.width=Math.min(100,rms*450)+'%';
+      if(rms>.035) boca(id,220); VU.raf=requestAnimationFrame(loop); };
+    loop();
+  }catch(e){ /* o reconhecimento pode funcionar mesmo assim */ }
+}
+function vuDesligar(){ VU.token++; cancelAnimationFrame(VU.raf); if(VU.stream) VU.stream.getTracks().forEach(t=>t.stop()); if(VU.ctx) VU.ctx.close().catch(()=>{}); VU.stream=VU.ctx=null; }
+function setMicMsg(m){ F.micMsg=m; const el=$('#mic-status'); if(el) el.textContent=m; }
+
+function micLigar(){
+  const st=passo();
+  if(!SR){ F.erro='Este navegador não transcreve voz. Use o Google Chrome, ou digite sua fala (o tempo continua correndo).'; renderPainel(); return; }
+  pararJornalista();
+  F.final=(st.rascunho||'').trim(); if(F.final) F.final+=' '; F.interim=''; F.erro='';
+  const rec=new SR(); rec.lang='pt-BR'; rec.continuous=true; rec.interimResults=true; rec.maxAlternatives=1;
+  rec.onstart=()=>setMicMsg('Microfone ligado — pode falar.');
+  rec.onspeechstart=()=>setMicMsg('Ouvindo e transcrevendo…');
+  rec.onresult=e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const r=e.results[i];
+      if(r.isFinal) F.final+=r[0].transcript.trim()+' '; else interim+=r[0].transcript;
+    }
+    F.interim=interim; st.rascunho=(F.final+F.interim).trim();
+    const ta=$('#transc'); if(ta){ ta.value=st.rascunho; ta.scrollTop=ta.scrollHeight; }
+    atualizarLegenda(); boca(st.falante,500); setMicMsg('Ouvindo e transcrevendo…');
+  };
+  rec.onerror=e=>{
+    if(e.error==='no-speech'||e.error==='aborted') return;
+    F.recAtivo=false; F.mic=false; F.rec=null; vuDesligar();
+    F.erro=msgErroSR(e.error)+' Você pode continuar digitando — o tempo segue correndo.';
+    renderPainel();
+  };
+  rec.onend=()=>{ if(F.recAtivo){ try{rec.start()}catch(_){} } };
+  F.rec=rec; F.recAtivo=true; F.mic=true; F.micMsg='Ligando microfone…';
+  try{ rec.start(); }catch(e){ F.recAtivo=false; F.mic=false; F.rec=null; F.erro=msgErroSR(e.name||'start'); }
+  if(F.mic) vuLigar(st.falante);
+  renderPainel();
+}
+function micDesligar(depois){
+  if(!F.mic||!F.rec){ F.mic=false; depois?depois():renderPainel(); return; }
+  F.recAtivo=false; vuDesligar();
+  const rec=F.rec; let feito=false;
+  const fim=()=>{ if(feito)return; feito=true;
+    const st=passo(); st.rascunho=(F.final+F.interim).trim(); F.interim=''; F.mic=false; F.rec=null;
+    depois?depois():renderPainel(); };
+  rec.onend=fim; try{rec.stop()}catch(e){fim()}
+  setTimeout(fim,1500);
+}
+function resetFala(){
+  pararTimer(); F.recAtivo=false; vuDesligar();
+  if(F.rec){ try{F.rec.onend=null;F.rec.onresult=null;F.rec.abort()}catch(e){} }
+  Object.assign(F,{status:'pronto',rec:null,mic:false,final:'',interim:'',erro:'',micMsg:''});
+}
+
+/* ---------- Fluxo da fala ---------- */
+function iniciarTurno(comMic){
+  if(F.status!=='pronto'||S.roletando) return;
+  pararJornalista();
+  const st=passo();
+  F.status='ativo'; F.fim=Date.now()+st.segundos*1000;
+  F.timer=setInterval(tick,200);
+  if(comMic){ renderDebate(); micLigar(); }
+  else { renderDebate(); focarTexto(); }
+}
+function restante(){ return Math.max(0,Math.ceil((F.fim-Date.now())/1000)); }
+function tick(){
+  const st=passo(); const msRest=Math.max(0,F.fim-Date.now()); const s=Math.ceil(msRest/1000);
+  const el=$('#timer'), b=$('#tbar'), tv=$('#tv-timer'), tvb=$('#tv-timer-box');
+  if(el){ el.textContent=fmtT(s); el.classList.toggle('alerta',s<=10); }
+  if(tv){ tv.textContent=fmtT(s); tvb.classList.toggle('alerta',s<=10); }
+  if(b) b.style.width=(msRest/(st.segundos*1000)*100)+'%';
+  if(msRest<=0) encerrar(true);
+}
+function pararTimer(){ if(F.timer){clearInterval(F.timer);F.timer=null;} }
+function encerrar(porTempo){
+  if(F.status!=='ativo') return;
+  pararTimer();
+  const ta=$('#transc'); if(ta && !F.mic) passo().rascunho=ta.value;
+  F.status='encerrando'; F.porTempo=!!porTempo; renderPainel();
+  micDesligar(finalizarFala);
+}
+function finalizarFala(){
+  const st=passo(); if(st.res) return;
+  st.texto=(st.rascunho||'').trim();
+  st.res=analisar(st.texto,st); aplicar(st,st.res);
+  F.status='avaliado'; renderDebate();
+}
+function focarTexto(){ const ta=$('#transc'); if(ta&&!ta.readOnly){ ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length);} }
+
+/* =====================================================================
+   FLUXO DO DEBATE
+   ===================================================================== */
+function iniciarDebate(){
+  S.cands=S.cands.map((c,k)=>({...c,av:{...c.av},id:'c'+k,cor:CORES[k],somaNotas:0,somaPesos:0,nFalas:0,leanSum:0,leanW:0,ataques:0,dano:0,fugas:0,melhor:null}));
+  S.abst=.18+Math.random()*.04; S.r1=S.r2=null; S.mostrar2=false; S.usados=new Set(); S.temaAtual=null;
+  const f=[];
+  const lista=S.cands.map(c=>c.nome).join(', ').replace(/, ([^,]*)$/,' e $1');
+  f.push({tipo:'intro',etapa:1,texto:`Boa noite! Eu sou ${JORN} e começa agora o debate entre os candidatos à Presidência da República: ${lista}. No primeiro bloco, cada candidato apresenta propostas sobre um tema sorteado entre os 27 estados brasileiros.`});
+  S.cands.forEach(c=>f.push({tipo:'fala',etapa:1,kind:'proposta',falante:c.id,tema:sortearTema()}));
+  f.push({tipo:'pesquisa',etapa:1,titulo:'Pesquisa relâmpago · após o 1º bloco'});
+  f.push({tipo:'intro',etapa:2,texto:`Segundo bloco: confronto direto. Cada candidato escolhe um adversário, e o tema é sorteado na hora. Teremos pergunta, resposta, réplica e tréplica.`});
+  S.cands.forEach(c=>f.push({tipo:'escolha',etapa:2,falante:c.id}));
+  f.push({tipo:'pesquisa',etapa:2,titulo:'Pesquisa relâmpago · após o 2º bloco'});
+  f.push({tipo:'intro',etapa:3,texto:`Chegamos ao terceiro e último bloco: as considerações finais. A ordem foi sorteada. É a última chance de convencer o eleitor.`});
+  shuffle(S.cands.slice()).forEach(c=>f.push({tipo:'fala',etapa:3,kind:'final',falante:c.id}));
+  f.forEach(p=>{ if(p.tipo==='fala') p.segundos=Math.round(SEGUNDOS[p.kind]*DUR_MULT[S.cfg.dur]); });
+  S.fila=f; S.tela='debate'; irPara(0);
+}
+let roletaIv=null, roletaTo=null;
+function roleta(key, depois){
+  S.roletando=true; clearInterval(roletaIv); clearTimeout(roletaTo);
+  roletaIv=setInterval(()=>{ const el=$('#led-tema'); if(el){ el.className='led-tema girando'; el.innerHTML=ledTemaHTML(pick(TEMAS_UF)); } },85);
+  roletaTo=setTimeout(()=>{ clearInterval(roletaIv); S.roletando=false; S.temaAtual=key; depois&&depois(); },1800);
+}
+function pararRoleta(){ clearInterval(roletaIv); clearTimeout(roletaTo); S.roletando=false; }
+function irPara(i){
+  resetFala(); pararRoleta(); S.i=i;
+  const st=passo();
+  if(st.tipo==='fala' && st.etapa===1){
+    S.temaAtual=null;
+    st.textoJ=`Vamos sortear o estado e o tema para ${cand(st.falante).nome}.`;
+    S.roletando=true; renderDebate(); falarJornalista(st.textoJ);
+    roleta(st.tema,()=>{ st.textoJ=textoJornalista(st); renderDebate(true); falarJornalista(st.textoJ); });
+  } else {
+    S.temaAtual = st.tipo==='fala' && st.tema ? st.tema : null;
+    if(st.tipo==='pesquisa') st.poll=apurar(S.cands,.25,false);
+    st.textoJ=textoJornalista(st);
+    renderDebate(); falarJornalista(st.textoJ);
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function proximo(){ if(S.i+1<S.fila.length) irPara(S.i+1); else finalizarDebate(); }
+function textoJornalista(st){
+  const c=cand(st.falante), a=st.alvo&&cand(st.alvo), s=st.segundos, t=st.tema&&TUF[st.tema];
+  switch(st.tipo){
+    case 'intro': return st.texto;
+    case 'pesquisa': return `Vamos aos números. O instituto divulga agora uma pesquisa relâmpago de intenção de voto.`;
+    case 'escolha': return `${c.nome}, é a sua vez de perguntar. Escolha o adversário; o tema será sorteado.`;
+  }
+  switch(st.kind){
+    case 'proposta': return `${c.nome}, o tema sorteado vem ${t.de}: ${t.titulo}. ${t.pergunta} Você tem ${s} segundos.`;
+    case 'pergunta': return `${c.nome}, o tema sorteado vem ${t.de}: ${t.titulo}. Faça a sua pergunta para ${a.nome}. ${s} segundos.`;
+    case 'resposta': return `${c.nome}, a sua resposta sobre ${t.titulo}. ${s} segundos.`;
+    case 'replica':  return `Réplica, ${c.nome}. ${s} segundos.`;
+    case 'treplica': return `Tréplica, ${c.nome}. ${s} segundos.`;
+    case 'final':    return `${c.nome}, suas considerações finais. Por que o eleitor deve confiar no seu voto? ${s} segundos.`;
+  }
+}
+function confirmarEscolha(){
+  const st=passo(); if(S.roletando||st.escolhido) return;
+  const alvo=$('#esc-alvo').value; const tema=sortearTema();
+  st.escolhido={alvo,tema};
+  st.textoJ=`${cand(st.falante).nome} vai perguntar para ${cand(alvo).nome}. Vamos sortear o tema!`;
+  renderDebate(); falarJornalista(st.textoJ);
+  roleta(tema,()=>{
+    const m=DUR_MULT[S.cfg.dur], sec=k=>Math.round(SEGUNDOS[k]*m), base={tipo:'fala',etapa:2,tema};
+    S.fila.splice(S.i+1,0,
+      {...base,kind:'pergunta',falante:st.falante,alvo,segundos:sec('pergunta')},
+      {...base,kind:'resposta',falante:alvo,alvo:st.falante,segundos:sec('resposta')},
+      {...base,kind:'replica',falante:st.falante,alvo,segundos:sec('replica')},
+      {...base,kind:'treplica',falante:alvo,alvo:st.falante,segundos:sec('treplica')});
+    renderDebate(true);
+    roletaTo=setTimeout(proximo,1400);
+  });
+}
+function finalizarDebate(){
+  resetFala(); pararRoleta();
+  S.r1=apurar(S.cands,.45,false);
+  const top=S.r1.res[0];
+  S.eleito1 = top.pct>50 || S.cands.length===2;
+  if(!S.eleito1) S.r2=apurar([S.r1.res[0].c,S.r1.res[1].c],.35,true);
+  S.tela='resultado'; S.temaAtual=null; render(); window.scrollTo({top:0});
+  falarJornalista(S.eleito1? `Apuração encerrada. ${top.c.nome} está eleito no primeiro turno, com ${fmtP(top.pct)} dos votos válidos.` : `Apuração encerrada. Nenhum candidato alcançou a maioria dos votos válidos. Teremos segundo turno entre ${S.r1.res[0].c.nome} e ${S.r1.res[1].c.nome}.`);
+}
+
+/* =====================================================================
+   TV / ESTÚDIO
+   ===================================================================== */
+function ledTemaHTML(t){ return `<span class="uf">${t.uf}</span><span><small>${esc(t.estado.toUpperCase())}</small>${esc(t.titulo)}</span>`; }
+function ledBloco(){
+  if(S.tela==='resultado') return `<span><small>ELEIÇÕES 2026</small>APURAÇÃO</span>`;
+  const st=passo(); return `<span><small>BLOCO ${st.etapa}</small>${ETAPAS[st.etapa-1].toUpperCase()}</span>`;
+}
+function estudioHTML(o,revelar){
+  const n=S.cands.length, W=Math.min(13,56/n);
+  const lit=id=>id===o.ativo||id===o.destaque;
+  const pul=S.cands.map((c,i)=>{
+    const t=n===1?.5:i/(n-1), x=n===2?[45,77][i]:34+t*58, d=1-4*(t-.5)**2;
+    return `<div class="pulpito ${lit(c.id)?'lit':''} ${o.ativo&&!lit(c.id)?'dim':''}" style="left:${x}%;bottom:${4+5*d}%;width:${W}cqw;font-size:${W*.1}cqw;transform:translateX(-50%) scale(${1-.1*d});z-index:${10-Math.round(d*5)}">
+      <div class="pul-av">${avatarDe(c)}</div>
+      <div class="pul-mesa" style="--c:${c.cor}"><div class="pul-num">${esc(c.numero)}</div><div class="pul-nome">${esc(nomeCurto(c.nome))}</div></div>
+    </div>`;}).join('');
+  const temaHTML = S.roletando ? ledTemaHTML(pick(TEMAS_UF)) : S.temaAtual ? ledTemaHTML(TUF[S.temaAtual]) : ledBloco();
+  return `<div class="cena">
+    <div class="led">
+      <div class="led-titulo"><span>DEBATE</span><b>PRESIDENCIAL</b></div>
+      <div class="led-sub">ELEIÇÕES 2026</div>
+      <div class="led-tema ${S.roletando?'girando':''} ${revelar?'revelado':''}" id="led-tema">${temaHTML}</div>
+    </div>
+    <div class="feixe f1"></div><div class="feixe f2"></div><div class="feixe f3"></div>
+    <div class="piso"><div class="anel"></div></div>
+    <div class="mediadora ${o.ativo&&o.ativo!=='jorn'?'dim':''}"><div class="pul-av">${avatarSVG(JORN_AV,'jorn')}</div><div class="med-mesa">MEDIADORA</div></div>
+    ${pul}
+  </div>`;
+}
+function closeHTML(c){
+  return `<div class="cena-close" style="--c:${c.cor}">
+    <div class="close-bg"><span>DEBATE PRESIDENCIAL</span></div>
+    <div class="close-av">${avatarDe(c)}</div>
+    <div class="close-mesa">${esc(c.numero)}</div>
+  </div>`;
+}
+function gcHTML(g){ return `<div class="gc" style="--c:${g.cor}">${g.tag?`<div class="gc-tag">${esc(g.tag)}</div>`:''}<div class="gc-box"><div class="gc-nome">${esc(g.nome)}</div><div class="gc-sub">${esc(g.sub)}</div></div></div>`; }
+function pollHTML(titulo,res,rodape){
+  const max=Math.max(...res.map(x=>x.pct));
+  return `<div class="poll"><div class="poll-tit">${esc(titulo)}</div>
+    ${res.map(x=>`<div class="poll-row"><div class="poll-av" style="--c:${x.c.cor}">${avatarDe(x.c,{rosto:true,semId:true})}</div>
+      <div>${esc(nomeCurto(x.c.nome))}</div>
+      <div class="poll-bar"><div class="bar-fill" data-w="${x.pct/max*100}" style="background:${x.c.cor}"></div></div>
+      <div class="poll-pct">${x.pct.toFixed(0)}%</div></div>`).join('')}
+    <div class="poll-rod">${esc(rodape||'Votos válidos · margem de erro de 2 pontos percentuais · instituto fictício')}</div></div>`;
+}
+function confeteHTML(){ let s=''; for(let i=0;i<50;i++) s+=`<i style="left:${Math.random()*100}%;background:${pick(['#f2c14e','#22c55e','#3a86ff','#fff','#e63946'])};animation-duration:${2.5+Math.random()*3}s;animation-delay:${-Math.random()*5}s"></i>`; return `<div class="confete">${s}</div>`; }
+const cauda=(t,n=170)=>{ t=(t||'').trim(); if(t.length<=n) return t; const c=t.slice(-n); return '…'+c.slice(c.indexOf(' ')+1); };
+
+function tvHTML(o,revelar){
+  return `<div class="tv">
+    ${o.cena==='close'?closeHTML(o.foco):estudioHTML(o,revelar)}
+    ${o.overlay?`<div class="tv-overlay">${o.overlay}</div>`:''}
+    ${o.confete?confeteHTML():''}
+    <div class="tv-aovivo">AO VIVO</div>
+    <div class="tv-marca">DEBATE <b>2026</b></div>
+    <div class="tv-legenda" id="tv-legenda">${esc(o.legenda||'')}</div>
+    ${o.gc?gcHTML(o.gc):''}
+    ${o.timer!=null?`<div class="tv-timer ${o.timer<=10&&o.timerVivo?'alerta':''}" id="tv-timer-box"><small>TEMPO</small><span id="tv-timer">${fmtT(o.timer)}</span></div>`:''}
+    ${o.nota!=null?`<div class="tv-nota"><small>COMENTARISTAS</small>${o.nota.toFixed(1)}</div>`:''}
+  </div>`;
+}
+function tvOpcoes(){
+  const st=passo(); const o={cena:'geral'};
+  const etTag=`Bloco ${st.etapa} · ${ETAPAS[st.etapa-1]}`;
+  const jornGC={tag:etTag,nome:JORN,sub:'Mediadora do debate',cor:'#b8860b'};
+  if(st.tipo==='fala'){
+    const c=cand(st.falante), t=st.tema&&TUF[st.tema];
+    if(F.status!=='pronto'){
+      o.cena='close'; o.foco=c;
+      o.gc={tag:KIND_NOME[st.kind]+(t?` · ${t.uf} — ${t.titulo}`:''),nome:c.nome,sub:`${c.partido} ${c.numero} · ${IDEO[c.ideo].nome}`,cor:c.cor};
+      o.legenda=cauda(st.texto??st.rascunho);
+      o.timer=F.status==='ativo'?restante():0; o.timerVivo=F.status==='ativo';
+      if(F.status==='avaliado'&&S.cfg.notas) o.nota=st.res.nota;
+    } else { o.ativo='jorn'; o.destaque=c.id; o.gc=jornGC; o.legenda=st.textoJ; o.timer=st.segundos; }
+  } else if(st.tipo==='pesquisa'){ o.overlay=pollHTML(st.titulo.toUpperCase(),st.poll.res); }
+  else if(st.tipo==='escolha'){ o.ativo='jorn'; o.destaque=st.falante; if(st.escolhido) o.destaque2=st.escolhido.alvo; o.gc=jornGC; o.legenda=st.textoJ; }
+  else { o.ativo='jorn'; o.gc=jornGC; o.legenda=st.textoJ; }
+  return o;
+}
+function atualizarLegenda(){ const el=$('#tv-legenda'); if(el) el.textContent=cauda(passo().rascunho); }
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+function render(){
+  renderSteps();
+  if(S.tela==='setup') renderSetup();
+  else if(S.tela==='debate') renderDebate();
+  else renderResultado();
+}
+function renderSteps(){
+  const el=$('#steps');
+  if(S.tela==='setup'){el.innerHTML='';return;}
+  const et = S.tela==='resultado'?4:passo().etapa;
+  el.innerHTML = ETAPAS.map((n,k)=>`<span class="step ${et===k+1?'on':et>k+1?'done':''}">${k+1}. ${n}</span>`).join('')+`<span class="step ${et===4?'on':''}">Resultado</span>`;
+}
+function badge(ideo){ const i=IDEO[ideo]; return `<span class="badge" style="background:${i.cor}22;color:${i.cor};border:1px solid ${i.cor}66">${i.nome}</span>`; }
+
+function renderSetup(){
+  const n=S.cands.length;
+  const sw=(k,campo,lista,atual)=>lista.map(v=>`<button class="sw ${v===atual?'sel':''}" style="background:${v}" data-k="${k}" data-av="${campo}" data-v="${v}" title="${v}"></button>`).join('');
+  $('#app').innerHTML = `
+  <h1>Monte o debate</h1>
+  <p class="muted">De 2 a 5 candidatos, jogando no mesmo computador e revezando o microfone. A mediadora ${JORN} conduz 3 blocos com temas sorteados dos 27 estados. No fim sai o resultado da eleição pelo sistema brasileiro: maioria absoluta dos votos válidos ou 2º turno.</p>
+  ${EH_ARQUIVO?`<div class="aviso"><b>Atenção:</b> você abriu o arquivo direto, e assim o Chrome <b>bloqueia a transcrição de voz</b>. Feche esta aba e dê dois cliques em <b>INICIAR.bat</b>, na pasta do jogo. Dá para jogar digitando, mesmo assim.</div>`:''}
+  ${!SR?`<div class="aviso">Este navegador não tem reconhecimento de voz. Use o <b>Google Chrome</b>. Dá para jogar digitando.</div>`:''}
+  <div class="card">
+    <h2>Candidatos (${n}/5)</h2>
+    ${S.cands.map((c,k)=>`
+      <div class="cand-card" style="--c:${CORES[k]}">
+        <div class="cand-av">${avatarSVG(c.av,null,IDEO[c.ideo].cor)}<br><button data-rand="${k}" style="margin-top:6px;font-size:12px;padding:5px 10px">🎲 Aleatório</button></div>
+        <div class="cand-campos">
+          <div class="row">
+            <input data-k="${k}" data-f="nome" value="${esc(c.nome)}" placeholder="Nome do candidato" maxlength="30">
+            <input data-k="${k}" data-f="partido" value="${esc(c.partido)}" placeholder="Sigla" maxlength="10">
+            <input data-k="${k}" data-f="numero" value="${esc(c.numero)}" placeholder="Nº" maxlength="2" inputmode="numeric">
+            <select data-k="${k}" data-f="ideo">${Object.entries(IDEO).map(([id,i])=>`<option value="${id}" ${c.ideo===id?'selected':''}>${i.nome}</option>`).join('')}</select>
+            <button data-rm="${k}" title="Remover" ${n<=2?'disabled':''}>✕</button>
+          </div>
+          <div class="row">
+            <span class="sw-grupo">Pele ${sw(k,'pele',PELES,c.av.pele)}</span>
+            <span class="sw-grupo">Cabelo ${sw(k,'corCabelo',CABELO_CORES,c.av.corCabelo)}</span>
+          </div>
+          <div class="row">
+            <span class="sw-grupo">Roupa ${sw(k,'roupa',ROUPAS,c.av.roupa)}</span>
+            <select data-k="${k}" data-avsel="estilo">${Object.entries(ESTILOS).map(([v,l])=>`<option value="${v}" ${c.av.estilo===v?'selected':''}>${l}</option>`).join('')}</select>
+            <select data-k="${k}" data-avsel="tipo"><option value="gravata" ${c.av.tipo==='gravata'?'selected':''}>Terno e gravata</option><option value="blazer" ${c.av.tipo==='blazer'?'selected':''}>Blazer</option></select>
+            <label class="chk"><input type="checkbox" data-k="${k}" data-avchk="oculos" ${c.av.oculos?'checked':''}> Óculos</label>
+            <label class="chk"><input type="checkbox" data-k="${k}" data-avchk="barba" ${c.av.barba?'checked':''}> Barba</label>
+          </div>
+        </div>
+      </div>`).join('')}
+    <button id="add" ${n>=5?'disabled':''}>+ Adicionar candidato</button>
+  </div>
+  <div class="card">
+    <h2>Configurações</h2>
+    <div class="row">
+      <label>Tempo de fala
+        <select id="cfg-dur">
+          <option value="curto" ${S.cfg.dur==='curto'?'selected':''}>Curto (30s propostas)</option>
+          <option value="normal" ${S.cfg.dur==='normal'?'selected':''}>Normal (60s propostas)</option>
+          <option value="longo" ${S.cfg.dur==='longo'?'selected':''}>Longo (90s propostas)</option>
+        </select></label>
+      <label class="chk"><input type="checkbox" id="cfg-voz" ${S.cfg.voz?'checked':''}> Voz da mediadora</label>
+      <label class="chk"><input type="checkbox" id="cfg-notas" ${S.cfg.notas?'checked':''}> Mostrar avaliação após cada fala</label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="teste-mic">🎙 Testar microfone e transcrição</button>
+      <span id="teste-out" class="muted" style="font-size:14px"></span>
+    </div>
+  </div>
+  <div id="erro-setup"></div>
+  <button class="btn-gold" id="start" style="font-size:17px;padding:13px 26px">Começar o debate ▶</button>
+  <div class="card" style="margin-top:20px">
+    <h3>Regras rápidas</h3>
+    <p class="muted" style="margin:0">⏱ O tempo começa quando você liga o microfone <b>ou</b> digita a primeira letra. 🔒 Depois de confirmar a fala (ou quando o tempo acaba), não dá mais para editar. A avaliação considera: <b>foco no tema</b> (cite o estado e o problema), <b>propostas concretas</b> (metas, números, “vou criar…”), <b>apelo ao eleitor</b>, <b>uso do tempo</b> e <b>vícios de linguagem</b>. O seu vocabulário muda como o eleitor enxerga sua ideologia. Ataques mobilizam os extremos, mas afastam o centro. Fugir da pergunta custa caro.</p>
+  </div>`;
+  document.querySelectorAll('[data-f]').forEach(el=>{
+    const ev=el.tagName==='SELECT'?'change':'input';
+    el.addEventListener(ev,()=>{
+      const c=S.cands[el.dataset.k], f=el.dataset.f;
+      if(f==='numero') el.value=el.value.replace(/\D/g,'');
+      if(f==='ideo'){ const antigo=IDEO[c.ideo].partido; if(!c.partido||c.partido===antigo) c.partido=IDEO[el.value].partido; c.ideo=el.value; renderSetup(); return; }
+      c[f]=el.value;
+    });
+  });
+  document.querySelectorAll('[data-av]').forEach(b=>{ if(b.tagName!=='BUTTON')return; b.onclick=()=>{S.cands[b.dataset.k].av[b.dataset.av]=b.dataset.v;renderSetup();}; });
+  document.querySelectorAll('[data-avsel]').forEach(s=>s.onchange=()=>{S.cands[s.dataset.k].av[s.dataset.avsel]=s.value;renderSetup();});
+  document.querySelectorAll('[data-avchk]').forEach(s=>s.onchange=()=>{S.cands[s.dataset.k].av[s.dataset.avchk]=s.checked;renderSetup();});
+  document.querySelectorAll('[data-rand]').forEach(b=>b.onclick=()=>{S.cands[b.dataset.rand].av=avatarAleatorio();renderSetup();});
+  document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{S.cands.splice(+b.dataset.rm,1);renderSetup();});
+  $('#add').onclick=()=>{
+    const usadas=S.cands.map(c=>c.ideo);
+    const ideo=Object.keys(IDEO).find(i=>!usadas.includes(i))||'centro';
+    const num=['15','27','33','44','58','61','72'].find(x=>!S.cands.some(c=>c.numero===x));
+    S.cands.push({nome:'',partido:IDEO[ideo].partido,numero:num,ideo,av:avatarAleatorio()}); renderSetup();
+  };
+  $('#cfg-dur').onchange=e=>S.cfg.dur=e.target.value;
+  $('#cfg-voz').onchange=e=>S.cfg.voz=e.target.checked;
+  $('#cfg-notas').onchange=e=>S.cfg.notas=e.target.checked;
+  $('#teste-mic').onclick=testarMic;
+  $('#start').onclick=()=>{
+    const erros=[];
+    S.cands.forEach((c,k)=>{ if(!c.nome.trim()) erros.push(`Candidato ${k+1} está sem nome.`); if(!/^\d{2}$/.test(c.numero)) erros.push(`O número de ${c.nome||'candidato '+(k+1)} deve ter 2 dígitos.`); });
+    const nums=S.cands.map(c=>c.numero); if(new Set(nums).size!==nums.length) erros.push('Dois candidatos não podem ter o mesmo número.');
+    const nomes=S.cands.map(c=>norm(c.nome.trim())); if(new Set(nomes).size!==nomes.length) erros.push('Os nomes precisam ser diferentes.');
+    if(erros.length){ $('#erro-setup').innerHTML=`<div class="aviso">${erros.map(esc).join('<br>')}</div>`; return; }
+    S.cands.forEach(c=>{c.nome=c.nome.trim();c.partido=c.partido.trim().toUpperCase()||IDEO[c.ideo].partido;});
+    iniciarDebate();
+  };
+}
+function testarMic(){
+  const out=$('#teste-out'), btn=$('#teste-mic');
+  if(!SR){ out.innerHTML='<span style="color:#fca5a5">Sem reconhecimento de voz neste navegador. Use o Google Chrome.</span>'; return; }
+  const rec=new SR(); rec.lang='pt-BR'; rec.continuous=true; rec.interimResults=true;
+  let ouviu=false, erro=false;
+  btn.disabled=true; out.textContent='Fale alguma coisa nos próximos 7 segundos…';
+  rec.onresult=e=>{ ouviu=true; let s=''; for(let i=0;i<e.results.length;i++) s+=e.results[i][0].transcript; out.innerHTML='<span style="color:#86efac">✔ Funcionando! Ouvi:</span> '+esc(s); };
+  rec.onerror=e=>{ if(e.error==='no-speech'||e.error==='aborted')return; erro=true; out.innerHTML='<span style="color:#fca5a5">✖ '+esc(msgErroSR(e.error))+'</span>'; };
+  rec.onend=()=>{ btn.disabled=false; if(!ouviu&&!erro) out.innerHTML='<span style="color:#fca5a5">Não captei nenhuma fala. Verifique se o microfone certo está selecionado (ícone de microfone na barra de endereço do Chrome).</span>'; };
+  try{ rec.start(); }catch(e){ btn.disabled=false; out.textContent='Erro ao iniciar: '+e.message; return; }
+  setTimeout(()=>{try{rec.stop()}catch(_){}} ,7000);
+}
+
+function renderDebate(revelar){
+  renderSteps();
+  $('#app').innerHTML = tvHTML(tvOpcoes(),revelar)+`<div id="painel"></div>`;
+  renderPainel();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelectorAll('.bar-fill').forEach(b=>b.style.width=b.dataset.w+'%')));
+}
+
+function renderPainel(){
+  const st=passo(), el=$('#painel'); if(!el) return;
+  if(st.tipo==='intro'){
+    el.innerHTML=`<div class="card"><h2>Bloco ${st.etapa} · ${ETAPAS[st.etapa-1]}</h2><p class="muted" style="margin-top:-4px">${esc(st.texto)}</p><button class="btn-gold" id="go">Continuar ▶</button></div>`;
+    $('#go').onclick=proximo; return;
+  }
+  if(st.tipo==='pesquisa'){
+    el.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><span class="muted">A pesquisa está na tela da TV.</span><button class="btn-gold" id="go">Continuar ▶</button></div></div>`;
+    $('#go').onclick=proximo; return;
+  }
+  if(st.tipo==='escolha'){
+    const c=cand(st.falante), outros=S.cands.filter(o=>o.id!==c.id);
+    if(st.escolhido){
+      el.innerHTML=`<div class="card"><h2>${esc(c.nome)} pergunta para ${esc(cand(st.escolhido.alvo).nome)}</h2>
+        <p class="muted">${S.roletando?'🎲 Sorteando o tema…':`Tema sorteado: <b>${TUF[st.escolhido.tema].uf} · ${esc(TUF[st.escolhido.tema].titulo)}</b>`}</p></div>`;
+      return;
+    }
+    el.innerHTML=`<div class="card" style="border-color:${c.cor}"><h2>${esc(c.nome)}, escolha seu adversário</h2>
+      <div class="row">
+        <select id="esc-alvo">${outros.map(o=>`<option value="${o.id}">${esc(o.nome)} · ${esc(o.partido)} (${IDEO[o.ideo].nome})</option>`).join('')}</select>
+        <button class="btn-gold" id="go">Confirmar e sortear tema 🎲</button>
+      </div>
+      <p class="muted" style="font-size:13px;margin-bottom:0">O tema será sorteado automaticamente entre os 27 estados. Uma pergunta direta pode levar o adversário a “fugir da pergunta”.</p></div>`;
+    $('#go').onclick=confirmarEscolha; return;
+  }
+  // ---------- fala ----------
+  const c=cand(st.falante), t=st.tema&&TUF[st.tema];
+  const ativo=F.status==='ativo', avaliado=F.status==='avaliado';
+  const travado = S.roletando || avaliado || F.status==='encerrando' || (ativo&&F.mic);
+  const alvoTxt = st.alvo?` · ${st.kind==='pergunta'||st.kind==='replica'?'para':'responde a'} <b>${esc(cand(st.alvo).nome)}</b>`:'';
+  let status='', botoes='', extra='';
+  if(S.roletando){ status=`<div class="dica">🎲 Sorteando o estado e o tema…</div>`; }
+  else if(F.status==='pronto'){
+    status=`<div class="dica">⏱ O tempo de <b>${st.segundos}s</b> começa quando você clicar em <b>Falar</b> ou começar a <b>digitar</b>.</div>`;
+    botoes=`<button class="btn-red" id="b-falar">🎙 Falar no microfone</button><button id="b-pular">Pular vez</button>`;
+  } else if(ativo){
+    status = F.mic ? `<div style="margin-bottom:8px;font-size:14px"><span class="rec-dot"></span><span id="mic-status">${esc(F.micMsg)}</span><span class="vu"><div id="vu"></div></span></div>`
+                   : `<div style="margin-bottom:8px;font-size:14px">⌨ Modo digitação: o tempo está correndo.</div>`;
+    botoes = (F.mic?`<button id="b-mic">🔇 Desligar microfone (digitar)</button>`:`<button class="btn-red" id="b-mic">🎙 Ligar microfone</button>`)
+           + `<button class="btn-green" id="b-conf">✔ Confirmar fala</button><span class="muted" style="font-size:12px">Depois de confirmar, não dá mais para editar.</span>`;
+  } else if(F.status==='encerrando'){ status=`<div class="dica">${F.porTempo?'⏰ Tempo esgotado! ':''}Finalizando a transcrição…</div>`; }
+  else if(avaliado){
+    status=`<div style="margin-bottom:8px;font-size:14px" class="muted">🔒 Fala registrada${F.porTempo?' (tempo esgotado)':''}. Não é mais possível editar.</div>`;
+    botoes=`<button class="btn-gold" id="b-prox">Próximo ▶</button>`; extra=avaliacaoHTML(st);
+  }
+  const tempoTxt = ativo? fmtT(restante()) : avaliado||F.status==='encerrando' ? '00:00' : fmtT(st.segundos);
+  const pct = ativo? (Math.max(0,F.fim-Date.now())/(st.segundos*1000)*100) : F.status==='pronto'?100:0;
+  el.innerHTML=`<div class="card" style="border-color:${c.cor}">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div style="display:flex;gap:12px;align-items:center">
+        <span class="mini-av" style="width:52px;height:52px">${avatarDe(c,{rosto:true,semId:true})}</span>
+        <div><div style="font-size:12px;color:var(--muted)">${KIND_NOME[st.kind].toUpperCase()}</div>
+        <h2 style="margin:2px 0">${esc(c.nome)}</h2>
+        <div class="muted" style="font-size:14px">${esc(c.partido)} ${esc(c.numero)} · ${IDEO[c.ideo].nome}${alvoTxt}</div></div>
+      </div>
+      <div class="timer ${ativo&&restante()<=10?'alerta':''}" id="timer">${tempoTxt}</div>
+    </div>
+    <div class="barra"><div id="tbar" style="width:${pct}%"></div></div>
+    ${t&&!S.roletando?`<div class="contexto"><b>${t.uf} · ${esc(t.estado)} — ${esc(t.titulo)}</b><br>${esc(t.pergunta)}</div>`:''}
+    ${F.erro?`<div class="aviso">${esc(F.erro)}</div>`:''}
+    ${status}
+    <textarea id="transc" class="${avaliado?'trancado':''} ${ativo&&F.mic?'gravando':''}" ${travado?'readonly':''} placeholder="${F.status==='pronto'?'Comece a digitar aqui (o tempo começa a contar) ou clique em Falar no microfone…':ativo&&F.mic?'Fale: a transcrição aparece aqui…':'Digite sua fala…'}">${esc(st.texto??st.rascunho??'')}</textarea>
+    <div class="row" style="margin-top:10px">${botoes}</div>
+    ${extra}
+  </div>`;
+  const ta=$('#transc');
+  ta.addEventListener('input',()=>{
+    if(ta.readOnly) return;
+    st.rascunho=ta.value; atualizarLegenda(); boca(st.falante,350);
+    if(F.status==='pronto' && ta.value.length>0) iniciarTurno(false);
+  });
+  const on=(id,fn)=>{const b=$(id); if(b) b.onclick=fn;};
+  on('#b-falar',()=>iniciarTurno(true));
+  on('#b-mic',()=>{ if(F.mic) micDesligar(()=>{renderPainel();focarTexto();}); else micLigar(); });
+  on('#b-conf',()=>encerrar(false));
+  on('#b-prox',proximo);
+  on('#b-pular',()=>{ if(confirm('Pular a vez? A fala vazia recebe nota mínima.')){ st.rascunho=''; F.status='ativo'; encerrar(false); } });
+  if(ativo&&!F.mic) focarTexto();
+}
+
+function avaliacaoHTML(st){
+  const r=st.res, c=cand(st.falante);
+  if(!S.cfg.notas) return '';
+  const nivel=v=>v>=.67?'bom':v<.34?'ruim':'';
+  const dots=v=>'●'.repeat(Math.round(v*3))+'○'.repeat(3-Math.round(v*3));
+  const chips=[
+    `<span class="chip">${r.wc} palavras</span>`,
+    `<span class="chip ${nivel(r.relevancia)}">Foco no tema ${dots(r.relevancia)}</span>`,
+    `<span class="chip ${nivel(r.concretude)}">Propostas concretas ${dots(r.concretude)}</span>`,
+    `<span class="chip ${nivel(r.apelo)}">Apelo ao eleitor ${dots(r.apelo)}</span>`,
+    `<span class="chip ${nivel(r.extensao)}">Uso do tempo ${dots(r.extensao)}</span>`,
+  ];
+  if(r.lean!==null){ const t=r.lean<-.6?'à esquerda':r.lean>.6?'à direita':'ao centro'; chips.push(`<span class="chip">Discurso soou ${t}</span>`); }
+  if(r.ataque>0) chips.push(`<span class="chip ruim">Ataques: ${r.ataque}${r.danoEm.length?' → '+r.danoEm.map(id=>esc(cand(id).nome)).join(', '):''}</span>`);
+  if(r.fugiu) chips.push(`<span class="chip ruim">Fugiu da pergunta</span>`);
+  if(r.rebateu) chips.push(`<span class="chip bom">Rebateu bem as críticas</span>`);
+  if(r.vicios) chips.push(`<span class="chip ruim">Vícios de linguagem: ${r.vicios}</span>`);
+  const dicas=[];
+  if(r.wc<5) dicas.push('Praticamente não houve fala, e o eleitor percebeu.');
+  else{
+    if(r.extensao<.4) dicas.push('Fala curta: aproveite melhor o tempo.');
+    if(r.relevancia<.34 && st.kind!=='final') dicas.push(`Pouco foco no tema: cite ${TUF[st.tema].estado} e o problema “${TUF[st.tema].titulo}”.`);
+    if(r.concretude<.34) dicas.push('Faltaram propostas concretas: metas, números, “vou criar…”.');
+    if(r.apelo<.34) dicas.push('Fale mais com o eleitor: famílias, futuro, “você”.');
+    if(r.ataque>0) dicas.push('Ataques empolgam a sua base, mas afastam o eleitor de centro.');
+    if(r.lean!==null && Math.abs(r.lean-IDEO[c.ideo].pos)>=2.5) dicas.push('O discurso destoou do seu espectro e pode confundir sua base.');
+  }
+  return `<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
+    <div class="row"><span class="nota">${r.nota.toFixed(1)}</span><span class="muted">/ 10 · análise dos comentaristas</span></div>
+    <div class="chips">${chips.join('')}</div>
+    ${dicas.length?`<div class="muted" style="font-size:14px">${dicas.map(esc).join('<br>')}</div>`:''}
+  </div>`;
+}
+
+/* ---------- Resultado ---------- */
+function barras(res,{votos=false,vencedor=null}={}){
+  return res.map(x=>`
+    <div class="bar-row">
+      <div class="bar-top"><span><span class="mini-av">${avatarDe(x.c,{rosto:true,semId:true})}</span><b>${esc(x.c.nome)}</b> <span class="muted">${esc(x.c.partido)} ${esc(x.c.numero)}</span>${vencedor===x.c.id?'<span class="selo eleito">ELEITO(A)</span>':''}</span>
+        <span><b>${fmtP(x.pct)}</b>${votos?` <span class="muted">· ${fmtN(x.votos)} votos</span>`:''}</span></div>
+      <div class="bar-bg"><div class="bar-fill" data-w="${x.pct}" style="background:${x.c.cor}"></div></div>
+    </div>`).join('');
+}
+function resumoApuracao(r){
+  return `<div class="row muted" style="font-size:13px;gap:18px;margin-top:8px">
+    <span>Eleitorado: ${fmtN(ELEITORADO)}</span><span>Comparecimento: ${fmtN(r.comparec)}</span>
+    <span>Abstenção: ${fmtN(r.abst)} (${fmtP(r.abst/ELEITORADO*100)})</span>
+    <span>Brancos: ${fmtN(r.brancos)}</span><span>Nulos: ${fmtN(r.nulos)}</span><span>Válidos: ${fmtN(r.validos)}</span></div>`;
+}
+function renderResultado(){
+  renderSteps();
+  const r1=S.r1, top=r1.res[0];
+  const definido = S.eleito1 || S.mostrar2;
+  const eleito = S.eleito1? top.c : S.r2.res[0].c;
+  const r2pct = S.mostrar2 ? S.r2.res[0].pct : top.pct;
+  const tv = definido
+    ? tvHTML({cena:'close',foco:eleito,confete:true,gc:{tag:'Presidente eleito(a) · '+(S.eleito1?'1º turno':'2º turno'),nome:eleito.nome,sub:`${eleito.partido} ${eleito.numero} · ${fmtP(r2pct)} dos votos válidos`,cor:eleito.cor}})
+    : tvHTML({cena:'geral',overlay:pollHTML('APURAÇÃO · 1º TURNO',r1.res,'Nenhum candidato passou de 50% dos votos válidos: haverá 2º turno')});
+  let html=tv+`
+  <div class="card"><h2>1º Turno ${S.eleito1?'<span class="selo eleito">DEFINIDO NO 1º TURNO</span>':'<span class="selo turno">HAVERÁ 2º TURNO</span>'}</h2>
+    <p class="muted" style="margin-top:-6px">Percentual sobre os votos válidos (brancos e nulos não contam), como no TSE. Vence no 1º turno quem tiver mais de 50% dos válidos.</p>
+    ${barras(r1.res,{votos:true,vencedor:S.eleito1?top.c.id:null})}
+    ${!S.eleito1?`<p>Ninguém atingiu a maioria absoluta. <b>${esc(r1.res[0].c.nome)}</b> e <b>${esc(r1.res[1].c.nome)}</b> disputam o 2º turno.</p>`:''}
+    ${resumoApuracao(r1)}
+  </div>`;
+  if(!S.eleito1){
+    html+= S.mostrar2 ? `<div class="card" style="border-color:var(--gold)"><h2>2º Turno</h2>
+      ${barras(S.r2.res,{votos:true,vencedor:eleito.id})}${resumoApuracao(S.r2)}</div>`
+      : `<button class="btn-gold" id="b-2t" style="margin-bottom:16px;font-size:17px;padding:13px 26px">Apurar o 2º turno ▶</button>`;
+  }
+  const rs = S.mostrar2? S.r2 : r1;
+  html+=`<div class="grid2">
+    <div class="card"><h2>Desempenho no debate</h2><div class="tablewrap"><table>
+      <tr><th>Candidato</th><th>Nota</th><th>Percebido como</th><th>Ataques</th><th>Fugas</th></tr>
+      ${S.cands.slice().sort((a,b)=>perf(b)-perf(a)).map(c=>`<tr><td><span class="mini-av">${avatarDe(c,{rosto:true,semId:true})}</span>${esc(c.nome)}<br><span class="muted" style="font-size:12px">declarou ${IDEO[c.ideo].nome}</span></td>
+        <td><b>${perf(c).toFixed(1)}</b></td><td>${rotuloPos(percebida(c))}</td><td>${c.ataques}</td><td>${c.fugas}</td></tr>`).join('')}
+    </table></div></div>
+    <div class="card"><h2>Voto por segmento ${S.mostrar2?'(2º turno)':'(1º turno)'}</h2><div class="tablewrap"><table>
+      <tr><th>Eleitor</th><th>Peso</th><th>Preferência</th></tr>
+      ${rs.seg.map(s=>`<tr><td>${IDEO[s.g.id].nome}</td><td>${Math.round(s.g.peso*100)}%</td>
+        <td>${s.shares.slice(0,2).map(x=>`<span style="color:${x.c.cor}">●</span> ${esc(x.c.nome)} ${Math.round(x.p*100)}%`).join('<br>')}</td></tr>`).join('')}
+    </table></div></div>
+  </div>
+  <div class="card"><h2>Melhores momentos</h2>
+    ${S.cands.filter(c=>c.melhor&&c.melhor.texto).map(c=>`<div class="ata-item" style="--c:${c.cor}"><b>${esc(c.nome)}</b> <span class="muted">(${KIND_NOME[c.melhor.kind]}, nota ${c.melhor.nota.toFixed(1)})</span><br>“${esc(c.melhor.texto.slice(0,280))}${c.melhor.texto.length>280?'…':''}”</div>`).join('')||'<p class="muted">Nenhuma fala registrada.</p>'}
+  </div>
+  <div class="card"><details><summary>Ata completa do debate</summary>
+    ${S.fila.filter(p=>p.tipo==='fala'&&p.res).map(p=>{const c=cand(p.falante);return `<div class="ata-item" style="--c:${c.cor}">
+      <span class="muted" style="font-size:12px">Bloco ${p.etapa} · ${KIND_NOME[p.kind]}${p.tema?' · '+TUF[p.tema].uf+' — '+esc(TUF[p.tema].titulo):''} · nota ${p.res.nota.toFixed(1)}</span><br>
+      <b>${esc(c.nome)}:</b> ${esc(p.texto)||'<i class="muted">(sem fala)</i>'}</div>`}).join('')}
+  </details></div>
+  <div class="row"><button class="btn-gold" id="b-rev">↺ Revanche (mesmos candidatos)</button><button id="b-novo">Nova partida</button></div>`;
+  $('#app').innerHTML=html;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelectorAll('.bar-fill').forEach(b=>b.style.width=b.dataset.w+'%')));
+  const b2=$('#b-2t'); if(b2) b2.onclick=()=>{ S.mostrar2=true; renderResultado(); window.scrollTo({top:0,behavior:'smooth'});
+    const w=S.r2.res[0]; falarJornalista(`${w.c.nome} vence o segundo turno, com ${fmtP(w.pct)} dos votos válidos, e é eleito presidente da República.`); };
+  const limpar=()=>S.cands.map(c=>({nome:c.nome,partido:c.partido,numero:c.numero,ideo:c.ideo,av:{...c.av}}));
+  $('#b-rev').onclick=()=>{S.cands=limpar();iniciarDebate();};
+  $('#b-novo').onclick=()=>{pararJornalista();S.cands=limpar();S.tela='setup';render();};
+}
+
+render();
+</script>
+</body>
+</html>

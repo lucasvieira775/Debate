@@ -1,0 +1,20 @@
+[
+ {
+  "id": "mw9ksmzqqnyn",
+  "data": 1794247768935,
+  "status": "aberta",
+  "sala": "E45SP",
+  "motivo": "ofensa",
+  "detalhe": "teste automático",
+  "denunciante": {
+   "nome": "Cand A",
+   "uid": "teste-A-0000000000000000"
+  },
+  "denunciado": {
+   "nome": "Cand B",
+   "uid": "teste-B-0000000000000000",
+   "partido": "POP"
+  },
+  "falas": []
+ }
+]

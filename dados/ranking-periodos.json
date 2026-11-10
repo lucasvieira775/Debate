@@ -1,0 +1,116 @@
+{
+ "semana": {
+  "id": "2026-11-09",
+  "ranking": {
+   "lucas lulabozo": {
+    "nome": "Lucas Lulabozo",
+    "pts": 1455,
+    "partidas": 1,
+    "vitorias": 1,
+    "avatar": {
+     "genero": "feminino",
+     "pele": "#a8714a",
+     "cabelo": "cacheado",
+     "corCabelo": "#151515",
+     "barba": "nenhuma",
+     "oculos": "nenhum",
+     "chapeu": "nenhum",
+     "roupa": "terno_aberto",
+     "corRoupa": "#14532d",
+     "corCamisa": "#fce7f3",
+     "corGravata": "#0f766e",
+     "brinco": true,
+     "broche": false,
+     "extra": "nenhum",
+     "corpo": "magro",
+     "expressao": "simpatico"
+    },
+    "partido": "PUN",
+    "uid": "ccf64acc-94af-4c5d-807d-0c6dc2e28e35"
+   },
+   "lucas cacaroto": {
+    "nome": "Lucas Cacaroto",
+    "pts": 2565,
+    "partidas": 2,
+    "vitorias": 2,
+    "avatar": {
+     "genero": "feminino",
+     "pele": "#4f2f1c",
+     "cabelo": "coque",
+     "corCabelo": "#151515",
+     "barba": "nenhuma",
+     "oculos": "nenhum",
+     "chapeu": "nenhum",
+     "roupa": "terno_aberto",
+     "corRoupa": "#6b7280",
+     "corCamisa": "#fce7f3",
+     "corGravata": "#15803d",
+     "brinco": false,
+     "broche": true,
+     "extra": "nenhum",
+     "corpo": "medio",
+     "expressao": "simpatico"
+    },
+    "partido": "PUN",
+    "uid": "f1998965-9a26-4537-b3a9-d3d28d691139"
+   }
+  }
+ },
+ "mes": {
+  "id": "2026-11",
+  "ranking": {
+   "lucas lulabozo": {
+    "nome": "Lucas Lulabozo",
+    "pts": 1455,
+    "partidas": 1,
+    "vitorias": 1,
+    "avatar": {
+     "genero": "feminino",
+     "pele": "#a8714a",
+     "cabelo": "cacheado",
+     "corCabelo": "#151515",
+     "barba": "nenhuma",
+     "oculos": "nenhum",
+     "chapeu": "nenhum",
+     "roupa": "terno_aberto",
+     "corRoupa": "#14532d",
+     "corCamisa": "#fce7f3",
+     "corGravata": "#0f766e",
+     "brinco": true,
+     "broche": false,
+     "extra": "nenhum",
+     "corpo": "magro",
+     "expressao": "simpatico"
+    },
+    "partido": "PUN",
+    "uid": "ccf64acc-94af-4c5d-807d-0c6dc2e28e35"
+   },
+   "lucas cacaroto": {
+    "nome": "Lucas Cacaroto",
+    "pts": 2565,
+    "partidas": 2,
+    "vitorias": 2,
+    "avatar": {
+     "genero": "feminino",
+     "pele": "#4f2f1c",
+     "cabelo": "coque",
+     "corCabelo": "#151515",
+     "barba": "nenhuma",
+     "oculos": "nenhum",
+     "chapeu": "nenhum",
+     "roupa": "terno_aberto",
+     "corRoupa": "#6b7280",
+     "corCamisa": "#fce7f3",
+     "corGravata": "#15803d",
+     "brinco": false,
+     "broche": true,
+     "extra": "nenhum",
+     "corpo": "medio",
+     "expressao": "simpatico"
+    },
+    "partido": "PUN",
+    "uid": "f1998965-9a26-4537-b3a9-d3d28d691139"
+   }
+  }
+ }
+}

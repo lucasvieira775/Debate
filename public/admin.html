@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moderação do Debate</title>
+<style>
+  :root { --bg:#0f0b2e; --painel:#1b1452; --borda:#3c2c94; --txt:#f3f1ff; --mut:#b9b0ec; --verm:#ef4444; --verde:#22c55e; --amar:#facc15; }
+  * { box-sizing: border-box } body { margin:0; background:var(--bg); color:var(--txt); font-family:"Segoe UI",Arial,sans-serif; }
+  header { padding:18px 24px; border-bottom:2px solid var(--borda); display:flex; gap:12px; align-items:center; flex-wrap:wrap }
+  h1 { margin:0; font-size:22px; flex:1 } input, select, button { font:inherit; border-radius:10px; border:2px solid var(--borda); background:#120a3a; color:#fff; padding:8px 12px }
+  button { cursor:pointer; background:#3b2a99; font-weight:700 } button.verm { background:var(--verm); border-color:var(--verm) } button.verde { background:#15803d; border-color:var(--verde) }
+  main { padding:20px 24px; display:grid; gap:14px; max-width:1100px; margin:0 auto }
+  .den { background:var(--painel); border:2px solid var(--borda); border-radius:16px; padding:14px 16px }
+  .den.aberta { border-color:var(--amar) } .topo { display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+  .chip { font-size:12px; padding:3px 10px; border-radius:99px; background:#2a1f7a } .chip.verm { background:#7f1d1d } .chip.amar { background:#a16207 }
+  .mut { color:var(--mut); font-size:13px } blockquote { margin:8px 0; padding:8px 12px; background:#120a3a; border-left:3px solid var(--borda); border-radius:6px; font-size:14px }
+  .acoes { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px }
+</style>
+</head>
+<body>
+<header>
+  <h1>🛡️ Moderação · Debate Presidencial</h1>
+  <input id="senha" type="password" placeholder="Senha de administrador">
+  <select id="filtro"><option value="aberta">Só abertas</option><option value="todas">Todas</option></select>
+  <button id="carregar">Carregar denúncias</button>
+</header>
+<main id="lista"><p class="mut">Digite a senha (está no .env como ADMIN_SENHA, ou aparece na janela do servidor).</p></main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const MOTIVOS = { ofensa: 'Ofensa / xingamento', discriminacao: 'Racismo / discriminação', ameaca: 'Ameaça / violência', trapaca: 'Trapaça', nome: 'Nome ou avatar impróprio', spam: 'Spam / atrapalhando', outro: 'Outro' };
+$('#senha').value = sessionStorage.getItem('adm') || '';
+async function carregar() {
+  sessionStorage.setItem('adm', $('#senha').value);
+  const r = await fetch('/api/admin/denuncias', { headers: { 'x-admin': $('#senha').value } });
+  if (!r.ok) { $('#lista').innerHTML = '<p class="mut">Senha incorreta.</p>'; return; }
+  let lista = await r.json(); if ($('#filtro').value === 'aberta') lista = lista.filter(d => d.status === 'aberta');
+  $('#lista').innerHTML = lista.length ? lista.map(d => `<div class="den ${d.status === 'aberta' ? 'aberta' : ''}">
+    <div class="topo"><b>${esc(d.denunciado?.nome)}</b> <span class="chip">${esc(d.denunciado?.partido || '')}</span>
+      <span class="chip verm">${esc(MOTIVOS[d.motivo] || d.motivo)}</span><span class="chip amar">${d.totalDenuncias} denúncia(s) no total</span>
+      ${d.suspensoAte > Date.now() ? `<span class="chip verm">suspenso até ${new Date(d.suspensoAte).toLocaleString('pt-BR')}</span>` : ''}
+      <span class="mut" style="margin-left:auto">${new Date(d.data).toLocaleString('pt-BR')} · sala ${esc(d.sala)} · status: ${esc(d.status)}</span></div>
+    <div class="mut">Denunciado por ${esc(d.denunciante?.nome)}</div>
+    ${d.detalhe ? `<blockquote>💬 ${esc(d.detalhe)}</blockquote>` : ''}
+    ${(d.falas || []).map(f => `<blockquote>🎙 “${esc(f)}”</blockquote>`).join('') || '<p class="mut">Sem falas registradas.</p>'}
+    <div class="acoes">
+      <button class="verm" data-a="suspender" data-d="1" data-id="${d.id}">Suspender 1 dia</button>
+      <button class="verm" data-a="suspender" data-d="7" data-id="${d.id}">Suspender 7 dias</button>
+      <button class="verm" data-a="suspender" data-d="30" data-id="${d.id}">Suspender 30 dias</button>
+      <button class="verde" data-a="revogar" data-id="${d.id}">Revogar suspensão</button>
+      <button data-a="arquivar" data-id="${d.id}">Arquivar</button>
+    </div></div>`).join('') : '<p class="mut">Nenhuma denúncia.</p>';
+  document.querySelectorAll('[data-a]').forEach(b => b.onclick = async () => {
+    if (b.dataset.a === 'suspender' && !confirm(`Suspender por ${b.dataset.d} dia(s)?`)) return;
+    await fetch('/api/admin/acao', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin': $('#senha').value }, body: JSON.stringify({ id: b.dataset.id, acao: b.dataset.a, dias: +b.dataset.d }) });
+    carregar();
+  });
+}
+$('#carregar').onclick = carregar; $('#filtro').onchange = carregar;
+if ($('#senha').value) carregar();
+</script>
+</body>
+</html>

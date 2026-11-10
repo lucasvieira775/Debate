@@ -1,0 +1,1241 @@
+import { Estudio } from './estudio.js';
+import { retrato } from './avatar.js';
+import { Microfone, falar, calar, sfx, somItem, nivelDoAudio, setVolume, testarMicrofone, temReconhecimento, contextoSeguro, configurarAmbiente, ajustarAmbiente, setVolumeAmbiente, setVolumeMusica, abafarAmbiente, pararSonsRevelacao } from './voz.js';
+import { PARTIDOS, PARTIDO, IDEO, AV, TEMA, TEMAS, KIND_NOME, ETAPAS, JORN, DIFICULDADES, avatarAleatorio, textoVitoria } from '/shared/regras.js';
+import { $, $$, esc, fmtN, fmtP, fmtT, lerPerfil, salvarPerfil, lerConfig, salvarConfig, lerSessao, salvarSessao, logoPartido, toast } from './util.js';
+import { Voip } from './voip.js';
+import { termosAceitos, mostrarTermos } from './termos.js';
+import { PUNICAO, REGRAS_DEBATE } from '/shared/moderacao.js';
+import { postXzona, limparXzona, mostrarDica, esconderDica, recolherDica, aoLerDica,janela, janelaDenuncia, telaLoja, avisoGanhos, reais, htmlFanpage, janelaFanpage } from './extras.js';
+import { ITENS, ITEM, PACOTES_MOEDAS, ROUPA_ITEM } from '/shared/loja.js';
+import { CADASTRO, validarNome, validarUser, validarIdade, formatarNome, formatarUser } from '/shared/cadastro.js';
+
+const VERSAO = 'v0.3';
+// identificador da conta do jogador (moedas, itens da loja), guardado no navegador
+const UID = (() => { try { let u = localStorage.getItem('debate_uid'); if (!u) { u = (crypto.randomUUID?.() || Array.from({ length: 32 }, () => (Math.random() * 16 | 0).toString(16)).join('')); localStorage.setItem('debate_uid', u); } return u; } catch { return 'anon' + Math.random().toString(16).slice(2, 18); } })();
+const E = {
+  perfil: lerPerfil(), cfg: lerConfig(), tela: 'menu', sala: null, eu: null, offset: 0,
+  persAba: 'aparencia', persVoltar: 'menu', textoFala: '', meuTexto: '', micOn: false, micErro: '', confirmando: false,
+  ultI: null, ultTextoJ: '', ledKey: '', hudKey: '', latKey: '', resKey: '', roletaIv: null, conviteSala: null, abaRes: 1,
+  conta: null, lojaAba: 'moedas', lojaInfo: null,
+};
+setVolume(E.cfg.sfx); setVolumeAmbiente(E.cfg.ambiente); setVolumeMusica(E.cfg.musica);
+const kAmb = () => E.cfg.ambiente / .7; // vozes da plateia: 70% = volume original
+// ---------- resolução: a página vira uma tela virtual do tamanho escolhido, escalada e centralizada (barras pretas se a proporção não bater) ----------
+const RESOLUCOES = { auto: 'Automática (janela)', '1920x1080': '1920×1080 · 16:9 Full HD', '2560x1440': '2560×1440 · 16:9 QHD', '3840x2160': '3840×2160 · 16:9 4K', '2560x1080': '2560×1080 · 21:9 UW-FHD', '3440x1440': '3440×1440 · 21:9 UW-QHD', '5120x1440': '5120×1440 · 32:9 Super UW' };
+const CELULAR = matchMedia('(pointer:coarse)').matches && /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent);
+const telaCheiaDeitado = () => { if (!CELULAR) return; const d = document.documentElement; Promise.resolve(document.fullscreenElement || d.requestFullscreen?.({ navigationUI: 'hide' })).then(() => screen.orientation?.lock?.('landscape')).catch(() => {}); };
+function aplicarResolucao(res) {
+  const b = document.body, m = /^(\d+)x(\d+)$/.exec(res || '');
+  b.classList.toggle('celular', CELULAR);
+  if (!m && CELULAR) { // celular: tela virtual de ~720 px de altura (deitado) escalada para caber — HUD/menus no tamanho do PC, só menores
+    const k = Math.min(1, Math.min(innerWidth, innerHeight) / 720, Math.max(innerWidth, innerHeight) / 1280);
+    if (k < 1) { b.classList.add('res-fixa'); b.style.setProperty('--rw', innerWidth / k + 'px'); b.style.setProperty('--rh', innerHeight / k + 'px'); b.style.setProperty('--rk', k); return; }
+  }
+  if (!m) { b.classList.remove('res-fixa'); ['--rw', '--rh', '--rk'].forEach(v => b.style.removeProperty(v)); return; }
+  const w = +m[1] / devicePixelRatio, h = +m[2] / devicePixelRatio; // pixels físicos → px CSS (texto/HUD ficam do tamanho certo para a tela)
+  b.classList.add('res-fixa'); b.style.setProperty('--rw', w + 'px'); b.style.setProperty('--rh', h + 'px'); b.style.setProperty('--rk', Math.min(innerWidth / w, innerHeight / h));
+}
+{ const r = new URLSearchParams(location.search).get('res'); if (r && (r in RESOLUCOES)) E.cfg.resolucao = r; } // ?res=2560x1080 (testes)
+aplicarResolucao(E.cfg.resolucao);
+addEventListener('resize', () => aplicarResolucao(E.cfg.resolucao));
+const socket = io();
+const est = new Estudio($('#cena'), E.cfg);
+est.onSom = (tipo, o) => sfx[tipo]?.(o); // passos, rodinhas e trava do púlpito
+const voip = new Voip(socket, { onNivel: (id, v) => est.setFalaNivel(id, v) });
+const atualizarConta = c => { if (!c) return; E.conta = c; if (c.cadastro && E.perfil.nome !== c.cadastro.nome) { E.perfil.nome = c.cadastro.nome; salvar(); } const m = $('#moedas-chip'); if (m) m.textContent = '🪙 ' + fmtN(c.moedas); };
+
+// ======================= utilidades =======================
+const agora = () => Date.now() + E.offset;
+const jog = id => E.sala?.jogadores.find(j => j.id === id);
+const eu = () => jog(E.eu);
+const ehHost = () => E.sala && E.sala.hostId === E.eu;
+const emJogo = () => E.sala && E.sala.fase !== 'lobby';
+const minhaVez = () => E.sala?.fase === 'debate' && E.sala.passo?.tipo === 'fala' && E.sala.passo.falante === E.eu;
+const ret = av => retrato(av);
+const nivel = xp => ({ n: Math.floor(xp / 1000) + 1, pct: (xp % 1000) / 10 });
+const perfilEnvio = () => ({ nome: E.perfil.nome, avatar: E.perfil.avatar, partido: E.perfil.partido, uid: UID });
+const salvar = () => salvarPerfil(E.perfil);
+function bots() {
+  const nomes = [['Ana Ribeiro', 'feminino'], ['Carlos Mendes', 'masculino'], ['Alex Moreira', 'nao_binario'], ['Rafael Souza', 'masculino'], ['Marta Lima', 'feminino']];
+  const ps = ['FPB', 'MSD', 'PUN', 'ALB', 'POP'];
+  if (!E.botsLista) E.botsLista = nomes.map(([nome, g], i) => ({ id: 'bot' + i, nome, avatar: avatarAleatorio(g), partido: ps[i], slot: i, conectado: true, bot: true }));
+  return E.botsLista;
+}
+
+// ======================= microfone =======================
+let envT = 0, envTimer = null, nivelT = 0;
+function enviarTexto(t) {
+  E.meuTexto = t;
+  const enviar = () => { envT = Date.now(); socket.emit('texto', { t: E.meuTexto }); };
+  clearTimeout(envTimer);
+  if (Date.now() - envT > 220) enviar(); else envTimer = setTimeout(enviar, 220);
+  atualizarLegenda();
+}
+const mic = new Microfone({
+  onTexto: t => { const ta = $('#h-ta'); if (ta) { ta.value = t; ta.scrollTop = ta.scrollHeight; } enviarTexto(t); },
+  onNivel: v => {
+    const b = $('#h-vu'); if (b) b.style.width = Math.min(100, v * 100) + '%';
+    if (Date.now() - nivelT > 120) { nivelT = Date.now(); socket.emit('nivel', v); }
+  },
+  onErro: m => { E.micErro = m; E.micOn = false; toast(m, 'erro'); renderAcao(true); },
+  onStatus: m => { const el = $('#h-micst'); if (el) el.textContent = m; },
+});
+function comecarFala(comMic) {
+  if (!minhaVez() || E.confirmando) return;
+  if (E.sala.fala?.status === 'pronto') socket.emit('comecar', { mic: comMic });
+  if (comMic) ligarMic();
+}
+function ligarMic() {
+  calar(); pararNarracao(); est.mediadoraFalando(false); E.micErro = '';
+  const ta = $('#h-ta'); if (ta) E.meuTexto = ta.value;
+  if (mic.ligar(E.meuTexto)) E.micOn = true;
+  renderAcao(true);
+}
+async function desligarMic() { const t = await mic.desligar(); E.micOn = false; enviarTexto(t); renderAcao(true); setTimeout(() => focarTexto(), 50); }
+function alternarMic() {
+  if (!minhaVez() || E.confirmando) return;
+  const st = E.sala.fala?.status;
+  if (st === 'pronto') comecarFala(true);
+  else if (st === 'ativo') E.micOn ? desligarMic() : ligarMic();
+}
+async function confirmarFala() {
+  if (!minhaVez() || E.confirmando) return;
+  const st = E.sala.fala?.status; if (st === 'avaliado') return;
+  E.confirmando = true; renderAcao(true); fimDaResposta();
+  let t = E.meuTexto;
+  if (E.micOn) { t = await mic.desligar(); E.micOn = false; } else { const ta = $('#h-ta'); if (ta) t = ta.value; }
+  socket.emit('confirmar', { t });
+}
+function focarTexto() { const ta = $('#h-ta'); if (ta && !ta.readOnly) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } }
+
+/** Voz do navegador não dá o volume: a boca do avatar abre e fecha em pulsos do início ao fim da fala. */
+function bocaEmPulsos(id, fn) {
+  let iv = 0; const fim = () => { clearInterval(iv); est.setFalaNivel(id, 0); };
+  fn({ ini: () => { clearInterval(iv); iv = setInterval(() => est.setFalaNivel(id, .35 + Math.random() * .6), 120); setTimeout(fim, 60000); }, fim });
+}
+// ======================= mediadora =======================
+let fimBocaMed = null;
+/** Sem dublagem do Gemini: nada de voz robótica do navegador — só a legenda e a boca mexendo. */
+function falarMediadora(txt) {
+  clearTimeout(fimBocaMed);
+  if (E.micOn || !txt) return;
+  est.mediadoraFalando(true); fimBocaMed = setTimeout(() => est.mediadoraFalando(false), Math.min(7000, txt.length * 55));
+}
+// ---------- dublagem (Gemini), progressiva ----------
+// Toca os trechos em ordem assim que a fala começa. Trecho ainda sendo gerado: espera até 1,5 s pela
+// atualização do servidor; se não chegar, nome é pulado e o resto usa a voz do navegador só naquele trecho.
+// Uma fala nova espera a anterior terminar (nunca é descartada).
+const narrador = { tocando: null, fila: [], audio: null };
+function narrItens(id) { return E.sala?.narr?.id === id && E.sala.narr.itens ? E.sala.narr.itens : narrador.ultimos?.[id]; }
+function tocarNarracao(job) {
+  if (!E.cfg.voz || E.micOn) return;
+  if (narrador.tocando) { narrador.fila.push(job); if (narrador.fila.length > 2) narrador.fila.shift(); return; }
+  calar();
+  const tok = narrador.tocando = { job }; est.mediadoraFalando(true);
+  narrador.ultimos = { [job.id]: job.itens };
+  let i = 0, esperou = 0; const pre = {};
+  const terminar = () => {
+    if (narrador.tocando !== tok) return;
+    narrador.tocando = null; narrador.audio = null; est.mediadoraFalando(false);
+    if (narrador.fila.length) return tocarNarracao(narrador.fila.shift());
+    if (narrador.depois) { const d = narrador.depois; narrador.depois = null; d(); }
+  };
+  const prox = () => {
+    if (narrador.tocando !== tok) return;
+    if (job.texto) { const t = job.texto; job.texto = null; return void setTimeout(terminar, Math.min(7000, t.length * 55)); } // sem dublagem: só legenda (sem voz robótica)
+    const itens = narrItens(job.id) || job.itens || [];
+    if (i >= itens.length) return terminar();
+    const it = itens[i];
+    if (it.url) {
+      i++; esperou = 0;
+      const a = narrador.audio = pre[it.url] || new Audio(it.url); a.onended = () => setTimeout(prox, 60); a.onerror = () => prox();
+      const nx = itens[i]; if (nx?.url && !pre[nx.url]) pre[nx.url] = Object.assign(new Audio(nx.url), { preload: 'auto' }); // pré-carrega o próximo: pausa curta e constante entre trechos
+      return void a.play().catch(() => prox());
+    }
+    // ainda gerando: espera um pouco (nomes esperam mais: evita a voz robótica do navegador)
+    if (esperou < (it.t.endsWith(',') ? 4500 : 1500)) { esperou += 100; return void setTimeout(prox, 100); }
+    i++; esperou = 0;
+    // trecho não ficou pronto: é pulado (fica só na legenda) — nunca sai na voz robótica do navegador
+    setTimeout(prox, 60);
+  };
+  prox();
+}
+function pararNarracao() { narrador.audio?.pause(); calar(); narrador.tocando = null; narrador.fila = []; est.mediadoraFalando(false); }
+function aoNarrar(s) {
+  const n = s.narr; if (!n || s.fase === 'lobby' || n.status === 'gerando') return;
+  if (narrador.ultimos?.[n.id] && n.itens) narrador.ultimos[n.id] = n.itens; // trecho que chegou depois
+  if (n.id === E.narrTocada) return;
+  E.narrTocada = n.id;
+  if (n.status === 'parcial' || n.status === 'ok') tocarNarracao({ id: n.id, itens: n.itens || (n.audios || []).map(url => ({ url, t: '' })), genero: s.jorn?.genero });
+  else falarMediadora(s.textoJ); // sem dublagem: só legenda + boca (sem voz robótica)
+}
+
+// ======================= rede =======================
+socket.on('connect', () => {
+  const s = lerSessao();
+  if (s?.code && s?.token) socket.emit('reentrar', s, r => { if (r?.erro) { salvarSessao(null); verConvite(); } });
+  else verConvite();
+  socket.emit('minhaConta', { uid: UID }, c => { atualizarConta(c); seguirConvite(); if (!E.sala && !c?.cadastro) renderUI(); else if ((E.tela === 'menu' && !E.sala) || E.tela === 'loja') renderUI(); });
+  socket.emit('lojaInfo', null, i => { E.lojaInfo = i; if (E.tela === 'loja') renderUI(); });
+});
+socket.on('conta', atualizarConta);
+socket.on('ganhos', g => { avisoGanhos(g); sfx.nota(); });
+socket.on('xzona', post => { if (emJogo()) postXzona(post); });
+socket.on('folheando', d => { est.folhear(d.id); if (d.id !== E.eu) sfx.clique(); });
+socket.on('emote', d => { const it = ITEM[d.item]; if (!it) return; est.emote(d.id, it); if (it.tipo === 'provocacao') { somItem(it.id, sfx.vaia); est.agitarPlateia(.5, 1500); } else somItem(it.id, sfx.clique); });
+socket.on('advertencia', d => {
+  anunciar(`⚠ ${d.nome.toUpperCase()} ADVERTIDO(A) · ${d.n}/${d.max}`); sfx.martelo();
+  toast(`${d.id === E.eu ? 'Você recebeu' : d.nome + ' recebeu'} ${d.dupla ? '2 advertências' : 'uma advertência'} da moderação: ${d.motivo} (${d.n}/${d.max}).${d.id === E.eu && d.n === d.max - 1 ? ' Mais uma e você está fora!' : ''}`, 'erro');
+});
+socket.on('atencao', d => toast(`🗣 Chamada de atenção para ${d.id === E.eu ? 'você' : d.nome}: “${d.termo}” não é postura de debate. Desta vez, sem punição.`));
+socket.on('punicao', d => {
+  const msg = d.susp === 'perm' ? 'Sua conta foi BANIDA PERMANENTEMENTE (3ª suspensão de 30 dias).'
+    : d.susp ? `Sua conta foi suspensa por ${d.susp} dias. Você poderá terminar de assistir a esta partida.`
+    : `Banimentos de sala nesta semana: ${d.salas}/${PUNICAO.bansSemana}. No ${PUNICAO.bansSemana}º, sua conta é suspensa por ${PUNICAO.diasSemana} dias.`;
+  toast('⛔ ' + msg, 'erro'); if (d.susp) setTimeout(() => alert('⛔ ' + msg + '\n\nVeja as Regras do Debate e os Termos de Uso.'), 1500);
+});
+socket.on('voce', d => { E.eu = d.id; salvarSessao({ code: d.code, token: d.token }); });
+socket.on('estado', s => onEstado(s));
+socket.on('texto', d => { E.textoFala = d.t; const f = E.sala?.passo?.falante; if (f) est.setFalaNivel(f, .75); atualizarLegenda(); });
+socket.on('olhar', d => est.setOlharJogador(d.id, d.y, d.p));
+socket.on('nivel', d => est.setFalaNivel(d.id, d.v));
+socket.on('tempo', () => { anunciar('TEMPO ESGOTADO!'); sfx.fim(); confirmarFala(); });
+socket.on('plateia', d => {
+  const forte = { vaia: 1, vibra: 1, confusao: 1, ih: .6, aplauso: .5 }[d.tipo] || .5;
+  est.agitarPlateia(forte, d.tipo === 'aplauso' ? 1800 : 3500);
+  if (d.tipo === 'vibra' || d.tipo === 'aplauso') sfx.aplausos(d.tipo === 'vibra' ? 3 : 1.6, d.tipo === 'vibra' ? .3 : .16);
+  const temCoro = E.cfg.voz && d.coro?.length;
+  if ((d.tipo === 'vaia' || d.tipo === 'confusao') && !temCoro) { sfx.vaia(); setTimeout(sfx.vaia, 350); setTimeout(sfx.vaia, 800); }
+  if (d.tipo === 'ih') sfx.vaia();
+  // multidão: várias vozes reais ao mesmo tempo, cada uma com atraso, velocidade e volume diferentes
+  if (temCoro) d.coro.forEach(url => setTimeout(() => {
+    const a = new Audio(url); a.volume = Math.min(1, (.25 + Math.random() * .3) * kAmb()); a.playbackRate = .85 + Math.random() * .3; a.preservesPitch = false; a.play().catch(() => {});
+  }, Math.random() * 450));
+  // gritos do confronto 1x1 vêm primeiro, sobrepostos e mais altos; sem voz pronta, usa a voz do navegador (sem cortar quem está falando)
+  d.gritos.forEach((g, k) => setTimeout(() => {
+    est.gritoPlateia(g.t); est.gritarPlateia?.(1, 2200);
+    if (!E.cfg.voz) return;
+    if (g.url) { const a = new Audio(g.url); a.volume = Math.min(1, (g.duelo ? .8 : .55) * kAmb()); a.playbackRate = .95 + Math.random() * .15; a.play().catch(() => {}); } // sem voz pronta: só o balão (nada de voz robótica)
+  }, g.duelo ? 150 + k * 380 : 300 + k * 650));
+});
+socket.on('banido', d => {
+  anunciar(`🚫 ${d.nome.toUpperCase()} FORA DO DEBATE`); sfx.fim();
+  if (d.id === E.eu) { if (E.micOn) { mic.abortar(); E.micOn = false; } toast(`Você foi retirado do debate por ${d.motivo}.`, 'erro'); }
+  else toast(`${d.nome} foi banido(a) do debate por ${d.motivo}.`, 'erro');
+});
+socket.on('reacao', d => {
+  const em = { aplauso: '👏', vaia: '👎', risada: '😂', pensativo: '🤔', mao: '✋' }[d.tipo]; est.reacao(d.id, em);
+  if (d.tipo === 'aplauso') { sfx.aplausos(1.2, .15); est.agitarPlateia(.6, 1500); } else if (d.tipo === 'vaia') sfx.vaia(); else sfx.clique();
+});
+socket.on('expulso', () => { toast('Você foi removido da sala pelo anfitrião.', 'erro'); sairLocal(); });
+socket.on('disconnect', () => toast('Conexão perdida. Tentando reconectar…', 'erro'));
+est.onOlhar = (y, p) => socket.emit('olhar', { y, p });
+est.onPick = ({ pid, acao }) => {
+  if (!E.sala || E.sala.fase !== 'debate') return;
+  if (acao && pid === E.eu) { sfx.clique(); if (acao === 'mic') alternarMic(); else confirmarFala(); return; }
+  const p = E.sala.passo;
+  if (p?.tipo === 'escolha' && p.falante === E.eu && !p.escolhido && pid && pid !== E.eu) {
+    if (p.elegiveis && !p.elegiveis.includes(pid)) return toast('Este candidato já recebeu pergunta nesta rodada. Escolha outro adversário.', 'erro');
+    escolherAlvo(pid);
+  }
+};
+function escolherAlvo(id) { socket.emit('escolher', { alvo: id }); sfx.sorteio(); est.setSelecionaveis(null); }
+function verConvite() {
+  const code = new URLSearchParams(location.search).get('sala');
+  if (code && !E.sala) E.conviteSala = code.toUpperCase();
+}
+const seguirConvite = () => { if (E.conviteSala && !E.sala && E.conta?.cadastro) { const c = E.conviteSala; E.conviteSala = null; entrarSala(c); } };
+
+// ======================= cadastro =======================
+function telaCadastro(ui) {
+  const sug = (E.perfil.nome || '').replace(/[^A-Za-zÀ-ÖØ-öø-ÿ ]/g, '').trim().split(/\s+/).slice(0, 2);
+  ui.innerHTML = `<div class="tela"><div class="painel cadastro" style="max-width:480px;width:100%;margin:auto">
+    <div class="logo-txt" style="font-size:.6em;margin-bottom:10px"><span>DEBATE</span><b>PRESIDENCIAL</b></div>
+    <h2>Cadastro do candidato</h2>
+    <p class="mut" style="margin-top:-6px">Escolha com cuidado: depois de cadastrados, o nome e o @ só mudam pagando moedas (🪙 ${fmtN(CADASTRO.precoNome)} o nome, 🪙 ${fmtN(CADASTRO.precoUser)} o @).</p>
+    <div style="display:flex;gap:10px"><div style="flex:1"><label class="mut">Nome</label><input id="cd-nome" class="campo" maxlength="14" style="width:100%;margin:6px 0 12px" placeholder="Ex.: Lucas" value="${esc(sug[0] || '')}"></div>
+      <div style="flex:1"><label class="mut">Sobrenome <small>(opcional)</small></label><input id="cd-sob" class="campo" maxlength="14" style="width:100%;margin:6px 0 12px" placeholder="Ex.: Silva" value="${esc(sug[1] || '')}"></div></div>
+    <label class="mut">Seu @ na Xzona</label><div style="display:flex;align-items:center;gap:6px;margin:6px 0 12px"><b style="font-size:20px">@</b><input id="cd-user" class="campo" maxlength="15" style="flex:1" placeholder="lucassilva"></div>
+    <label class="mut">Idade</label><input id="cd-idade" class="campo" type="number" min="${CADASTRO.idadeMin}" max="${CADASTRO.idadeMax}" style="width:110px;margin:6px 0 6px">
+    <p class="mut" style="font-size:13px">Só letras no nome (sem números, símbolos ou palavrões). O @ aceita letras e números.</p>
+    <p id="cd-erro" style="color:#ff6b6b;min-height:1.2em;margin:6px 0"></p>
+    <div style="display:flex;justify-content:flex-end"><button class="btn amarelo" id="cd-ok">✔ Cadastrar</button></div>
+  </div></div>`;
+  const erro = m => { $('#cd-erro').textContent = m || ''; if (m) sfx.erro?.(); };
+  $('#cd-user').oninput = e => { e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''); };
+  $('#cd-ok').onclick = () => {
+    const nome = formatarNome(`${$('#cd-nome').value} ${$('#cd-sob').value}`), user = $('#cd-user').value, idade = Number($('#cd-idade').value);
+    const e = validarNome(nome) || validarUser(user) || validarIdade(idade); if (e) return erro(e);
+    $('#cd-ok').disabled = true;
+    socket.emit('cadastrar', { uid: UID, nome, user, idade }, r => {
+      $('#cd-ok').disabled = false; if (r?.erro) return erro(r.erro);
+      atualizarConta(r.conta); sfx.vitoria(); toast(`Bem-vindo(a), ${r.conta.cadastro.nome}!`, 'ok'); E.tela = 'menu'; renderUI(); seguirConvite();
+    });
+  };
+}
+function janelaTrocarNome() {
+  const cd = E.conta?.cadastro; if (!cd) return;
+  janela(`<h2>Alterar cadastro</h2><p class="mut">Seu saldo: 🪙 ${fmtN(E.conta.moedas)}</p>
+    <label class="mut">Nome do candidato · 🪙 ${fmtN(CADASTRO.precoNome)}</label><div style="display:flex;gap:8px;margin:6px 0 14px"><input id="tn-nome" class="campo" maxlength="29" style="flex:1" value="${esc(cd.nome)}"><button class="btn peq amarelo" id="tn-nome-ok">Trocar</button></div>
+    <label class="mut">@ na Xzona · 🪙 ${fmtN(CADASTRO.precoUser)}</label><div style="display:flex;gap:8px;margin:6px 0 14px"><b style="align-self:center">@</b><input id="tn-user" class="campo" maxlength="15" style="flex:1" value="${esc(cd.user)}"><button class="btn peq amarelo" id="tn-user-ok">Trocar</button></div>
+    <div style="display:flex;justify-content:flex-end"><button class="btn peq" id="cx">Fechar</button></div>`,
+  (el, fechar) => {
+    $('#cx', el).onclick = fechar;
+    $('#tn-user', el).oninput = e => { e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''); };
+    const trocar = (campo, valor, preco) => {
+      const e = campo === 'nome' ? validarNome(valor) : validarUser(valor); if (e) return toast(e, 'erro');
+      if ((E.conta.moedas || 0) < preco) return toast(`Moedas insuficientes: faltam ${fmtN(preco - E.conta.moedas)}.`, 'erro');
+      janela(`<h2>Confirmar troca</h2><p>Trocar ${campo === 'nome' ? 'o nome para' : 'o @ para'} <b>${esc(campo === 'nome' ? formatarNome(valor) : '@' + formatarUser(valor))}</b> por <b>🪙 ${fmtN(preco)}</b>?</p><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn peq" id="cx2">Cancelar</button><button class="btn peq amarelo" id="ok2">Confirmar</button></div>`,
+        (el2, f2) => { $('#cx2', el2).onclick = f2; $('#ok2', el2).onclick = () => { f2(); socket.emit('trocarCadastro', { uid: UID, campo, valor }, r => {
+          if (r?.erro) return toast(r.erro, 'erro'); fechar(); atualizarConta(r.conta); sfx.vitoria(); toast(campo === 'nome' ? 'Nome alterado!' : '@ alterado!', 'ok'); renderUI(); }); }; });
+    };
+    $('#tn-nome-ok', el).onclick = () => trocar('nome', $('#tn-nome', el).value, CADASTRO.precoNome);
+    $('#tn-user-ok', el).onclick = () => trocar('user', $('#tn-user', el).value, CADASTRO.precoUser);
+  });
+}
+
+function onEstado(s) {
+  const ant = E.sala; E.sala = s; E.offset = s.agora - Date.now();
+  const me = s.jogadores.find(j => j.id === E.eu);
+  if (me && s.fase === 'lobby' && (me.partido !== E.perfil.partido || me.nome !== E.perfil.nome)) { E.perfil.partido = me.partido; E.perfil.nome = me.nome; salvar(); }
+  est.setJogadores(s.jogadores, E.eu);
+  // troca de passo
+  if (s.i !== E.ultI || s.fase !== ant?.fase) {
+    E.ultI = s.i; E.textoFala = ''; E.meuTexto = ''; E.confirmando = false; E.micErro = '';
+    if (E.audioBot) { E.audioBot.pause(); E.audioBot = null; }
+    if (E.micOn) { mic.abortar(); E.micOn = false; }
+    esconderDica(); E.dicaFimI = null;
+    if (s.fase === 'debate' && ant?.fase !== 'debate') E.dicasGratis = 1;
+    if (s.fase === 'debate') aoNovoPasso(s);
+  }
+  // fim da minha resposta (confirmei / tempo acabou / já avaliada): guarda a anotação e a câmera volta (uma vez por passo)
+  if (s.passo?.falante === E.eu && ['encerrando', 'avaliado'].includes(s.fala?.status)) fimDaResposta();
+  // chat de voz: entra assim que está numa sala; só transmite quando o microfone está liberado
+  const humanos = s.jogadores.filter(j => !j.bot && j.conectado).map(j => j.id);
+  if (!voip.stream && !E.voipTentou) { E.voipTentou = true; voip.iniciar().then(ok => { if (!ok) toast('Chat de voz desligado: microfone não liberado.', 'erro'); onEstado(E.sala); }); }
+  voip.atualizar(E.eu, humanos, s.microfones === 'todos' || (Array.isArray(s.microfones) && s.microfones.includes(E.eu)));
+  if (s.fala && s.fala.texto && !minhaVez()) E.textoFala = s.fala.texto;
+  // mediadora
+  if (s.jorn && s.jorn.nome !== E.jornAtual) { E.jornAtual = s.jorn.nome; est.setMediador(s.jorn.avatar); }
+  if (s.code !== E.salaNarr) { E.salaNarr = s.code; E.narrTocada = s.narr?.id; } // ao entrar/reconectar não repete falas antigas
+  aoNarrar(s);
+  // candidato da IA falando: voz sintetizada com o gênero do avatar
+  if (s.fala?.falaBot && s.fala.status === 'ativo' && E.botFalado !== s.i && E.cfg.voz) {
+    E.botFalado = s.i; const idBot = s.passo.falante, txtBot = s.fala.falaBot, gBot = s.fala.vozBot, urlBot = s.fala.audioBot, iBot = s.i;
+    const vozBot = () => {
+      if (E.sala?.i !== iBot) return;
+      const vozNav = () => bocaEmPulsos(idBot, f => falar(txtBot, { genero: gBot, onInicio: f.ini, onFim: f.fim })); // reserva: voz do navegador
+      if (urlBot) { const a = E.audioBot = new Audio(urlBot); nivelDoAudio(a, v => est.setFalaNivel(idBot, v)); a.play().catch(vozNav); } // voz realista (Gemini) + boca no ritmo
+      else vozNav();
+    };
+    if (narrador.tocando) narrador.depois = vozBot; else vozBot(); // espera o(a) jornalista terminar
+  }
+  // roleta
+  if (s.roleta && !E.roletaIv) { E.roletaIv = setInterval(() => { est.setLED({ modo: 'roleta' }); sfx.tique(); const t = TEMAS[Math.random() * TEMAS.length | 0]; const el = $('#h-tema'); if (el) el.innerHTML = `<small>Sorteando o tema…</small><b><span class="uf">${t.uf}</span>${esc(t.titulo)}</b>`; }, 110); }
+  if (!s.roleta && E.roletaIv) { clearInterval(E.roletaIv); E.roletaIv = null; E.ledKey = ''; sfx.sorteio(); }
+  // falante e destaque
+  const p = s.passo;
+  est.setFalante(s.fase === 'debate' && (p?.tipo === 'fala' || p?.tipo === 'escolha') ? p.falante : null);
+  est.setSelecionaveis(p?.tipo === 'escolha' && p.falante === E.eu && !p.escolhido ? (p.elegiveis || s.jogadores.filter(j => j.id !== E.eu).map(j => j.id)) : null);
+  // púlpito do confronto: a produção traz no bloco 2 e leva embora no bloco 3 (quem entra no meio já vê no lugar)
+  est.setPulpito(s.fase === 'debate' && (p?.etapa === 2 || !!s.duelo), !ant || ant.fase !== 'debate' || s.fase !== 'debate', s.fase === 'debate' && p ? p.etapa > 2 : undefined);
+  est.setDuelo(s.fase === 'debate' ? s.duelo : null);
+  if (minhaVez() && s.fala?.status === 'avaliado' && E.micOn) { mic.abortar(); E.micOn = false; }
+  if (ant?.fala?.status !== 'avaliado' && s.fala?.status === 'avaliado') { sfx.nota(); est.festejarPlateia(3200, .8); sfx.aplausos(1.8, .2); }
+  // resultado: primeiro a apuração ao vivo; a comemoração (com a dança do vencedor) só depois do anúncio
+  if (s.fase === 'resultado' && ant?.fase !== 'resultado') aoResultado(s);
+  const r = s.resultado, ra = ant?.resultado;
+  const comemorar = () => { E.celebrar = true; clearTimeout(E.celebrarT); E.celebrarT = setTimeout(() => celebrar(false), 15000); $('#xzona')?.classList.add('min'); est.confetes(true); const it = ITEM[r.dancas?.[r.vencedor]] || ITEM.comemorar; est.festa(r.vencedor, it.anim); sfx.vitoria(); somItem(it.id); sfx.aplausos(3.5, .3); est.festejarPlateia(8000); };
+  // anúncio do vencedor: cinemática de revelação (jornalista → telão ao vivo → festa); a festa de sempre entra no fim
+  // quem chega depois do anúncio (sem ter visto a apuração) não vê a cinemática do zero, sem a narração: vai direto à festa
+  const revelar = () => { const v = ant?.fase === 'resultado' && s.jogadores.find(j => j.id === r.vencedor); if (!v) return comemorar(); revelarVencedor(v, (ITEM[r.dancas?.[r.vencedor]] || ITEM.comemorar).anim, () => { comemorar(); ajustarCamera(); E.resKey = ''; renderResultado(); }); };
+  if (s.fase === 'resultado' && r?.eleito1 && r.anunciado1 && !(ra?.anunciado1)) revelar();
+  if (s.fase === 'resultado' && r?.mostrar2 && !ra?.mostrar2) { E.abaRes = 2; revelar(); }
+  if (s.fase !== 'resultado') { pararRevelacao(); est.confetes(false); est.festa(null); E.celebrar = false; clearTimeout(E.celebrarT); }
+  if (s.fase === 'lobby') limparXzona();
+  ajustarCamera();
+  renderUI();
+}
+/** Modo da câmera; na comemoração, o vencedor dança sozinho no centro do palco. */
+function ajustarCamera() {
+  const s = E.sala, r = s?.resultado;
+  const venc = s?.fase === 'resultado' && r && ((r.eleito1 && r.anunciado1) || r.mostrar2) && s.jogadores.find(j => j.id === r.vencedor);
+  if (E.revelando && !E.revTeste && !(s?.fase === 'resultado' && emJogo())) pararRevelacao(); // saiu do resultado no meio
+  if (E.revelando) return; // a cinemática controla a câmera até a festa
+  est.setCampeao(venc ? venc.avatar : null, (ITEM[r?.dancas?.[r?.vencedor]] || ITEM.comemorar).anim);
+  const modoJogo = venc && E.celebrar ? 'vencedor' : E.naPlateia && s?.fase === 'resultado' ? 'tv' : 'fp';
+  if (emJogo()) { if (est.modo !== modoJogo) { est.setModo(modoJogo); est.olhar = { y: 0, p: -.28 }; } }
+  else if (E.tela === 'personalizar' || E.tela === 'loja') est.setModo('vitrine');
+  else { est.setModo('menu'); E.tela = 'sala'; }
+}
+// ===== REVELAÇÃO DO VENCEDOR =====
+// Linha do tempo (ms desde o anúncio). Ganchos para o som: window.aoFaseRevelacao?.(fase, vencedor) em cada fase
+// ('close' | 'telao' | 'transicao' | 'festa') — o agente de sons pode atribuir window.aoFaseRevelacao = (fase, v) => {…}.
+const REVELACAO = { close: 0, telao: 3500, transicao: 6500, festa: 8500 };
+const faseRev = (f, v) => { try { window.aoFaseRevelacao?.(f, v); } catch (e) { console.error(e); } };
+/** Interrompe a cinemática (sair da sala/resultado no meio): limpa timers, devolve o telão e libera o render target. */
+function pararRevelacao() { (E.revelacaoT || []).forEach(clearTimeout); E.revelacaoT = []; if (!E.revelando) return; E.revelando = false; E.revTeste = false; est.fimRevelacao(); somRevelacao('parar'); }
+// Sons da cena: rufar no close (para quando o nome é dito), impacto + plateia no telão, whoosh no push-in.
+// Ducking: burburinho e RECEPÇÃO do chat de voz mais baixos enquanto a mediadora fala; o microfone de ninguém é cortado.
+function somRevelacao(fase) {
+  const normal = () => { abafarAmbiente(1); voip.setVolumeRecepcao(1); };
+  if (fase === 'close') { abafarAmbiente(.35); voip.setVolumeRecepcao(.6); if (E.revTeste || E.sala?.fase === 'resultado') sfx.rufar(REVELACAO.telao / 1000); } // rufo só na revelação do resultado
+  else if (fase === 'telao') sfx.impacto();
+  else if (fase === 'transicao') { sfx.whoosh((REVELACAO.festa - REVELACAO.transicao) / 1000); abafarAmbiente(.7); voip.setVolumeRecepcao(.85); }
+  else if (fase === 'festa') normal(); // vitória, dança e aplausos já tocam em comemorar()
+  else if (fase === 'parar') { pararSonsRevelacao(); normal(); }
+}
+window.aoFaseRevelacao = somRevelacao;
+/** Flash branco curto que esconde o corte do telão para a câmera real. */
+function flashRev() {
+  const d = document.createElement('div'); d.style.cssText = 'position:fixed;inset:0;background:#fff;opacity:.95;pointer-events:none;z-index:9999;transition:opacity .5s ease-out';
+  document.body.appendChild(d); requestAnimationFrame(() => requestAnimationFrame(() => { d.style.opacity = '0'; })); setTimeout(() => d.remove(), 650);
+}
+/** Cinemática: close na(o) jornalista apontando → telão com o campeão AO VIVO → push-in + flash → festa (aoFim). v = { nome, partido, avatar }. */
+function revelarVencedor(v, anim, aoFim) {
+  pararRevelacao(); E.revelando = true; E.celebrar = false; clearTimeout(E.celebrarT);
+  if (E.sala) { E.resKey = ''; renderResultado(); } // tira os painéis da frente durante a cinemática
+  est.setCampeao(v.avatar, anim); est.revelar({ nome: v.nome, partido: v.partido }); est.faseRevelacao('close');
+  faseRev('close', v); // SOM: rufar + ducking (a fala "E o novo presidente do Brasil é…" vem do servidor; o nome, 3,5 s depois)
+  const T = E.revelacaoT = [];
+  T.push(setTimeout(() => { est.faseRevelacao('telao'); faseRev('telao', v); /* SOM: telão acende ao vivo com o campeão dançando */ }, REVELACAO.telao));
+  T.push(setTimeout(() => { est.faseRevelacao('transicao'); faseRev('transicao', v); /* SOM: whoosh do push-in no telão */ }, REVELACAO.transicao));
+  T.push(setTimeout(() => { E.revelacaoT = []; E.revelando = false; E.revTeste = false; est.fimRevelacao(); flashRev(); faseRev('festa', v); /* SOM: festa (vitória/aplausos já tocam em comemorar) */ aoFim?.(); }, REVELACAO.festa));
+}
+/** Só para debug: window.__testeRevelacao() roda a cinemática com dados falsos (de qualquer tela). */
+window.__testeRevelacao = (nome = 'Fulano de Tal', partido = E.perfil.partido || 'PUN') => {
+  revelarVencedor({ nome, partido, avatar: E.perfil.avatar }, 'samba', () => {
+    est.setModo('vencedor'); est.confetes(true); est.festejarPlateia(6000);
+    setTimeout(() => { est.confetes(false); if (!E.revelando) { est.modo = ''; ajustarCamera(); } }, 7000);
+  });
+  E.revTeste = true;
+};
+function celebrar(on) { clearTimeout(E.celebrarT); E.celebrar = on; if (on) E.celebrarT = setTimeout(() => celebrar(false), 15000); ajustarCamera(); E.resKey = ''; renderResultado(); }
+function aoNovoPasso(s) {
+  const p = s.passo; if (!p) return;
+  if (p.tipo === 'intro') { anunciar(`BLOCO ${p.etapa}`); if (p.etapa === 1) { sfx.aplausos(3, .3); est.festejarPlateia(3500); } }
+  if (p.tipo === 'fala' && p.falante === E.eu) { setTimeout(() => { anunciar('SUA VEZ!'); sfx.vez(); }, s.roleta ? 2400 : 300); }
+  if (p.tipo === 'escolha' && p.falante === E.eu) { anunciar('ESCOLHA SEU ADVERSÁRIO'); sfx.vez(); }
+  if (p.tipo === 'pesquisa') sfx.sorteio();
+}
+function aoResultado(s) {
+  const r = s.resultado;
+  const k = s.code + ':' + s.total + ':' + r.vencedor;
+  if (E.contado !== k) {
+    E.contado = k; const me = r.r1.res.find(x => x.id === E.eu); const d = r.desempenho.find(x => x.id === E.eu);
+    if (me && d) { const venci = r.vencedor === E.eu; E.perfil.xp += 150 + (venci ? 350 : 0); salvar(); }
+  }
+  E.abaRes = 1; E.apuLider = null;
+}
+function anunciar(txt) { const el = document.createElement('div'); el.className = 'anuncio'; el.textContent = txt; $('#hud').appendChild(el); setTimeout(() => el.remove(), 2500); }
+
+// ======================= ações de sala =======================
+function exigirNome() {
+  if (E.conta?.cadastro) return true;
+  toast(E.conta ? 'Faça seu cadastro primeiro.' : 'Conectando ao servidor…', 'erro'); E.tela = 'menu'; renderUI(); return false;
+}
+const tratar = r => { if (r?.erro) toast(r.erro, 'erro'); else { E.tela = 'sala'; sfx.sorteio(); history.replaceState(null, '', '/?sala=' + r.code); } };
+function criarSala() { if (exigirNome()) socket.emit('criar', { publica: false, perfil: perfilEnvio() }, tratar); }
+function entrarSala(code) { if (exigirNome()) socket.emit('entrar', { code, perfil: perfilEnvio() }, tratar); }
+function partidaRapida() { if (exigirNome()) socket.emit('rapida', { perfil: perfilEnvio() }, tratar); }
+function sairLocal() {
+  if (E.micOn) { mic.abortar(); E.micOn = false; }
+  calar(); pararNarracao(); voip.sair(); E.voipTentou = false; limparXzona(); esconderDica(); pararRevelacao();
+  E.sala = null; E.eu = null; salvarSessao(null); E.tela = 'menu'; history.replaceState(null, '', '/');
+  E.jornAtual = null;
+  est.setFalante(null); est.confetes(false); est.festa(null); est.setDuelo(null); est.setPulpito(false, true); est.setModo('menu'); est.setJogadores(bots(), null); renderUI();
+}
+function sairSala() { socket.emit('sair'); sairLocal(); }
+let perfilT = null;
+function sincronizarPerfil() { if (!E.sala || E.sala.fase !== 'lobby') return; clearTimeout(perfilT); perfilT = setTimeout(() => socket.emit('perfil', perfilEnvio(), r => r?.erro && toast(r.erro, 'erro')), 250); }
+
+// ======================= RENDER: telas =======================
+function ir(tela) { sfx.clique(); E.tela = tela; if (tela === 'personalizar' || tela === 'loja') { est.setVitrine(E.perfil.avatar); est.setModo('vitrine'); } else if (!emJogo()) est.setModo('menu'); renderUI(); }
+function renderUI() {
+  if (E.demo) return;
+  const ui = $('#ui'), hud = $('#hud');
+  if (emJogo()) { ui.innerHTML = ''; hud.hidden = false; renderHUD(); return; }
+  hud.hidden = true; E.hudKey = '';
+  if (E.sala && E.tela !== 'personalizar' && E.tela !== 'loja') E.tela = 'sala';
+  if (!E.sala && E.conta && !E.conta.cadastro) { telaCadastro(ui); return; }
+  const fn = { menu: telaMenu, jogar: telaJogar, salas: telaSalas, personalizar: telaPersonalizar, ranking: telaRanking, config: telaConfig, sala: telaSala, loja: telaDaLoja, fanpage: telaFanpage }[E.tela] || telaMenu;
+  if (!E.sala) est.setJogadores(bots(), null);
+  atualizarLED();
+  fn(ui);
+}
+const topo = (titulo, voltar = 'menu') => `<div class="topo"><button class="voltar" data-ir="${voltar}">←</button><h1>${titulo}</h1><div style="width:58px"></div></div>`;
+function ligarIr(el) { $$('[data-ir]', el).forEach(b => b.onclick = () => ir(b.dataset.ir)); }
+
+function telaMenu(ui) {
+  const p = E.perfil, nv = nivel(p.xp);
+  ui.innerHTML = `<div class="tela menu">
+    <div class="versao">${VERSAO}</div>
+    <div class="perfil-chip"><img class="av" src="${ret(p.avatar)}"><div><b>${esc(p.nome || 'Sem nome')}</b><small>Nível ${nv.n}</small><div class="nivel"><div style="width:${nv.pct}%"></div></div></div>
+      <div class="moedas" id="moedas-chip">🪙 ${fmtN(E.conta?.moedas ?? 0)}</div></div>
+    <div>
+      <div class="logo-txt"><span>DEBATE</span><b>PRESIDENCIAL</b><i>ONLINE</i></div>
+      ${E.conta?.cadastro ? `<div class="nome-box painel" style="margin-top:28px;padding:12px">
+        <div style="flex:1;min-width:0"><b style="font-size:18px">${esc(E.conta.cadastro.nome)}</b><br><small class="mut">@${esc(E.conta.cadastro.user)} · Xzona</small></div>
+        <button class="btn peq" id="nome-trocar">✎ Alterar</button>
+      </div>` : ''}
+      ${!contextoSeguro ? `<p class="painel" style="margin-top:12px;font-size:14px;max-width:460px">⚠ Endereço sem HTTPS: o microfone fica bloqueado aqui. Use <b>localhost</b> ou o link https gerado pelo <b>JOGAR-ONLINE.bat</b>. Ainda dá para jogar digitando.</p>` : ''}
+      ${!temReconhecimento ? `<p class="painel" style="margin-top:12px;font-size:14px;max-width:460px">⚠ Este navegador não transcreve voz. Use o <b>Google Chrome</b> ou o <b>Edge</b>.</p>` : ''}
+      ${E.campeao ? `<div class="painel campeao-mes">${E.campeao.avatar ? `<img src="${ret(E.campeao.avatar)}">` : '<span style="font-size:34px">🏆</span>'}<div><small>🏆 Campeão do mês · ${esc(nomeMes(E.campeao.mes))}</small><b>${esc(E.campeao.nome)}</b><small>${fmtN(E.campeao.pts)} pts${E.campeao.vitorias ? ` · ${E.campeao.vitorias} vitórias` : ''}</small></div></div>` : ''}
+      ${E.topXz?.length ? `<div class="painel top-xz"><div class="top-xz-tit"><span class="xz-logo">Xzona</span> Mais seguidos</div>${E.topXz.map((f, i) => `<div class="top-xz-l"><span class="pos">${['🥇', '🥈', '🥉'][i] || i + 1}</span><b>${esc(f.nome)}</b><small>@${esc(f.user)}</small><span class="seg">${fmtN(f.seguidores)}</span></div>`).join('')}</div>` : ''}
+      ${E.conta && !E.conta.fanpage ? `<div class="painel fp-banner"><span style="font-size:26px">📱</span><span style="flex:1">Crie sua <b>fanpage na Xzona</b>: ganhe seguidores a cada debate e mostre suas melhores falas.</span><button class="btn peq amarelo" data-a="fanpage">Criar</button></div>` : ''}
+    </div>
+    <div class="menu-col">
+      <button class="btn amarelo" data-a="jogar"><i class="ic">▶</i>JOGAR</button>
+      <button class="btn" data-a="salas"><i class="ic">🏛️</i>SALAS</button>
+      <button class="btn" data-a="fanpage"><i class="ic">📱</i>MINHA FANPAGE${E.conta?.fanpage ? ` <small style="opacity:.7">· ${fmtN(E.conta.fanpage.seguidores)}</small>` : ''}</button>
+      <button class="btn" data-a="personalizar"><i class="ic">👤</i>PERSONALIZAR</button>
+      <button class="btn" data-a="ranking"><i class="ic">🏆</i>RANKING</button>
+      <button class="btn" data-a="loja"><i class="ic">🛒</i>LOJA</button>
+      <button class="btn" data-a="config"><i class="ic">⚙️</i>CONFIGURAÇÕES</button>
+    </div></div>`;
+  $('#nome-trocar') && ($('#nome-trocar').onclick = janelaTrocarNome);
+  if (!(Date.now() - (E.topXzT || 0) < 60000)) { E.topXzT = Date.now(); socket.emit('topXzona', null, l => { const mudou = JSON.stringify(l) !== JSON.stringify(E.topXz); E.topXz = l || []; if (mudou && E.tela === 'menu') renderUI(); }); }
+  if (E.campeao === undefined) { E.campeao = null; socket.emit('campeao', null, c => { E.campeao = c || null; if (c && E.tela === 'menu') renderUI(); }); }
+  $$('[data-a]', ui).forEach(b => b.onclick = () => { if (b.dataset.a === 'jogar' && !exigirNome()) return; if (b.dataset.a === 'personalizar') E.persVoltar = 'menu'; ir(b.dataset.a); });
+}
+function telaJogar(ui) {
+  ui.innerHTML = `<div class="tela">${topo('Jogar')}
+    <div class="cards3">
+      <div class="card-modo" id="c-rapida"><div class="ico">⚡</div><h3>Partida rápida</h3><p>Entre em uma sala pública com outros jogadores automaticamente.</p></div>
+      <div class="card-modo" id="c-criar"><div class="ico">👥</div><h3>Criar sala</h3><p>Crie uma sala personalizada e convide seus amigos.</p></div>
+      <div class="card-modo"><div class="ico">🚪</div><h3>Entrar na sala</h3><p>Digite o código da sala para entrar.</p>
+        <input class="campo" id="c-cod" maxlength="5" placeholder="CÓDIGO"><button class="btn amarelo peq" id="c-entrar" style="width:100%">ENTRAR</button></div>
+      <div class="card-modo ia"><div class="ico">🤖</div><h3>Contra a IA</h3><p>Debata sozinho contra candidatos controlados pelo computador.</p>
+        <div class="cfg-linha"><span>Adversários</span><div class="seletor"><button data-n="-1">‹</button><span id="ia-n">${E.iaN || 2}</span><button data-n="1">›</button></div></div>
+        <div class="cfg-linha" style="border:0"><span>Dificuldade</span><div class="seletor"><button data-d="-1">‹</button><span id="ia-d">${DIFICULDADES[E.iaD || 'medio']}</span><button data-d="1">›</button></div></div>
+        <button class="btn verde peq" id="c-ia" style="width:100%">▶ JOGAR</button></div>
+    </div></div>`;
+  ligarIr(ui);
+  E.iaN ||= 2; E.iaD ||= 'medio';
+  const difs = Object.keys(DIFICULDADES);
+  $$('[data-n]', ui).forEach(b => b.onclick = e => { e.stopPropagation(); E.iaN = Math.max(1, Math.min(4, E.iaN + +b.dataset.n)); $('#ia-n').textContent = E.iaN; sfx.clique(); });
+  $$('[data-d]', ui).forEach(b => b.onclick = e => { e.stopPropagation(); E.iaD = difs[Math.max(0, Math.min(2, difs.indexOf(E.iaD) + +b.dataset.d))]; $('#ia-d').textContent = DIFICULDADES[E.iaD]; sfx.clique(); });
+  $('#c-ia').onclick = () => { if (exigirNome()) socket.emit('criarSolo', { n: E.iaN, dif: E.iaD, perfil: perfilEnvio() }, tratar); };
+  $('#c-rapida').onclick = partidaRapida; $('#c-criar').onclick = criarSala;
+  const ent = () => { const c = $('#c-cod').value.trim(); if (c.length < 4) return toast('Digite o código da sala.', 'erro'); entrarSala(c); };
+  $('#c-entrar').onclick = ent; $('#c-cod').onkeydown = e => { if (e.key === 'Enter') ent(); };
+}
+function telaSalas(ui) {
+  ui.innerHTML = `<div class="tela">${topo('Salas públicas')}<div class="painel" style="max-width:720px;width:100%;margin:0 auto"><div id="lista-salas" class="lista-jog"><p class="mut">Carregando…</p></div>
+    <div style="display:flex;gap:10px;margin-top:14px"><button class="btn peq" id="s-atual">↻ Atualizar</button><button class="btn peq amarelo" id="s-criar">+ Criar sala pública</button></div></div></div>`;
+  ligarIr(ui);
+  const carregar = () => socket.emit('salasPublicas', null, lista => {
+    const el = $('#lista-salas'); if (!el) return;
+    el.innerHTML = lista.length ? lista.map(s => `<div class="jog"><div class="nome"><b>Sala #${esc(s.code)}</b><small>Anfitrião: ${esc(s.host || '?')}</small></div><span class="chip">${s.n}/5</span><button class="btn peq amarelo" data-c="${esc(s.code)}">Entrar</button></div>`).join('')
+      : '<p class="mut">Nenhuma sala pública aberta agora. Crie uma ou use a Partida rápida!</p>';
+    $$('[data-c]', el).forEach(b => b.onclick = () => entrarSala(b.dataset.c));
+  });
+  carregar(); $('#s-atual').onclick = carregar;
+  $('#s-criar').onclick = () => { if (exigirNome()) socket.emit('criar', { publica: true, perfil: perfilEnvio() }, tratar); };
+}
+function telaDaLoja(ui) {
+  const voltar = E.sala ? 'sala' : 'menu';
+  if (!E.lojaInfo && !E.lojaPedindo) { E.lojaPedindo = true; socket.emit('lojaInfo', null, i => { E.lojaPedindo = false; E.lojaInfo = i; if (E.tela === 'loja') renderUI(); }); }
+  const pos = r => { if (r?.erro) return toast(r.erro, 'erro'); atualizarConta(r.conta); sfx.vitoria(); toast('Compra concluída!', 'ok'); renderUI(); };
+  telaLoja(ui, {
+    conta: E.conta, info: E.lojaInfo, aba: E.lojaAba, topo: topo('Loja', voltar), roupaAtual: E.perfil.avatar?.roupa,
+    vestir: id => { E.perfil.avatar = { ...E.perfil.avatar, roupa: ITEM[id].roupa }; salvar(); est.setVitrine(E.perfil.avatar); sincronizarPerfil(); toast(`Você está vestindo: ${ITEM[id].nome}!`, 'ok'); renderUI(); },
+    mudarAba: a => { E.lojaAba = a; sfx.clique(); renderUI(); },
+    comprarPacote: id => { const p = E.lojaInfo?.pacotes.find(x => x.id === id); janela(`<h2>Confirmar compra</h2><p>${esc(p.nome)} (${p.dicas} dica(s)) por <b>🪙 ${p.preco}</b>?</p><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn peq" id="cx">Cancelar</button><button class="btn peq amarelo" id="ok">Comprar</button></div>`,
+      (el, fechar) => { $('#cx', el).onclick = fechar; $('#ok', el).onclick = () => { fechar(); socket.emit('comprar', { uid: UID, pacote: id }, pos); }; }); },
+    comprarMoedas: id => {
+      const p = PACOTES_MOEDAS.find(x => x.id === id); if (!p) return;
+      if (!E.lojaInfo?.pixAtivo) return toast('Pagamentos ainda não estão configurados neste servidor.', 'erro');
+      let mail = ''; try { mail = localStorage.getItem('emailPix') || ''; } catch { /* sem storage */ }
+      janela(`<h2>${p.emoji} ${esc(p.nome)}</h2><p><b>🪙 ${fmtN(p.moedas + p.bonus)}</b> por <b>${reais(p.reais)}</b> via PIX.</p>
+        <label class="mut">E-mail para o comprovante</label><input id="em" type="email" value="${esc(mail)}" placeholder="voce@email.com" style="width:100%;margin:6px 0 12px">
+        <div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn peq" id="cx">Cancelar</button><button class="btn peq amarelo" id="ok">Gerar PIX</button></div>`,
+      (el, fechar) => { $('#cx', el).onclick = fechar; $('#ok', el).onclick = () => {
+        const email = $('#em', el).value.trim(); try { localStorage.setItem('emailPix', email); } catch { /* sem storage */ }
+        $('#ok', el).disabled = true;
+        socket.emit('pagarPix', { uid: UID, pacote: id, email }, r => {
+          $('#ok', el).disabled = false; if (r?.erro) return toast(r.erro, 'erro'); fechar();
+          janela(`<h2>Pague com PIX · ${reais(r.reais)}</h2>${r.qrImg ? `<img src="data:image/png;base64,${r.qrImg}" alt="QR Code PIX" style="display:block;width:220px;margin:0 auto;background:#fff;padding:8px;border-radius:8px">` : ''}
+            <p class="mut" style="text-align:center">Escaneie o QR ou use o PIX copia e cola:</p><textarea id="cc" readonly rows="3" style="width:100%;font-size:.75em">${esc(r.qr || '')}</textarea>
+            <p id="st" style="text-align:center">⏳ Aguardando pagamento…</p><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn peq" id="cp">Copiar código</button><button class="btn peq" id="fx">Fechar</button></div>`,
+          (el2, fechar2) => {
+            $('#fx', el2).onclick = fechar2; $('#cp', el2).onclick = () => { navigator.clipboard?.writeText(r.qr || ''); toast('Código PIX copiado!', 'ok'); };
+            const t = setInterval(() => { if (!el2.isConnected) return clearInterval(t);
+              socket.emit('statusPix', { uid: UID, id: r.id }, s => {
+                if (s?.creditado) { clearInterval(t); atualizarConta(s.conta); sfx.vitoria(); toast(`+🪙 ${fmtN(s.moedas)} na sua conta!`, 'ok'); fechar2(); renderUI(); }
+                else if (['rejected', 'cancelled', 'expired'].includes(s?.status)) { clearInterval(t); $('#st', el2).textContent = '❌ Pagamento não concluído. Gere um novo PIX.'; }
+              }); }, 5000);
+          });
+        }); }; }); },
+    comprarItem: id => { const it = ITEM[id]; janela(`<h2>${it.emoji} ${esc(it.nome)}</h2><p>Comprar por <b>🪙 ${it.preco}</b>? Seu saldo: 🪙 ${fmtN(E.conta?.moedas || 0)}.</p><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn peq" id="cx">Cancelar</button><button class="btn peq amarelo" id="ok">Comprar</button></div>`,
+      (el, fechar) => { $('#cx', el).onclick = fechar; $('#ok', el).onclick = () => { fechar(); socket.emit('comprarItem', { uid: UID, item: id }, pos); }; }); },
+    equipar: id => socket.emit('equiparDanca', { uid: UID, item: id }, r => { if (r?.erro) return toast(r.erro, 'erro'); atualizarConta(r.conta); toast('Dança equipada para a sua vitória!', 'ok'); renderUI(); }),
+    testar: id => {
+      const tela = $('#ui .tela'); tela.style.transition = 'opacity .3s'; tela.style.opacity = 0; tela.style.pointerEvents = 'none';
+      const bt = document.createElement('button'); bt.className = 'btn amarelo'; bt.textContent = '✕ Parar';
+      bt.style.cssText = 'position:fixed;bottom:40px;left:50%;transform:translateX(-50%);z-index:50';
+      const roupa = ITEM[id].tipo === 'roupa'; if (roupa) est.setVitrine({ ...E.perfil.avatar, roupa: ITEM[id].roupa }); // prova o traje
+      let tm; const som = roupa ? null : somItem(id); const fim = () => { clearTimeout(tm); som?.pause?.(); bt.remove(); est.pararVitrine(); if (roupa) est.setVitrine(E.perfil.avatar); tela.style.opacity = 1; tela.style.pointerEvents = ''; };
+      bt.onclick = fim; document.body.append(bt);
+      est.testarNaVitrine(ITEM[id]); tm = setTimeout(fim, ITEM[id].tipo === 'danca' ? 5000 : roupa ? 4500 : 3000);
+    },
+  });
+  ligarIr(ui);
+}
+function telaFanpage(ui) {
+  const fp = E.conta?.fanpage, editar = !fp || E.fpEditar, p = PARTIDO[E.perfil.partido];
+  ui.innerHTML = `<div class="tela">${topo('Minha fanpage · Xzona')}<div class="painel scroll" style="max-width:640px;width:100%;margin:0 auto;flex:1">
+    ${editar ? `<h2>${fp ? 'Editar fanpage' : 'Criar fanpage na Xzona'}</h2>
+      <p class="mut" style="margin-top:-6px">Foi bem no debate? Ganha seguidores. Foi mal? Perde. Sua melhor fala de cada debate é publicada aqui, e os adversários podem ver sua página na sala de espera.</p>
+      <p style="margin:0 0 10px">Seu @: <b>@${esc(E.conta?.cadastro?.user || '')}</b> <small class="mut">(alterar custa 🪙 ${fmtN(CADASTRO.precoUser)} no menu)</small></p>
+      <label class="mut">Nome da página</label><input id="fp-nome" class="campo" maxlength="30" style="width:100%;margin:6px 0 12px" value="${esc(fp?.nome || E.perfil.nome || '')}" placeholder="Ex.: ${esc(E.perfil.nome || 'Candidato')} Presidente">
+      <label class="mut">Bio</label><textarea id="fp-bio" class="campo" maxlength="140" rows="3" style="width:100%;margin:6px 0 12px" placeholder="Ex.: Candidato(a) à Presidência. Trabalho, saúde e educação. 🇧🇷">${esc(fp?.bio || '')}</textarea>
+      <div style="display:flex;gap:10px;justify-content:flex-end">${fp ? '<button class="btn peq" id="fp-cx">Cancelar</button>' : ''}<button class="btn peq amarelo" id="fp-ok">${fp ? 'Salvar' : '📱 Criar fanpage'}</button></div>`
+    : `${htmlFanpage({ ...fp, autor: E.perfil.nome, partidas: E.conta.partidas || 0, vitorias: E.conta.vitorias || 0 }, { img: ret(E.perfil.avatar), partido: p ? `${p.sigla} ${p.numero}` : '' })}
+      <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn peq" id="fp-ed">✎ Editar página</button></div>`}
+  </div></div>`;
+  ligarIr(ui);
+  $('#fp-ed') && ($('#fp-ed').onclick = () => { E.fpEditar = true; renderUI(); });
+  $('#fp-cx') && ($('#fp-cx').onclick = () => { E.fpEditar = false; renderUI(); });
+  $('#fp-ok') && ($('#fp-ok').onclick = () => socket.emit('criarFanpage', { uid: UID, nome: $('#fp-nome').value, bio: $('#fp-bio').value }, r => {
+    if (r?.erro) return toast(r.erro, 'erro');
+    E.fpEditar = false; atualizarConta(r.conta); sfx.vitoria(); toast(fp ? 'Fanpage atualizada!' : 'Fanpage criada na Xzona!', 'ok'); renderUI();
+  }));
+}
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const nomeMes = id => { const [a, m] = String(id || '').split('-'); return m ? `${MESES[+m - 1]} de ${a}` : ''; };
+function telaRanking(ui) {
+  const per = E.rankPer ||= 'semana';
+  ui.innerHTML = `<div class="tela">${topo('Ranking')}<div class="painel scroll" style="max-width:760px;width:100%;margin:0 auto;flex:1">
+    <div class="rank-abas">${[['semana', '📅 Semanal'], ['mes', '🗓 Mensal'], ['geral', '🏆 Geral']].map(([k, t]) => `<button class="btn peq ${k === per ? 'on' : ''}" data-per="${k}">${t}</button>`).join('')}</div>
+    <p class="mut" id="rank-info" style="margin:0 0 10px"></p><div id="rank"><p class="mut">Carregando…</p></div></div></div>`;
+  ligarIr(ui);
+  $$('[data-per]', ui).forEach(b => b.onclick = () => { E.rankPer = b.dataset.per; sfx.clique(); renderUI(); });
+  socket.emit('ranking', { periodo: per }, d => {
+    const el = $('#rank'); if (!el || E.rankPer !== per) return;
+    const lista = Array.isArray(d) ? d : d?.lista || [];
+    const fimSem = d?.id && per === 'semana' ? new Date(new Date(d.id + 'T00:00').getTime() + 6 * 864e5).toLocaleDateString('pt-BR') : '';
+    $('#rank-info').innerHTML = per === 'semana' ? `Semana até ${fimSem} (domingo). O 1º lugar ganha <b>🪙 ${fmtN(d?.premioSemanal || 0)}</b> e o título de melhor candidato da semana na Xzona.`
+      : per === 'mes' ? `Ranking de ${esc(nomeMes(d?.id))}. O 1º lugar ganha <b>🪙 ${fmtN(d?.premio || 0)}</b>, fica em destaque no menu inicial e ganha o título de melhor candidato do mês na Xzona.`
+      : 'Pontuação acumulada de todos os tempos.';
+    if (!lista.length) { el.innerHTML = '<p class="mut">Ninguém pontuou ainda neste período. Jogue uma partida para entrar no ranking!</p>'; return; }
+    const img = r => r.avatar ? ret(r.avatar) : '';
+    const top = [lista[1], lista[0], lista[2]];
+    el.innerHTML = `<div class="rank-podio">${top.map((r, i) => r ? `<div class="lugar"><img src="${img(r)}"><div class="bloco" style="height:${[90, 130, 70][i]}px">${['🥈', '🥇', '🥉'][i]} ${esc(r.nome)}<br><small>${fmtN(r.pts)} pts</small></div></div>` : '').join('')}</div>
+      <div class="rank-lista">${lista.map((r, i) => `<div class="jog"><span class="pos">${i + 1}</span><img class="av" src="${img(r)}"><div class="nome"><b>${esc(r.nome)}</b><small>${r.partidas} partidas · ${r.vitorias} vitórias${r.partido && PARTIDO[r.partido] ? ' · ' + PARTIDO[r.partido].sigla : ''}</small></div><b>${fmtN(r.pts)} pts</b></div>`).join('')}</div>`;
+  });
+}
+function telaConfig(ui) {
+  const c = E.cfg;
+  ui.innerHTML = `<div class="tela">${topo('Configurações')}<div class="painel" style="max-width:640px;width:100%;margin:0 auto">
+    <div class="cfg-linha"><span>Voz da mediadora</span><button class="toggle ${c.voz ? 'on' : ''}" id="t-voz"></button></div>
+    <div class="cfg-linha"><span>Volume dos efeitos</span><input type="range" min="0" max="1" step=".05" value="${c.sfx}" id="t-sfx"></div>
+    <div class="cfg-linha"><span>Som ambiente (plateia)</span><input type="range" min="0" max="1" step=".05" value="${c.ambiente}" id="t-amb"></div>
+    <div class="cfg-linha"><span>Volume da música</span><input type="range" min="0" max="1" step=".05" value="${c.musica}" id="t-mus"></div>
+    <div class="cfg-linha"><span>Resolução</span><select id="t-res" class="cfg-sel">${Object.entries(RESOLUCOES).map(([k, v]) => `<option value="${k}"${c.resolucao === k ? ' selected' : ''}>${v}</option>`).join('')}</select></div>
+    <div class="cfg-linha"><span>Qualidade gráfica</span><div class="seletor"><button data-q="baixa">‹</button><span>${c.qualidade === 'alta' ? 'Alta (brilho e sombras)' : 'Baixa (mais leve)'}</span><button data-q="alta">›</button></div></div>
+    <div class="cfg-linha"><span>Sensibilidade para olhar em volta</span><input type="range" min=".4" max="2" step=".1" value="${c.sens}" id="t-sens"></div>
+    <div class="cfg-linha"><span>Mostrar nomes sobre os candidatos</span><button class="toggle ${c.nomes ? 'on' : ''}" id="t-nomes"></button></div>
+    <div class="cfg-linha" style="border:0"><button class="btn peq amarelo" id="t-mic">🎙 Testar microfone</button><span id="t-mic-out" class="mut" style="flex:1;text-align:right;font-size:14px"></span></div>
+    <p class="mut" style="font-size:13px;margin-bottom:0">Transcrição: ${temReconhecimento ? 'disponível' : 'indisponível neste navegador (use Chrome ou Edge)'} · Endereço ${contextoSeguro ? 'seguro ✔' : 'NÃO seguro (microfone bloqueado)'}</p>
+  </div></div>`;
+  ligarIr(ui);
+  const g = () => { salvarConfig(c); est.cfg.sens = c.sens; est.cfg.nomes = c.nomes; };
+  $('#t-voz').onclick = () => { c.voz = !c.voz; g(); renderUI(); };
+  $('#t-nomes').onclick = () => { c.nomes = !c.nomes; g(); est.chaveJog = ''; est.setJogadores(E.sala ? E.sala.jogadores : bots(), E.eu); renderUI(); };
+  $('#t-sfx').oninput = e => { c.sfx = +e.target.value; setVolume(c.sfx); ajustarAmbiente(); g(); }; $('#t-sfx').onchange = () => sfx.vez();
+  $('#t-amb').oninput = e => { c.ambiente = +e.target.value; setVolumeAmbiente(c.ambiente); g(); }; $('#t-amb').onchange = () => sfx.aplausos(1.2, .2);
+  $('#t-mus').oninput = e => { c.musica = +e.target.value; setVolumeMusica(c.musica); g(); }; $('#t-mus').onchange = () => sfx.vinheta();
+  $('#t-res').onchange = e => { c.resolucao = e.target.value; g(); aplicarResolucao(c.resolucao); est.setResolucao(c.resolucao); };
+  $('#t-sens').oninput = e => { c.sens = +e.target.value; g(); };
+  $$('[data-q]', ui).forEach(b => b.onclick = () => { c.qualidade = b.dataset.q; g(); est.setQualidade(c.qualidade); renderUI(); });
+  $('#t-mic').onclick = async () => { const o = $('#t-mic-out'); o.textContent = 'Fale algo agora (6 segundos)…'; $('#t-mic').disabled = true; const r = await testarMicrofone(6); if ($('#t-mic-out')) { o.innerHTML = (r.ok ? '✔ Ouvi: ' : '✖ ') + esc(r.msg); $('#t-mic').disabled = false; } };
+}
+
+function telaSala(ui) {
+  const s = E.sala, host = ehHost(), me = eu();
+  if (!s || !me) { ui.innerHTML = ''; return; }
+  const linhaJorn = `<div class="jog vago"><span class="ok-ico">🎤</span><div class="av"></div><div class="nome"><b class="mut">Jornalista: IA (Poliana ou Cezinha)</b><small>Conduz o debate e faz as perguntas</small></div></div>`;
+  const cfg = s.cfg, durNome = { curto: 'Curto (30s)', normal: 'Normal (60s)', longo: 'Longo (90s)' };
+  const todosProntos = s.jogadores.filter(j => j.conectado && j.id !== s.hostId).every(j => j.pronto);
+  const podeIniciar = s.jogadores.filter(j => j.conectado).length >= 2 && todosProntos;
+  const vagas = Array.from({ length: 5 - s.jogadores.length }, () => `<div class="jog vago"><span class="ok-ico">·</span><div class="av"></div><div class="nome"><b class="mut">Vaga livre</b><small>Convide um amigo</small></div></div>`).join('');
+  ui.innerHTML = `<div class="tela">
+    <div class="topo"><button class="voltar" id="sl-sair" title="Sair da sala">←</button>
+      <h1>Sala: <span class="codigo">#${esc(s.code)}</span> <button class="btn peq" id="sl-copiar" title="Copiar código">⧉</button></h1>
+      <span class="chip ${s.publica ? 'verde' : 'amarelo'}">${s.publica ? 'Pública' : 'Privada'}</span><span class="chip">👤 ${s.jogadores.length}/5</span></div>
+    <div class="sala-grid">
+      <div class="painel scroll" style="display:flex;flex-direction:column">
+        <h2>Jogadores</h2>
+        <div class="lista-jog">${linhaJorn}${s.jogadores.map(j => {
+          const p = PARTIDO[j.partido];
+          return `<div class="jog ${j.id === E.eu ? 'eu' : ''}" style="${j.conectado ? '' : 'opacity:.5'}">
+            <span class="ok-ico ${j.pronto || j.id === s.hostId ? 'on' : ''}">${j.pronto || j.id === s.hostId ? '✓' : '…'}</span>
+            <img class="av" src="${ret(j.avatar)}">
+            <div class="nome"><b>${esc(j.nome)}${j.id === s.hostId ? ' <span style="color:var(--amarelo)">(Anfitrião)</span>' : ''}${j.id === E.eu ? ' · você' : ''}</b>
+              <small>${p ? `${p.sigla} ${p.numero} · ${IDEO[p.ideo].nome}` : ''} · ${esc(AV.generos[j.avatar.genero] || '')}</small></div>
+            ${j.bot ? `<span class="chip ia">🤖 IA · ${DIFICULDADES[j.dif] || ''}</span>` : j.fanpage ? `<button class="chip fp-chip" data-fp="${j.id}" title="Ver fanpage na Xzona">📱 ${fmtN(j.fanpage.seguidores)}</button>` : ''}
+            ${p ? `<img class="logo-p" src="${logoPartido(p.sigla, 80)}" title="${esc(p.nome)}">` : ''}
+            ${host && j.id !== E.eu ? `<button class="btn peq vermelho" data-kick="${j.id}" title="Remover">✕</button>` : ''}
+          </div>`;
+        }).join('')}${vagas}</div>
+        <div style="display:flex;gap:10px;margin-top:auto;padding-top:14px;flex-wrap:wrap">
+          <button class="btn peq" id="sl-convite">🔗 Convidar amigos</button><button class="btn peq" id="sl-cod">⧉ Copiar código</button>
+          <span class="mic-ind ${voip.transmitindo ? 'on' : ''}">${voip.stream ? (voip.transmitindo ? '🎙 Voz aberta: todos podem conversar' : '🔇 Microfone mudo') : '🎙 Chat de voz desligado'}</span>
+          ${host && s.jogadores.length < 5 ? `<span style="flex:1"></span><div class="seletor"><button data-bd="-1">‹</button><span>${DIFICULDADES[E.iaD || 'medio']}</span><button data-bd="1">›</button></div><button class="btn peq verde" id="sl-bot">🤖 + Candidato IA</button>` : ''}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;min-height:0">
+        <div class="painel">
+          <h2>Debate presidencial</h2>
+          <div class="cfg-linha"><span>🧱 Blocos</span><b>3 (propostas, confronto, finais)</b></div>
+          <div class="cfg-linha"><span>⏱ Tempo por resposta</span>${host ? `<div class="seletor"><button data-dur="-1">‹</button><span>${durNome[cfg.dur]}</span><button data-dur="1">›</button></div>` : `<b>${durNome[cfg.dur]}</b>`}</div>
+          <div class="cfg-linha"><span>🗺 Temas</span><b>Sorteados dos 27 estados</b></div>
+          <div class="cfg-linha"><span>⌨ Permitir respostas digitadas</span><button class="toggle ${cfg.permitirTexto ? 'on' : ''}" data-tg="permitirTexto" ${host ? '' : 'disabled'}></button></div>
+          <div class="cfg-linha"><span>👏 Reações dos candidatos</span><button class="toggle ${cfg.reacoes ? 'on' : ''}" data-tg="reacoes" ${host ? '' : 'disabled'}></button></div>
+          <div class="cfg-linha" style="border:0"><span>🌐 Sala pública</span><button class="toggle ${s.publica ? 'on' : ''}" data-tg="publica" ${host ? '' : 'disabled'}></button></div>
+        </div>
+        <div style="display:flex;gap:10px"><button class="btn" id="sl-pers" style="flex:1">👤 Personalizar</button><button class="btn" id="sl-loja" style="flex:1">🛒 Loja</button></div>
+        ${host ? `<button class="btn verde grande" id="sl-iniciar" ${podeIniciar ? '' : 'disabled'}>▶ INICIAR PARTIDA</button>
+          <p class="mut" style="margin:0;text-align:center;font-size:14px">${s.jogadores.filter(j => j.conectado).length < 2 ? 'Mínimo de 2 candidatos para começar.' : todosProntos ? 'Tudo pronto!' : 'Aguardando todos ficarem prontos…'}</p>`
+          : `<button class="btn ${me.pronto ? '' : 'verde'} grande" id="sl-pronto">${me.pronto ? '✓ PRONTO! (cancelar)' : 'ESTOU PRONTO'}</button>`}
+      </div>
+    </div></div>`;
+  $('#sl-sair').onclick = sairSala;
+  const link = location.origin + '/?sala=' + s.code;
+  const copiar = (t, msg) => { navigator.clipboard?.writeText(t).then(() => toast(msg, 'ok'), () => toast(t)); };
+  $('#sl-copiar').onclick = $('#sl-cod').onclick = () => copiar(s.code, 'Código copiado: ' + s.code);
+  $('#sl-convite').onclick = () => copiar(link, 'Link de convite copiado!');
+  $('#sl-pers').onclick = () => { E.persVoltar = 'sala'; ir('personalizar'); };
+  $('#sl-loja').onclick = () => ir('loja');
+  $$('[data-kick]', ui).forEach(b => b.onclick = () => socket.emit('expulsar', b.dataset.kick));
+  $$('[data-fp]', ui).forEach(b => b.onclick = () => { const j = s.jogadores.find(x => x.id === b.dataset.fp), p = PARTIDO[j?.partido]; sfx.clique();
+    socket.emit('verFanpage', { id: b.dataset.fp }, fp => janelaFanpage(fp, { img: j ? ret(j.avatar) : '', partido: p ? `${p.sigla} ${p.numero}` : '' })); });
+  $$('[data-bd]', ui).forEach(b => b.onclick = () => { const d = Object.keys(DIFICULDADES); E.iaD = d[Math.max(0, Math.min(2, d.indexOf(E.iaD || 'medio') + +b.dataset.bd))]; sfx.clique(); renderUI(); });
+  $('#sl-bot') && ($('#sl-bot').onclick = () => { socket.emit('addBot', { dif: E.iaD || 'medio' }, r => r?.erro && toast(r.erro, 'erro')); sfx.clique(); });
+  $$('[data-dur]', ui).forEach(b => b.onclick = () => { const o = ['curto', 'normal', 'longo']; const i = Math.max(0, Math.min(2, o.indexOf(cfg.dur) + +b.dataset.dur)); socket.emit('cfg', { dur: o[i] }); sfx.clique(); });
+  $$('[data-tg]', ui).forEach(b => b.onclick = () => { const k = b.dataset.tg; socket.emit('cfg', { [k]: k === 'publica' ? !s.publica : !cfg[k] }); sfx.clique(); });
+  $('#sl-iniciar') && ($('#sl-iniciar').onclick = () => socket.emit('iniciar', null, r => r?.erro && toast(r.erro, 'erro')));
+  $('#sl-pronto') && ($('#sl-pronto').onclick = () => { socket.emit('pronto', !me.pronto); sfx.clique(); });
+}
+
+// ---------- personalização ----------
+const ABAS = { aparencia: '👤 Aparência', roupas: '👔 Roupas', acessorios: '👓 Acessórios', expressoes: '🙂 Expressões', partido: '🏛 Partido' };
+const trajeBloqueado = r => ROUPA_ITEM[r] && !E.conta?.itens?.includes(ROUPA_ITEM[r]);
+function setAv(campo, valor) {
+  if (campo === 'roupa' && trajeBloqueado(valor)) { E.lojaAba = 'roupa'; toast(`"${AV.roupas[valor]}" está na Loja por 🪙 ${ITEM[ROUPA_ITEM[valor]].preco}.`); return ir('loja'); }
+  E.perfil.avatar = { ...E.perfil.avatar, [campo]: valor };
+  if (campo === 'genero') { // ajustes de praxe ao trocar o sexo (tudo pode ser alterado depois)
+    const a = E.perfil.avatar;
+    if (valor !== 'masculino') a.barba = 'nenhuma';
+    if (valor === 'masculino') { // visual masculino de verdade: sem brinco, sem saia, sem cabelo comprido
+      a.brinco = false;
+      if (a.roupa === 'saia' || a.roupa === 'blazer') a.roupa = 'terno';
+      if (['longo', 'chanel', 'coque'].includes(a.cabelo)) a.cabelo = 'curto';
+    }
+    if (valor === 'feminino' && ['careca', 'calvo', 'topete'].includes(a.cabelo)) a.cabelo = 'longo';
+  }
+  salvar(); est.setVitrine(E.perfil.avatar); sincronizarPerfil(); sfx.clique();
+  const sc = $('.pers-conteudo')?.scrollTop; renderPersConteudo(); const el = $('.pers-conteudo'); if (el) el.scrollTop = sc;
+}
+function telaPersonalizar(ui) {
+  est.setVitrine(E.perfil.avatar); est.setModo('vitrine');
+  ui.innerHTML = `<div class="tela">${topo('Personalizar candidato', E.persVoltar)}
+    <div class="pers">
+      <div class="pers-esq">
+        <div class="painel" style="display:flex;gap:10px;align-items:center;padding:10px">
+          <input id="p-nome" class="campo" maxlength="20" value="${esc(E.perfil.nome)}" placeholder="Nome do candidato" readonly title="Para mudar o nome, use ✎ Alterar no menu (custa moedas)">
+          <button class="btn peq amarelo" id="p-rand">🎲 Aleatório</button>
+        </div>
+        <span class="chip">🖱 Arraste o boneco para girar</span>
+      </div>
+      <div class="painel pers-dir">
+        <div class="abas">${Object.entries(ABAS).map(([k, v]) => `<button class="aba ${E.persAba === k ? 'on' : ''}" data-aba="${k}">${v}</button>`).join('')}</div>
+        <div class="pers-conteudo"></div>
+      </div>
+    </div></div>`;
+  ligarIr(ui);
+  $$('[data-aba]', ui).forEach(b => b.onclick = () => { E.persAba = b.dataset.aba; sfx.clique(); $$('[data-aba]', ui).forEach(x => x.classList.toggle('on', x === b)); renderPersConteudo(); });
+  $('#p-rand').onclick = () => { E.perfil.avatar = avatarAleatorio(E.perfil.avatar.genero); salvar(); est.setVitrine(E.perfil.avatar); sincronizarPerfil(); sfx.sorteio(); renderPersConteudo(); };
+  renderPersConteudo();
+}
+function renderPersConteudo() {
+  const el = $('.pers-conteudo'); if (!el) return; const a = E.perfil.avatar;
+  const cores = (campo, lista) => `<div class="cores">${lista.map(c => `<button class="cor ${a[campo] === c ? 'on' : ''}" style="background:${c}" data-c="${campo}" data-v="${c}"></button>`).join('')}</div>`;
+  const tiles = (campo, opcoes, comRetrato = true) => `<div class="grade">${Object.entries(opcoes).map(([v, nome]) => `<button class="opc ${a[campo] === v ? 'on' : ''}" data-c="${campo}" data-v="${v}">${comRetrato ? `<img src="${ret({ ...a, [campo]: v })}">` : ''}<span>${esc(nome)}</span></button>`).join('')}</div>`;
+  const tg = (campo, nome) => `<div class="cfg-linha"><span>${nome}</span><button class="toggle ${a[campo] ? 'on' : ''}" data-t="${campo}"></button></div>`;
+  const g = (t, c) => `<div class="grupo"><h4>${t}</h4>${c}</div>`;
+  let h = '';
+  switch (E.persAba) {
+    case 'aparencia': h = g('Sexo', tiles('genero', AV.generos)) + g('Cor da pele', cores('pele', AV.peles)) + g('Cabelo', tiles('cabelo', AV.cabelos)) + g('Cor do cabelo', cores('corCabelo', AV.coresCabelo)) + g('Tipo físico', tiles('corpo', { magro: 'Magro', medio: 'Médio', largo: 'Largo' }, false)); break;
+    case 'roupas': h = g('Traje', tiles('roupa', Object.fromEntries(Object.entries(AV.roupas).map(([k, v]) => [k, trajeBloqueado(k) ? `🔒 ${v} · 🪙 ${ITEM[ROUPA_ITEM[k]].preco}` : v])), false)) + g('Cor do paletó / roupa', cores('corRoupa', AV.coresRoupa)) + g('Cor da camisa', cores('corCamisa', AV.coresCamisa)) + g('Cor da gravata / boné', cores('corGravata', AV.coresGravata)); break;
+    case 'acessorios': h = g('Óculos', tiles('oculos', AV.oculos)) + g('Chapéu', tiles('chapeu', AV.chapeus)) + g('Extras', tiles('extra', AV.extras)) + g('Barba', tiles('barba', AV.barbas)) + g('Detalhes', tg('broche', 'Broche verde-amarelo na lapela') + tg('brinco', 'Brincos')); break;
+    case 'expressoes': h = g('Expressão padrão', tiles('expressao', { simpatico: 'Simpático', serio: 'Sério', confiante: 'Confiante', bravo: 'Bravo' })) + '<p class="mut" style="font-size:13px">A boca se mexe sozinha quando você fala no microfone.</p>'; break;
+    case 'partido': {
+      const ocupados = new Set((E.sala?.jogadores || []).filter(j => j.id !== E.eu).map(j => j.partido));
+      h = `<p class="mut" style="margin-top:0;font-size:14px">Partidos fictícios. O partido define seu espectro político, e o eleitor espera um discurso coerente com ele.</p>
+        <div class="partidos">${PARTIDOS.map(p => `<button class="partido ${E.perfil.partido === p.sigla ? 'on' : ''}" data-p="${p.sigla}" ${ocupados.has(p.sigla) ? 'disabled title="Já escolhido na sala"' : ''} style="background:linear-gradient(160deg,${p.cor},${p.cor}cc 60%,#1a1052)">
+          <img src="${logoPartido(p.sigla, 116)}"><b>${p.sigla} · ${p.numero}</b><small>${esc(p.nome)}</small><span class="chip" style="font-size:11px">${IDEO[p.ideo].nome}</span><small class="lema">“${esc(p.lema)}”</small></button>`).join('')}</div>`;
+    }
+  }
+  el.innerHTML = h;
+  $$('[data-c]', el).forEach(b => b.onclick = () => setAv(b.dataset.c, b.dataset.v));
+  $$('[data-t]', el).forEach(b => b.onclick = () => setAv(b.dataset.t, !a[b.dataset.t]));
+  $$('[data-p]', el).forEach(b => b.onclick = () => { E.perfil.partido = b.dataset.p; salvar(); sincronizarPerfil(); sfx.clique(); renderPersConteudo(); });
+}
+
+// ======================= HUD do jogo =======================
+function renderHUD() {
+  const hud = $('#hud');
+  if (!$('#h-topo')) {
+    hud.innerHTML = `
+      <div class="hud-topo" id="h-topo"><div class="hud-box hud-bloco" id="h-bloco"></div><div class="hud-box hud-tema" id="h-tema"></div>
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end"><div class="hud-box hud-tempo" id="h-tempo"></div><button class="btn peq p" id="h-pular" hidden>Pular ▶</button></div></div>
+      <div class="coluna-dir"><div class="perguntas p" id="h-perg"></div><div class="lateral p" id="h-lateral"></div></div>
+      <div class="legenda" id="h-legenda"></div>
+      <div class="acao p" id="h-acao"></div>
+      <div class="botoes-esq p" id="h-botoes">
+        <button class="regras-b" id="h-regras-b" title="Regras do debate">⚖ REGRAS DO DEBATE<span id="h-adv"></span></button>
+        <div class="reacoes" id="h-reacoes">${[['aplauso', '👏'], ['risada', '😂'], ['pensativo', '🤔'], ['vaia', '👎'], ['mao', '✋']].map(([t, e]) => `<button data-r="${t}" title="${t}">${e}</button>`).join('')}</div>
+        <div style="display:flex;gap:10px"><button class="redondo" id="h-emotes-b" title="Emotes, danças e provocações">😀</button><button class="redondo" id="h-mudo" title="Chat de voz: mudo / aberto">🎙</button><button class="redondo" id="h-den" title="Denunciar jogador">🚩</button>
+          <button class="redondo" id="h-ajuda-b" title="Como jogar">?</button><button class="redondo" id="h-som" title="Voz da mediadora">${E.cfg.voz ? '🔊' : '🔇'}</button><button class="redondo" id="h-sair" title="Sair da partida">⏏</button></div>
+      </div>
+      <div class="painel painel-emotes p" id="h-emotes" hidden></div>
+      <div class="dica-olhar" id="h-dica">${CELULAR ? '👆 Arraste o dedo na tela para olhar em volta' : '🖱 Segure o botão esquerdo e arraste para olhar em volta · ← → ↑ ↓ também funcionam'}</div>
+      <div id="h-result"></div>
+      <div class="ajuda p" id="h-ajuda" hidden><div class="painel"><h2>Como jogar</h2>
+        <p>🎙 Na sua vez, clique no <b>microfone</b> (ou no <b>botão vermelho</b> do seu púlpito, ou aperte <b>V</b>) e fale. A fala é transcrita ao vivo para todos.</p>
+        <p>⏱ O tempo começa quando você liga o microfone ou começa a digitar. Se você não começar, ele começa sozinho.</p>
+        <p>🔒 Ao <b>confirmar</b> (botão verde ou Ctrl+Enter) ou quando o tempo acaba, a fala é travada e não dá mais para editar.</p>
+        <p>⚔ No confronto, escolha o adversário clicando no <b>púlpito</b> dele. O tema é sorteado entre os 27 estados.</p>
+        <p>📊 Os comentaristas avaliam: foco no tema (cite o estado e o problema), propostas concretas (metas, números), apelo ao eleitor e uso do tempo. Seu vocabulário mostra se você soa mais à esquerda ou à direita. Ataques animam os extremos, mas afastam o centro.</p>
+        <p>🗳 No fim, a apuração segue o sistema brasileiro: mais de 50% dos votos válidos vence no 1º turno; se ninguém passar disso, há 2º turno.</p>
+        <button class="btn amarelo" id="h-ajuda-x">Entendi</button></div></div>
+      <div class="ajuda p" id="h-regras" hidden><div class="painel regras-painel"><h2>⚖ Regras do debate</h2>
+        ${REGRAS_DEBATE.map(([t, c]) => `<p><b>${t}</b><br>${c}</p>`).join('')}
+        <p class="mut" style="font-size:13px">Estas regras fazem parte dos Termos de Uso que você aceitou ao entrar no jogo.</p>
+        <button class="btn amarelo" id="h-regras-x">Entendi</button></div></div>`;
+    $$('[data-r]', hud).forEach(b => b.onclick = () => socket.emit('reacao', b.dataset.r));
+    // emotes / danças / provocações (itens da loja)
+    $('#h-emotes-b').onclick = () => {
+      const p = $('#h-emotes'); p.hidden = !p.hidden; if (p.hidden) return;
+      const tem = id => E.conta?.itens?.includes(id);
+      p.innerHTML = ITENS.map(i => `<button data-em="${i.id}" class="${tem(i.id) ? '' : 'bloq'}" title="${esc(i.nome)}${tem(i.id) ? '' : ' (compre na loja)'}">${i.emoji}<small>${esc(i.nome)}</small></button>`).join('');
+      $$('[data-em]', p).forEach(b => b.onclick = () => { if (!tem(b.dataset.em)) return toast(`"${ITEM[b.dataset.em].nome}" está na Loja por 🪙 ${ITEM[b.dataset.em].preco}.`); socket.emit('emote', b.dataset.em); p.hidden = true; });
+    };
+    $('#h-mudo').onclick = () => { voip.setMudo(!voip.mudo); $('#h-mudo').textContent = voip.mudo ? '🔇' : '🎙'; toast(voip.mudo ? 'Seu microfone do chat de voz está mudo.' : 'Chat de voz ativo (você só transmite quando é a sua vez).'); };
+    $('#h-den').onclick = () => {
+      const outros = E.sala.jogadores.filter(j => !j.bot && j.id !== E.eu);
+      if (!outros.length) return toast('Não há outros jogadores para denunciar.');
+      janelaDenuncia(outros, d => socket.emit('denunciar', d, r => r?.erro ? toast(r.erro, 'erro') : toast('Denúncia enviada aos administradores. Obrigado!', 'ok')));
+    };
+    $('#h-pular').onclick = () => socket.emit('avancar');
+    $('#h-ajuda-b').onclick = () => { $('#h-ajuda').hidden = false; }; $('#h-ajuda-x').onclick = () => { $('#h-ajuda').hidden = true; };
+    $('#h-regras-b').onclick = () => { $('#h-regras').hidden = false; }; $('#h-regras-x').onclick = () => { $('#h-regras').hidden = true; };
+    $('#h-som').onclick = () => { E.cfg.voz = !E.cfg.voz; salvarConfig(E.cfg); if (!E.cfg.voz) { calar(); pararNarracao(); } $('#h-som').textContent = E.cfg.voz ? '🔊' : '🔇'; };
+    $('#h-sair').onclick = () => { if (confirm('Sair da partida? Suas próximas falas serão puladas.')) sairSala(); };
+    const esconderDica = () => { const d = $('#h-dica'); if (d) d.style.opacity = 0; };
+    $('#cena').addEventListener('pointerdown', esconderDica, { once: true }); setTimeout(esconderDica, 9000);
+  }
+  const s = E.sala, p = s.passo, res = s.fase === 'resultado';
+  $('#h-reacoes').style.display = s.cfg.reacoes ? '' : 'none';
+  // topo
+  $('#h-topo').style.display = res ? 'none' : '';
+  if (!res && p) {
+    $('#h-bloco').innerHTML = `BLOCO ${p.etapa}/3<small>${ETAPAS[p.etapa - 1]}</small>`;
+    if (!s.roleta) $('#h-tema').innerHTML = s.temaAtual ? `<small>Tema atual · ${esc(TEMA[s.temaAtual].estado)}</small><b><span class="uf">${TEMA[s.temaAtual].uf}</span>${esc(TEMA[s.temaAtual].titulo)}</b>`
+      : `<small>Debate presidencial</small><b>${p.tipo === 'pesquisa' ? 'Pesquisa relâmpago' : p.kind === 'final' ? 'Considerações finais' : ETAPAS[p.etapa - 1]}</b>`;
+    $('#h-pular').hidden = !(ehHost() && (p.tipo === 'intro' || p.tipo === 'pesquisa' || s.fala?.status === 'avaliado'));
+  }
+  renderLateral(); renderPerguntas(); atualizarLegenda(); renderAcao(); renderResultado(); tick();
+}
+// painel minimizável com as perguntas da mediação e dos adversários
+function renderPerguntas() {
+  const el = $('#h-perg'); if (!el) return;
+  const s = E.sala, lista = s.fase === 'debate' ? (s.perguntas || []) : [];
+  const aj = E.pergAjuda ||= new Set();
+  const k = lista.length + '-' + (E.pergFechado ? 1 : 0) + '-' + (lista.at(-1)?.texto?.length || 0) + '-' + [...aj].join(',');
+  if (k === E.pergKey) return; E.pergKey = k;
+  if (!lista.length) { el.innerHTML = ''; return; }
+  const rot = { proposta: 'Proposta', pergunta: 'Pergunta', resposta: 'Resposta', replica: 'Réplica', treplica: 'Tréplica', final: 'Considerações finais' };
+  const itens = lista.slice().reverse().map(x => {
+    const praMim = x.para === E.eu, para = jog(x.para)?.nome || '';
+    const tit = x.mediador ? `🎙 ${esc(x.de)} → ${esc(para)} · ${rot[x.kind] || ''}` : `⚔ ${esc(x.de)} → ${esc(para)} · ${x.kind === 'replica' ? 'Réplica' : 'Pergunta'}`;
+    const t = x.tema && TEMA[x.tema], id = x.n + x.kind + x.para, res = x.mediador && t?.resumo;
+    const ajuda = res ? `<button class="perg-ajuda ${aj.has(id) ? 'on' : ''}" data-aj="${esc(id)}" title="Resumo do tema">?</button>` : '';
+    return `<div class="perg ${praMim ? 'minha' : ''} ${x.mediador ? '' : 'adv'}">${ajuda}<small>${tit}${t ? ` · ${t.uf}` : ''}</small><div>${esc(x.texto)}</div>${res && aj.has(id) ? `<div class="perg-resumo"><b>${esc(t.titulo)}</b> ${esc(t.resumo)}</div>` : ''}</div>`;
+  }).join('');
+  const rol = $('.perg-lista', el)?.scrollTop || 0; // mantém a rolagem ao atualizar
+  el.innerHTML = `<div class="hud-box"><button class="perg-tog" id="h-perg-t">📋 Perguntas (${lista.length}) <span>${E.pergFechado ? '▸' : '▾'}</span></button>${E.pergFechado ? '' : `<div class="perg-lista">${itens}</div>`}</div>`;
+  const lst = $('.perg-lista', el); if (lst) { lst.scrollTop = rol; lst.onwheel = e => e.stopPropagation(); }
+  $('#h-perg-t').onclick = () => { E.pergFechado = !E.pergFechado; E.pergKey = null; renderPerguntas(); };
+  el.querySelectorAll('.perg-ajuda').forEach(b => b.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); const id = b.dataset.aj; aj.has(id) ? aj.delete(id) : aj.add(id); renderPerguntas(); });
+}
+function renderLateral() {
+  const s = E.sala, p = s.passo, el = $('#h-lateral'); if (!el) return;
+  let k = '', h = '';
+  if (s.fase === 'debate' && p?.tipo === 'pesquisa' && p.poll) {
+    k = 'poll' + s.i; const max = Math.max(...p.poll.map(x => x.pct));
+    h = `<div class="hud-box"><h2 style="font-family:var(--titulo);font-weight:400;margin:4px 0 8px">📊 ${esc(p.titulo)}</h2>${p.poll.map(x => { const j = jog(x.id), pp = PARTIDO[j?.partido]; return `<div class="barra-p"><div class="l"><span style="display:flex;align-items:center;gap:6px"><img class="av" src="${ret(j.avatar)}">${esc(j.nome)}</span><b>${fmtP(x.pct)}</b></div><div class="b"><div data-w="${x.pct / max * 100}" style="width:0;background:${pp?.cor}"></div></div></div>`; }).join('')}<small class="mut">Votos válidos · margem de 2 p.p.</small></div>`;
+  } else if (s.fase === 'debate' && p?.tipo === 'fala' && s.fala?.status === 'avaliado' && s.fala.res) {
+    k = 'nota' + s.i; const r = s.fala.res, j = jog(p.falante), mine = p.falante === E.eu;
+    const nv = v => v >= .67 ? 'verde' : v < .34 ? 'vermelho' : '';
+    const dots = v => '●'.repeat(Math.round(v * 3)) + '○'.repeat(3 - Math.round(v * 3));
+    const chips = [`<span class="chip">${r.wc} palavras</span>`, `<span class="chip ${nv(r.relevancia)}">Foco no tema ${dots(r.relevancia)}</span>`, `<span class="chip ${nv(r.concretude)}">Propostas ${dots(r.concretude)}</span>`,
+      `<span class="chip ${nv(r.apelo)}">Apelo ${dots(r.apelo)}</span>`, `<span class="chip ${nv(r.extensao)}">Tempo ${dots(r.extensao)}</span>`];
+    if (r.lean !== null) chips.push(`<span class="chip">Soou ${r.lean < -.6 ? 'à esquerda' : r.lean > .6 ? 'à direita' : 'ao centro'}</span>`);
+    if (r.ataque) chips.push(`<span class="chip vermelho">Ataques: ${r.ataque}${r.danoEm.length ? ' → ' + r.danoEm.map(id => esc(jog(id)?.nome)).join(', ') : ''}</span>`);
+    if (r.fugiu) chips.push('<span class="chip vermelho">Fugiu da pergunta</span>');
+    if (r.xingamentos?.length) chips.push(`<span class="chip vermelho">Ofensa (nota reduzida): ${esc(r.xingamentos.join(', '))}</span>`);
+    if (r.banido) chips.push('<span class="chip vermelho">🚫 Banido pela moderação</span>');
+    if (r.rebateu) chips.push('<span class="chip verde">Rebateu bem</span>');
+    if (r.vicios) chips.push(`<span class="chip vermelho">Vícios: ${r.vicios}</span>`);
+    const dicas = [];
+    if (mine) {
+      if (r.wc < 5) dicas.push('Praticamente não houve fala.');
+      else { if (r.extensao < .4) dicas.push('Aproveite melhor o tempo.'); if (r.relevancia < .34 && p.tema) dicas.push(`Cite ${TEMA[p.tema].estado} e o problema do tema.`); if (r.concretude < .34) dicas.push('Traga metas e números: “vou criar…”.'); if (r.apelo < .34) dicas.push('Fale com o eleitor: famílias, futuro, “você”.'); }
+    }
+    h = `<div class="hud-box"><small class="mut">COMENTARISTAS · ${esc(j?.nome)}</small><div style="display:flex;align-items:baseline;gap:8px"><span class="nota-grande">${r.nota.toFixed(1)}</span><span class="mut">/ 10</span></div>
+      <div class="chips">${chips.join('')}</div>${dicas.length ? `<small class="mut">${dicas.map(esc).join('<br>')}</small>` : ''}</div>`;
+  }
+  if (k === E.latKey) return; E.latKey = k; el.innerHTML = h;
+  requestAnimationFrame(() => requestAnimationFrame(() => $$('[data-w]', el).forEach(b => b.style.width = b.dataset.w + '%')));
+}
+function atualizarLegenda() {
+  const el = $('#h-legenda'); if (!el || !E.sala) return;
+  const s = E.sala, p = s.passo;
+  if (s.fase !== 'debate') { el.innerHTML = ''; return; }
+  let quem = s.jorn?.nome || JORN, txt = s.textoJ, gc = '';
+  if (p?.tipo === 'fala' && s.fala && s.fala.status !== 'pronto') { quem = jog(p.falante)?.nome || ''; txt = p.falante === E.eu ? E.meuTexto : (E.textoFala || s.fala.texto || ''); if (!txt) txt = '…';
+    const pp = PARTIDO[jog(p.falante)?.partido];
+    if (pp) gc = `<span class="gc" style="--c:${pp.cor};--c2:${pp.cor2}"><img src="${logoPartido(pp.sigla, 40)}"><span class="gc-num">${pp.numero}</span><b>${pp.sigla}</b> ${esc(pp.nome)} <i>${IDEO[pp.ideo].nome}</i></span>`; }
+  const cauda = txt.length > 260 ? '…' + txt.slice(-260) : txt;
+  el.innerHTML = `<span class="quem">${esc(quem)}</span>${gc}<div class="txt">${esc(cauda)}</div>`;
+}
+function renderAcao(forcar) {
+  const el = $('#h-acao'); if (!el) return;
+  const s = E.sala, p = s.passo, f = s.fala;
+  const adv = eu()?.adv || 0, ba = $('#h-adv'); if (ba) { ba.textContent = adv ? ` · ⚠ ${adv}/${PUNICAO.advertencias}` : ''; ba.parentElement.classList.toggle('alerta', adv > 0); }
+  let k = 'nada';
+  if (s.fase === 'debate' && p) {
+    if (p.tipo === 'escolha') k = p.falante === E.eu && !p.escolhido ? 'escolha' : 'escolha-outro' + !!p.escolhido;
+    else if (p.tipo === 'fala' && f) k = p.falante === E.eu ? `meu-${f.status}-${E.micOn}-${E.confirmando}-${!!E.micErro}` : `outro-${p.falante}-${f.status}`;
+  }
+  k += s.i;
+  if (k === E.hudKey && !forcar) return; E.hudKey = k;
+  const nome = id => esc(jog(id)?.nome || '');
+  const podeDigitar = s.cfg.permitirTexto || !temReconhecimento || !contextoSeguro;
+  if (eu()?.banido && s.fase === 'debate') { if (E.hudKey !== 'banido') { E.hudKey = 'banido'; el.innerHTML = '<div class="hud-box" style="text-align:center;border-color:var(--vermelho)">🚫 Você foi retirado do debate pela moderação. Acompanhe a disputa até o fim.</div>'; } return; }
+  if (k.startsWith('nada')) { el.innerHTML = ''; return; }
+  if (k.startsWith('escolha-outro')) { el.innerHTML = `<div class="hud-box" style="text-align:center">⚔ <b>${nome(p.falante)}</b> ${p.escolhido ? `vai perguntar para <b>${nome(p.escolhido.alvo)}</b>` : 'está escolhendo o adversário…'}</div>`; return; }
+  if (k.startsWith('escolha')) {
+    el.innerHTML = `<div class="hud-box escolha" style="text-align:center"><b style="font-family:var(--titulo);font-weight:400;font-size:22px">⚔ ESCOLHA SEU ADVERSÁRIO</b><div class="mut" style="font-size:14px">Clique no púlpito dele (ele pisca em amarelo) ou escolha aqui:</div>
+      <div class="alvos">${s.jogadores.filter(j => j.id !== E.eu && !j.banido).map(j => { const ok = !p.elegiveis || p.elegiveis.includes(j.id); return `<button data-alvo="${j.id}" ${ok ? '' : 'disabled title="Já recebeu pergunta nesta rodada"'}><img class="av" src="${ret(j.avatar)}">${esc(j.nome)} · ${PARTIDO[j.partido]?.sigla}${ok ? '' : ' · já respondeu'}</button>`; }).join('')}</div></div>`;
+    $$('[data-alvo]', el).forEach(b => b.onclick = () => escolherAlvo(b.dataset.alvo)); return;
+  }
+  if (k.startsWith('outro')) {
+    const j = jog(p.falante);
+    el.innerHTML = `<div class="hud-box" style="display:flex;align-items:center;gap:12px;justify-content:center"><img class="av" src="${ret(j.avatar)}"><span><b>${esc(j.nome)}</b> ${f.status === 'pronto' ? 'vai começar a falar…' : f.status === 'avaliado' ? 'terminou a fala.' : 'está falando. Ouça e prepare sua resposta!'}</span></div>`; return;
+  }
+  // minha vez
+  if (f.status === 'avaliado') { el.innerHTML = `<div class="hud-box" style="text-align:center">🔒 Fala registrada. Veja ao lado a avaliação dos comentaristas.</div>`; return; }
+  if (E.confirmando || f.status === 'encerrando') { el.innerHTML = `<div class="hud-box" style="text-align:center">⏳ Finalizando sua fala…</div>`; return; }
+  const ativo = f.status === 'ativo';
+  const status = !ativo ? `🎤 <b>SUA VEZ!</b> O tempo começa quando você falar ou digitar. <span id="h-auto" class="mut"></span>`
+    : E.micOn ? `<span class="rec"></span><span id="h-micst">Ligando o microfone…</span><span class="vu"><div id="h-vu"></div></span>`
+      : E.micErro ? `⚠ ${esc(E.micErro)}` : podeDigitar ? '⌨ Modo digitação: o tempo está correndo. Ligue o microfone quando quiser.' : '🎙 Ligue o microfone para falar.';
+  el.innerHTML = `<div class="hud-box">
+    <div class="status">${status}</div>
+    <div class="acao-linha">
+      <button class="mic ${E.micOn ? 'on' : 'off'}" id="h-mic" title="Microfone (V)">${E.micOn ? '⏸' : '🎙'}</button>
+      ${podeDigitar ? `<textarea id="h-ta" class="${E.micOn ? 'gravando' : ''}" ${E.micOn ? 'readonly' : ''} placeholder="${ativo ? 'Digite sua fala…' : 'Clique no microfone para falar, ou comece a digitar…'}">${esc(E.meuTexto)}</textarea>` : `<div style="flex:1" class="mut">${esc(E.meuTexto) || 'Sua fala aparece aqui…'}</div>`}
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="btn verde" id="h-ok" ${ativo ? '' : 'disabled'} title="Confirmar (Ctrl+Enter)">✔ CONFIRMAR</button>
+        <button class="btn peq amarelo" id="h-dica-b" title="Consultar a assessoria">📝 Dica ${E.dicasGratis > 0 ? `(${E.dicasGratis} grátis)` : E.conta?.dicasExtra ? `(estoque ${E.conta.dicasExtra})` : '(🪙 40)'}</button>
+      </div>
+    </div>
+    <small class="mut">Depois de confirmar, não é possível editar · ${CELULAR ? '' : 'Ctrl+Enter confirma · '}botões vermelho/verde do púlpito também funcionam</small></div>`;
+  $('#h-mic').onclick = alternarMic; $('#h-ok').onclick = confirmarFala; $('#h-dica-b').onclick = () => pedirDica(false);
+  const ta = $('#h-ta');
+  if (ta) {
+    ta.oninput = () => { if (ta.readOnly) return; if (E.sala.fala?.status === 'pronto' && ta.value.length) comecarFala(false); enviarTexto(ta.value); socket.emit('nivel', .6); };
+    ta.onkeydown = e => { if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); confirmarFala(); } e.stopPropagation(); };
+    // proibido colar texto pronto (Ctrl+V, menu do botão direito, arrastar)
+    const bloq = e => { e.preventDefault(); toast('Colar texto não é permitido — escreva ou fale sua resposta.'); };
+    ta.onpaste = bloq; ta.ondrop = bloq; ta.ondragover = e => e.preventDefault();
+    ta.addEventListener('beforeinput', e => { if (/^insertFrom(Paste|Drop|Yank)/.test(e.inputType)) bloq(e); });
+    if (ativo && !E.micOn) focarTexto();
+  }
+}
+// ---------- dica da assessoria ----------
+// a anotação fica aberta enquanto você fala/digita; só é guardada no fim da sua resposta (ou pelo botão "Guardar anotação")
+aoLerDica(on => est.lerDica(on));
+function fimDaResposta() { if (E.dicaFimI === E.sala?.i) return; E.dicaFimI = E.sala?.i; recolherDica(); }
+function pedirDica(comprar) {
+  if (E.pedindoDica) return; E.pedindoDica = true;
+  const b = $('#h-dica-b'); if (b) b.textContent = '📝 Procurando nas anotações…';
+  socket.emit('pedirDica', { comprar }, r => {
+    E.pedindoDica = false;
+    if (r?.semDicas) {
+      renderAcao(true);
+      return janela(`<h2>📝 Sem dicas disponíveis</h2><p>Você já usou a dica grátis deste debate. Comprar uma anotação da assessoria agora por <b>🪙 ${r.preco}</b>?</p>
+        <p class="mut">Saldo: 🪙 ${fmtN(E.conta?.moedas || 0)} · Pacotes com desconto na Loja.</p><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn peq" id="cx">Agora não</button><button class="btn peq amarelo" id="ok">Comprar e ler</button></div>`,
+      (el, fechar) => { $('#cx', el).onclick = fechar; $('#ok', el).onclick = () => { fechar(); pedirDica(true); }; });
+    }
+    if (r?.erro) { toast(r.erro, 'erro'); renderAcao(true); return; }
+    E.dicasGratis = r.gratisRestantes; sfx.clique();
+    // o candidato folheia as anotações por um instante antes de achar a certa
+    const iDica = E.sala?.i; // resposta atrasada / passo já trocado: não abre a anotação (nem desce a câmera) no passo seguinte
+    setTimeout(() => E.sala?.i === iDica && emJogo() && mostrarDica(r.dica, r.origem === 'gratis' ? `${r.gratisRestantes} dica(s) grátis restante(s)` : r.origem === 'compra' ? 'comprada por 🪙 40' : 'do seu estoque'), 300);
+    renderAcao(true);
+  });
+}
+// ---------- apuração ao vivo ----------
+const apurando = r => !!r?.contagem && ((r.contagem.turno === 1 && !r.anunciado1) || (r.contagem.turno === 2 && !r.mostrar2));
+/** Começa zerado e cresce até o fim (30 s); as proporções (e as viradas) seguem os quadros do servidor. */
+function quadroApuracao(c, t) {
+  const tau = Math.max(0, Math.min(1, (t - c.ini) / c.dur)), g = (Math.exp(2.2 * tau) - 1) / (Math.exp(2.2) - 1);
+  const n = c.quadros.quadros.length - 1, x = tau * n;
+  const a = c.quadros.quadros[Math.floor(x)], b = c.quadros.quadros[Math.min(n, Math.floor(x) + 1)], f = x - Math.floor(x);
+  return { urnas: 100 * g, pct: a.pct.map((v, i) => (v + (b.pct[i] - v) * f) * g), fim: tau >= 1 };
+}
+function renderApuracao(el, s, r) {
+  const c = r.contagem, q = quadroApuracao(c, agora());
+  const itens = c.quadros.ids.map((id, i) => ({ id, pct: q.pct[i] })).sort((a, b) => b.pct - a.pct);
+  const lider = itens[0].id;
+  if (E.apuLider && E.apuLider !== lider && !q.fim && q.urnas > 5) { E.apuVirada = Date.now(); sfx.sorteio(); est.agitarPlateia(1, 2500); }
+  E.apuLider = lider;
+  const virada = E.apuVirada && Date.now() - E.apuVirada < 2500;
+  const eleitores = 158000000 * .8;
+  el.innerHTML = `<div class="apuracao p">
+    <div class="apu-titulo"><span class="apu-vivo">● AO VIVO</span> Apuração ${c.turno === 2 ? 'do 2º turno' : 'do 1º turno'}</div>
+    <div class="apu-urnas"><div style="display:flex;justify-content:space-between"><b>${q.urnas.toFixed(1).replace('.', ',')}% das urnas apuradas</b><span class="mut">votos válidos</span></div><div class="b"><div style="width:${q.urnas}%"></div></div></div>
+    <div class="apu-lista">${itens.map((x, i) => { const j = jog(x.id), pp = PARTIDO[j?.partido]; return `<div class="apu-item ${i === 0 ? 'lider' : ''}"><img class="av" src="${ret(j.avatar)}" style="width:54px;height:54px">
+      <div class="meio"><b style="font-size:18px">${esc(j.nome)}</b> <small class="mut">${pp?.sigla} ${pp?.numero} · ${fmtN(eleitores * x.pct / 100)} votos</small><div class="b"><div style="width:${x.pct}%;background:${pp?.cor}"></div></div></div>
+      <span class="pct">${x.pct.toFixed(2).replace('.', ',')}%</span></div>`; }).join('')}</div>
+    <div class="apu-virada">${q.fim ? '⏳ Apuração concluída: aguarde o anúncio…' : virada ? '🔥 VIRADA! Mudou a liderança!' : ''}</div></div>`;
+  est.setLED({ modo: 'resultado', titulo: `APURAÇÃO AO VIVO · ${Math.floor(q.urnas)}% DAS URNAS`, lista: itens.map(x => ({ nome: jog(x.id)?.nome || '', partido: jog(x.id)?.partido, pct: x.pct })), rodape: q.fim ? 'AGUARDANDO O ANÚNCIO OFICIAL' : 'VOTOS VÁLIDOS · RESULTADO PARCIAL' });
+  E.ledKey = 'apuracao';
+}
+/** Quem ficou fora do 2º turno escolhe: continuar assistindo da plateia ou voltar ao lobby. */
+function avisoEliminado(s, r) {
+  const eu = s.jogadores.find(j => j.id === E.eu);
+  const fora = eu && !r.eleito1 && r.anunciado1 && !r.mostrar2 && r.r1.res.some(x => x.id === E.eu) && !r.r1.res.slice(0, 2).some(x => x.id === E.eu);
+  if (!fora || E.elimOk) { $('#elimin')?.remove(); return; }
+  if ($('#elimin')) return;
+  const d = document.createElement('div'); d.id = 'elimin'; d.className = 'elimin p';
+  const pos = r.r1.res.findIndex(x => x.id === E.eu) + 1;
+  d.innerHTML = `<b style="font-size:20px">Você ficou fora do 2º turno</b><p class="mut" style="margin:6px 0 12px">Terminou em ${pos}º lugar, com ${fmtP(r.r1.res[pos - 1].pct)} dos votos válidos.</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn amarelo" id="el-ver">👀 Assistir da plateia</button><button class="btn" id="el-sair">🏠 Ir para o lobby</button></div>`;
+  document.body.appendChild(d);
+  $('#el-ver').onclick = () => { E.elimOk = true; E.naPlateia = true; d.remove(); ajustarCamera(); };
+  $('#el-sair').onclick = () => { E.elimOk = true; d.remove(); sairSala(); };
+}
+function renderResultado() {
+  const el = $('#h-result'); if (!el) return;
+  const s = E.sala, r = s.resultado;
+  const visivel = s.fase === 'resultado' && r;
+  ['h-legenda', 'h-acao', 'h-lateral', 'h-perg'].forEach(id => { const x = $('#' + id); if (x) x.style.display = visivel ? 'none' : ''; });
+  if (!visivel) { el.innerHTML = ''; E.resKey = ''; E.naPlateia = false; E.elimOk = false; $('#elimin')?.remove(); return; }
+  if (E.revelando) { if (E.resKey !== 'rev') { E.resKey = 'rev'; el.innerHTML = ''; $('#elimin')?.remove(); } return; } // cinemática da revelação: tela limpa
+  avisoEliminado(s, r);
+  if (apurando(r)) { E.resKey = 'apu'; renderApuracao(el, s, r); return; }
+  if (E.celebrar) { // vencedor dançando em 3D no centro da tela
+    if (E.resKey === 'cel') return; E.resKey = 'cel';
+    const v = jog(r.vencedor), pv = PARTIDO[v.partido], it = ITEM[r.dancas?.[r.vencedor]] || ITEM.comemorar;
+    el.innerHTML = `<div class="celebra"><div><div class="faixa">${v.id === E.eu ? 'Você venceu!' : textoVitoria(v.avatar).faixa}</div><h1>👑 ${esc(v.nome)}</h1>
+      <div class="chip"><img src="${logoPartido(pv.sigla, 40)}" style="width:20px;border-radius:5px"> ${pv.sigla} ${pv.numero} · ${it.emoji} ${esc(it.nome)}</div></div>
+      <button class="btn amarelo grande" id="r-ver">Ver resultado completo ▸</button></div>`;
+    $('#r-ver').onclick = () => celebrar(false); return;
+  }
+  const k = JSON.stringify([r.mostrar2, r.anunciado1, r.contagem?.turno, E.abaRes, s.hostId, s.jogadores.map(j => j.conectado)]);
+  if (k === E.resKey) return; E.resKey = k;
+  const decidido = (r.eleito1 && r.anunciado1) || r.mostrar2;
+  const aba = r.eleito1 ? 1 : (r.mostrar2 ? E.abaRes : 1);
+  const rd = aba === 2 ? r.r2 : r.r1;
+  const venc = jog(r.vencedor);
+  const pv = PARTIDO[venc.partido];
+  const desempenho = r.desempenho.slice().sort((a, b) => b.nota - a.nota);
+  const esq = decidido
+    ? `<div class="moldura"><div class="coroa">👑</div><img src="${ret(venc.avatar)}"></div><div class="faixa">${venc.id === E.eu ? 'Você venceu!' : textoVitoria(venc.avatar).faixa}</div>
+       <h1 style="font-family:var(--titulo);font-weight:400;font-size:38px;margin:14px 0 4px">${esc(venc.nome)}</h1><div class="chip"><img src="${logoPartido(pv.sigla, 40)}" style="width:20px;border-radius:5px"> ${pv.sigla} ${pv.numero} · ${IDEO[pv.ideo].nome}</div>
+       <p class="mut">${r.r1.res.length <= 2 ? 'Eleito em turno único' : r.eleito1 ? 'Eleito no 1º turno' : 'Eleito no 2º turno'} com ${fmtP((r.eleito1 ? r.r1 : r.r2).res[0].pct)} dos votos válidos</p>`
+    : `<div class="faixa" style="margin:0 0 20px">2º turno!</div><div style="display:flex;gap:20px;align-items:center">${r.r1.res.slice(0, 2).map(x => `<div style="text-align:center"><img class="av" style="width:120px;height:120px" src="${ret(jog(x.id).avatar)}"><br><b>${esc(jog(x.id).nome)}</b></div>`).join('<b style="font-family:var(--titulo);font-weight:400;font-size:40px">VS</b>')}</div>
+       <p class="mut" style="max-width:340px">Nenhum candidato passou de 50% dos votos válidos. ${ehHost() ? 'Clique em Apurar 2º turno.' : 'Aguardando a apuração…'}</p>`;
+  el.innerHTML = `<div class="result p">
+    <div class="vencedor">${esq}</div>
+    <div class="painel scroll">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><h2 style="margin:0;flex:1">Resultado do debate</h2>
+        ${!r.eleito1 ? `<button class="aba ${aba === 1 ? 'on' : ''}" data-aba="1">1º turno</button>${r.mostrar2 ? `<button class="aba ${aba === 2 ? 'on' : ''}" data-aba="2">2º turno</button>` : ''}` : `<span class="chip verde">${r.r1.res.length <= 2 ? 'Turno único' : 'Decidido no 1º turno'}</span>`}</div>
+      <div class="result-lista">${rd.res.map((x, i) => { const j = jog(x.id), pp = PARTIDO[j.partido]; return `<div class="item ${i === 0 ? 'top' : ''}"><span class="pos">${i + 1}</span><img class="av" src="${ret(j.avatar)}">
+        <div class="meio"><b>${esc(j.nome)}</b> <small class="mut">${pp.sigla} ${pp.numero} · ${fmtN(x.votos)} votos</small><div class="b"><div data-w="${x.pct}" style="width:0;background:${pp.cor}"></div></div></div><span class="pct">${fmtP(x.pct)}</span></div>`; }).join('')}</div>
+      <p class="mut" style="font-size:13px">Votos válidos (sem brancos e nulos), como no TSE · Comparecimento ${fmtN(rd.comparec)} · Abstenção ${fmtN(rd.abst)} · Brancos ${fmtN(rd.brancos)} · Nulos ${fmtN(rd.nulos)}</p>
+      <details><summary><b>Desempenho no debate</b></summary><table class="tabela"><tr><th>Candidato</th><th>Nota</th><th>Visto como</th><th>Ataques</th><th>Fugas</th></tr>
+        ${desempenho.map(d => `<tr><td>${esc(jog(d.id)?.nome)}${d.banido ? ` <span class="chip vermelho">🚫 banido: ${esc(d.banido)}</span>` : ''}</td><td><b>${d.nota.toFixed(1)}</b></td><td>${d.percebida}</td><td>${d.ataques}</td><td>${d.fugas}</td></tr>`).join('')}</table></details>
+      <details><summary><b>Melhores momentos</b></summary>${desempenho.filter(d => d.melhor?.texto).map(d => `<p><b>${esc(jog(d.id)?.nome)}</b> <small class="mut">(${KIND_NOME[d.melhor.kind]}, nota ${d.melhor.nota.toFixed(1)})</small><br>“${esc(d.melhor.texto.slice(0, 260))}${d.melhor.texto.length > 260 ? '…' : ''}”</p>`).join('') || '<p class="mut">Nenhuma fala registrada.</p>'}</details>
+      <details><summary><b>Voto por segmento do eleitorado</b></summary><table class="tabela"><tr><th>Eleitor</th><th>Peso</th><th>Preferência</th></tr>
+        ${rd.seg.map(g => `<tr><td>${IDEO[g.id].nome}</td><td>${Math.round(g.peso * 100)}%</td><td>${g.shares.slice(0, 2).map(x => `${esc(jog(x.id)?.nome)} ${Math.round(x.p * 100)}%`).join(' · ')}</td></tr>`).join('')}</table></details>
+    </div>
+    <div class="result-botoes">
+      ${ehHost() ? `${!decidido ? '<button class="btn amarelo grande" id="r-2t">🗳 Apurar 2º turno</button>' : ''}<button class="btn" id="r-lobby">Voltar ao lobby</button><button class="btn verde" id="r-novo">▶ Jogar novamente</button>`
+      : '<span class="hud-box">Aguardando o anfitrião…</span>'}${decidido ? '<button class="btn peq" id="r-cel">🎉 Comemoração</button>' : ''}<button class="btn vermelho peq" id="r-sair">Sair</button>
+    </div></div>`;
+  $$('[data-aba]', el).forEach(b => b.onclick = () => { E.abaRes = +b.dataset.aba; renderResultado(); });
+  $('#r-2t') && ($('#r-2t').onclick = () => socket.emit('revelar2'));
+  $('#r-lobby') && ($('#r-lobby').onclick = () => socket.emit('lobby'));
+  $('#r-novo') && ($('#r-novo').onclick = () => socket.emit('revanche'));
+  $('#r-sair').onclick = sairSala;
+  $('#r-cel') && ($('#r-cel').onclick = () => celebrar(true));
+  requestAnimationFrame(() => requestAnimationFrame(() => $$('[data-w]', el).forEach(b => b.style.width = b.dataset.w + '%')));
+}
+
+// ======================= telão e telas dos púlpitos =======================
+function ledDoEstado() {
+  const s = E.sala;
+  if (!s) return { modo: 'titulo', sub: 'ELEIÇÕES 2026' };
+  if (s.fase === 'lobby') return { modo: 'titulo', sub: `SALA #${s.code} · ${s.jogadores.length}/5 CANDIDATOS` };
+  if (s.fase === 'resultado') {
+    if (apurando(s.resultado)) return null; // durante a apuração ao vivo o telão é atualizado pela própria apuração
+    const r = s.resultado, rd = r.mostrar2 ? r.r2 : r.r1, decidido = (r.eleito1 && r.anunciado1) || r.mostrar2;
+    return { modo: 'resultado', titulo: r.mostrar2 ? 'RESULTADO · 2º TURNO' : 'RESULTADO · 1º TURNO', rodape: decidido ? '' : 'NINGUÉM PASSOU DE 50% DOS VÁLIDOS: HAVERÁ 2º TURNO',
+      lista: rd.res.map(x => ({ nome: jog(x.id)?.nome || '', partido: jog(x.id)?.partido, pct: x.pct, eleito: decidido && x.id === r.vencedor ? textoVitoria(jog(x.id)?.avatar).tag : '' })) };
+  }
+  const p = s.passo, f = s.fala; if (!p) return { modo: 'titulo' };
+  const nome = id => jog(id)?.nome || '';
+  if (p.tipo === 'intro') return { modo: 'titulo', sub: `BLOCO ${p.etapa} · ${ETAPAS[p.etapa - 1].toUpperCase()}` };
+  if (p.tipo === 'pesquisa') return { modo: 'poll', titulo: p.titulo.toUpperCase(), lista: p.poll.map(x => ({ nome: nome(x.id), partido: jog(x.id)?.partido, pct: x.pct })), rodape: 'VOTOS VÁLIDOS · MARGEM DE ERRO DE 2 P.P.' };
+  if (p.tipo === 'escolha') return s.temaAtual ? { modo: 'tema', tema: s.temaAtual, cabecalho: `${nome(p.falante).toUpperCase()} × ${nome(p.escolhido?.alvo).toUpperCase()}` } : { modo: 'texto', cabecalho: 'CONFRONTO DIRETO', texto: `${nome(p.falante)} escolhe o adversário` };
+  if (p.tipo === 'fala' && f) {
+    if (f.status === 'pronto') return p.tema ? { modo: 'tema', tema: p.tema, cabecalho: `${KIND_NOME[p.kind].toUpperCase()} · ${nome(p.falante).toUpperCase()}` } : { modo: 'texto', cabecalho: 'CONSIDERAÇÕES FINAIS', texto: nome(p.falante) };
+    const rest = f.status === 'ativo' ? (f.fimEm - agora()) / 1000 : 0;
+    const txt = p.falante === E.eu ? E.meuTexto : (E.textoFala || f.texto);
+    return { modo: 'fala', nome: nome(p.falante), partido: jog(p.falante)?.partido, tempo: f.status === 'avaliado' ? `${f.res.nota.toFixed(1)}` : fmtT(rest), alerta: f.status === 'ativo' && rest <= 10,
+      texto: txt || '…', rotulo: KIND_NOME[p.kind] + (p.tema ? ' · ' + TEMA[p.tema].uf + ' · ' + TEMA[p.tema].titulo : '') };
+  }
+  return { modo: 'titulo' };
+}
+function atualizarLED() {
+  if (E.sala?.roleta) return;
+  const d = ledDoEstado(); if (!d) return; const k = JSON.stringify(d);
+  if (k !== E.ledKey) { E.ledKey = k; est.setLED(d); }
+}
+function atualizarTelasPodio() {
+  const s = E.sala;
+  for (const j of (s ? s.jogadores : bots())) {
+    let d;
+    if (!s) d = { titulo: j.nome, texto: PARTIDO[j.partido].sigla + ' ' + PARTIDO[j.partido].numero };
+    else if (s.fase === 'lobby') d = { titulo: j.nome, texto: j.pronto || j.id === s.hostId ? 'PRONTO' : 'AGUARDE', cor: j.pronto || j.id === s.hostId ? '#14532d' : '#0b1640' };
+    else if (j.banido) d = { titulo: j.nome, texto: 'BANIDO', alerta: true };
+    else if (s.fase === 'resultado' && apurando(s.resultado)) d = { titulo: j.nome, texto: 'APURANDO' };
+    else if (s.fase === 'resultado') d = { titulo: j.nome, texto: j.id === s.resultado.vencedor && ((s.resultado.eleito1 && s.resultado.anunciado1) || s.resultado.mostrar2) ? textoVitoria(j.avatar).tag + '!' : (s.resultado.r1.res.find(x => x.id === j.id)?.pct || 0).toFixed(1) + '%', destaque: j.id === s.resultado.vencedor };
+    else {
+      const p = s.passo, f = s.fala;
+      if (p?.tipo === 'fala' && p.falante === j.id && f) {
+        if (f.status === 'pronto') d = { titulo: j.id === E.eu ? 'Sua resposta' : KIND_NOME[p.kind], texto: fmtT(p.segundos), destaque: true };
+        else if (f.status === 'avaliado') d = { titulo: 'Nota', texto: f.res.nota.toFixed(1), destaque: true };
+        else { const r = (f.fimEm - agora()) / 1000; d = { titulo: 'Tempo', texto: fmtT(r), alerta: r <= 10, destaque: true }; }
+      } else if (p?.tipo === 'escolha' && p.falante === E.eu && j.id !== E.eu && !p.escolhido) d = !p.elegiveis || p.elegiveis.includes(j.id) ? { titulo: j.nome, texto: 'ESCOLHER?', destaque: true } : { titulo: j.nome, texto: 'JÁ FOI' };
+      else d = { titulo: j.nome, texto: j.nota != null ? 'Nota ' + j.nota.toFixed(1) : PARTIDO[j.partido].sigla + ' ' + PARTIDO[j.partido].numero };
+    }
+    if (d.titulo === j.nome) d.num = PARTIDO[j.partido]?.numero || '';
+    est.telaPodio(j.id, d);
+  }
+}
+function tick() {
+  if (E.demo) return;
+  const s = E.sala;
+  atualizarTelasPodio(); atualizarLED();
+  if (s?.fase === 'resultado' && apurando(s.resultado)) renderResultado(); // apuração ao vivo: atualiza os números
+  if (!s || s.fase !== 'debate') return;
+  const p = s.passo, f = s.fala, el = $('#h-tempo');
+  if (el) {
+    if (p?.tipo === 'fala' && f) {
+      const r = f.status === 'ativo' ? (f.fimEm - agora()) / 1000 : f.status === 'pronto' ? p.segundos : 0;
+      el.innerHTML = `<small>Tempo de resposta</small><b class="${f.status === 'ativo' && r > 10 ? 'ok' : f.status === 'pronto' ? 'ok' : ''}">${fmtT(r)}</b><small>${esc(jog(p.falante)?.nome || '')}</small>`;
+      if (f.status === 'ativo' && p.falante === E.eu && r <= 10 && Math.ceil(r) !== E.ultBip && r > 0) { E.ultBip = Math.ceil(r); sfx.alerta(); }
+    } else if (s.autoEm) el.innerHTML = `<small>Próxima etapa em</small><b class="ok">${fmtT((s.autoEm - agora()) / 1000)}</b>`;
+    else el.innerHTML = `<small>Ao vivo</small><b class="ok">●</b>`;
+  }
+  const au = $('#h-auto'); if (au && f?.status === 'pronto') au.textContent = `(começa sozinho em ${Math.max(0, Math.ceil((f.inicioAutoEm - agora()) / 1000))}s)`;
+  if (p?.tipo === 'fala' && f?.status === 'ativo' && p.falante !== E.eu && !E.textoFala) est.setFalaNivel(p.falante, 0);
+}
+setInterval(tick, 200);
+
+// teclado
+addEventListener('keydown', e => {
+  if (!emJogo() || /INPUT|TEXTAREA/.test(document.activeElement?.tagName)) return;
+  if (e.key === 'v' || e.key === 'V') alternarMic();
+  if (e.key === 'Enter' && e.ctrlKey) confirmarFala();
+});
+
+// ======================= início =======================
+est.setJogadores(bots(), null);
+renderUI();
+(async () => {
+  try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 2500))]); await document.fonts.load('40px "Lilita One"').catch(() => {}); } catch { /* sem fontes */ }
+  if (!E.demo) { est.chaveJog = ''; est.setJogadores(E.sala ? E.sala.jogadores : bots(), E.eu); E.ledKey = ''; atualizarLED(); }
+  const tela = $('#carregando');
+  const entrar = () => {
+    tela.classList.add('sai'); setTimeout(() => tela.remove(), 700);
+    // abertura de programa de TV: música (Lyria) -> volume abaixa -> locutor animado (Gemini) -> plateia -> música volta e some
+    const aplaudir = () => { sfx.aplausos(2.8, .2); est.festejarPlateia(3500); };
+    socket.emit('boasVindas', null, r => {
+      configurarAmbiente(r || {}); // burburinho de fundo fixo + palmas reais
+      let musica = null; const vm = Math.min(1, E.cfg.musica / .9); // volume da música (config) — 90% = original
+      const rampa = (alvo, ms, depois) => { if (!musica) return; alvo *= vm; const ini = musica.volume, t0 = performance.now(); const p = () => { const k = Math.min(1, (performance.now() - t0) / ms); musica.volume = ini + (alvo - ini) * k; if (k < 1) requestAnimationFrame(p); else depois?.(); }; p(); };
+      if (r?.vinheta) { musica = new Audio(r.vinheta); musica.volume = .9 * vm; musica.play().catch(() => { musica = null; sfx.vinheta(); }); }
+      else sfx.vinheta();
+      const fim = () => { aplaudir(); if (musica) setTimeout(() => { rampa(.75, 600); setTimeout(() => rampa(0, 3500, () => musica?.pause()), 3500); }, 300); };
+      setTimeout(() => {
+        rampa(.3, 400); // abaixa a música para a voz
+        if (r?.url && E.cfg.voz) { const a = new Audio(r.url); a.volume = 1; a.onended = fim; a.play().catch(fim); }
+        else setTimeout(fim, 1200); // sem locutor gravado: sem voz robótica
+      }, r?.vinheta ? 2400 : 1100);
+    });
+  };
+  if (new URLSearchParams(location.search).get('demo')) { tela.remove(); return; }
+  tela.querySelector('p').outerHTML = '<button class="btn amarelo grande" id="entrar" style="margin-top:30px">▶ ENTRAR</button><p class="mut" style="margin-top:14px">Use fone ou caixa de som 🔊</p>';
+  $('#entrar').onclick = () => { telaCheiaDeitado(); termosAceitos() ? entrar() : mostrarTermos(entrar); };
+  if (new URLSearchParams(location.search).get('termos')) mostrarTermos(entrar);
+})();
+window.__debate = { E, est, socket };
+
+// modo de demonstração visual: ?demo=fp | ?demo=lado | ?demo=vitrine
+const demo = new URLSearchParams(location.search).get('demo');
+if (demo) setTimeout(() => {
+  if (demo === 'vitrine') { E.perfil.nome ||= 'Demo'; ir('personalizar'); return; }
+  if (demo === 'config') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('config'); return; } // ?demo=config
+  if (demo === 'emote') { const q = new URLSearchParams(location.search), it = ITEM[q.get('item')]; E.perfil.nome ||= 'Demo'; if (it.roupa) E.perfil.avatar = { ...E.perfil.avatar, roupa: it.roupa, genero: 'masculino', barba: q.get('barba') || E.perfil.avatar.barba }; ir('personalizar'); $('#ui').style.opacity = 0; est.testarNaVitrine({ ...it, tipo: 'danca' }); if (est.vitrine?.anim) est.vitrine.anim.ini = -(Number(q.get('t')) || 0); return; } // &t=1 começa a animação 1 s adiantada // ?demo=emote&item=chorao
+  if (demo === 'loja') { E.perfil.nome ||= 'Demo'; E.lojaAba = new URLSearchParams(location.search).get('aba') || 'moedas'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('loja'); return; } // ?demo=loja&aba=assessoria
+  if (demo === 'cadastro') { E.conta = { ...E.conta, cadastro: null }; renderUI(); return; }
+  if (demo === 'menu' || demo === 'ranking') { E.perfil.nome ||= 'Demo'; if (demo === 'menu') { const fixo = (k, v) => Object.defineProperty(E, k, { get: () => v, set() {} }); fixo('topXzT', Date.now()); fixo('conta', { ...E.conta, cadastro: { nome: 'Demo' } }); fixo('campeao', { mes: '2026-10', nome: 'Ana Brasil', pts: 4200, vitorias: 5 }); fixo('topXz', [['Ana Presidente', 'ana_pres', 18420], ['Carlos Mendes 2026', 'carlosmendes', 9310], ['Bia do Povo', 'biadopovo', 4120], ['Rafa Souza', 'rafasouza', 1980], ['Lu Oliveira', 'lu_oli', 760]].map(([nome, user, seguidores]) => ({ nome, user, seguidores }))); } ir(demo); return; }
+  if (demo === 'fanpage') { E.perfil.nome ||= 'Demo'; E.conta = { ...E.conta, partidas: 2, vitorias: 1, fanpage: { nome: 'Demo Presidente', user: 'demo_presidente', bio: 'Candidato(a) à Presidência. Trabalho, saúde e educação. 🇧🇷', seguidores: 388, titulos: { mensal: ['2026-10'], semanal: ['2026-11-02', '2026-10-26'] }, posts: [
+    { t: Date.now() - 6e5, texto: 'Não sei, vamos ver isso aí.', tema: 'Saúde no interior', nota: 2.1, delta: -172, curtidas: 12, reposts: 1, respostas: 30 },
+    { t: Date.now() - 9e7, texto: 'Vou criar um milhão de empregos até 2028 com obras de saneamento em todo o país.', tema: 'Emprego', nota: 8.4, delta: 560, curtidas: 1420, reposts: 210, respostas: 96 }] } };
+    ir('fanpage'); avisoGanhos({ total: 54, itens: [['Participação', 20], ['Desempenho', 34]], seguidores: { delta: -172, total: 388 } }); return; }
+  E.demo = true; E.eu = 'bot2'; $('#ui').innerHTML = '';
+  est.setJogadores(bots(), 'bot2'); est.setModo('fp'); est.setFalante('bot1');
+  est.olhar = demo === 'lado' ? { y: 1.0, p: -.15 } : { y: 0, p: -.28 };
+  est.setLED({ modo: 'fala', nome: 'Carlos Mendes', partido: 'MSD', tempo: '00:42', texto: 'Vou criar um programa nacional de mobilidade, com metrô e corredores de ônibus, e investir 20 bilhões no primeiro ano.', rotulo: 'Pergunta · SP · Mobilidade na metrópole' });
+  setInterval(() => est.setFalaNivel('bot1', Math.random()), 120);
+  est.reacao('bot3', '👏');
+  if (demo === 'duelo') { // ?demo=duelo (1ª pessoa no confronto)
+    est.setDuelo({ a: 'bot1', b: 'bot2', fase: 'no' }); est.olhar = { y: 0, p: -.1 };
+  }
+  if (demo === 'pulpito' || demo === 'caminhada') { // ?demo=pulpito&t=3[&sai=1][&tv=1] (produção empurrando) | ?demo=caminhada&t=1.5[&tv=1]
+    const q = new URLSearchParams(location.search), adianta = Number(q.get('t')) || 0;
+    if (q.get('tv')) est.setModo('tv');
+    if (demo === 'pulpito') { if (q.get('sai')) est.setPulpito(true, true); est.setPulpito(!q.get('sai'), false); for (let k = 0; k < adianta * 30; k++) est.animarPulpito(1 / 30); }
+    else { est.setPulpito(true, true); est.setDuelo({ a: 'bot1', b: 'bot2', fase: 'indo' }); for (const p of est.podios.values()) if (p.caminho) p.caminho.t = adianta; }
+  }
+  if (demo.startsWith('regras') || demo === 'perguntas') { // ?demo=regras (painel aberto) | ?demo=regras-b (só o botão, com 2 advertências) | ?demo=perguntas (painel com resumo)
+    const perguntas = demo !== 'perguntas' ? [] : [{ de: 'Ana', mediador: true, para: 'bot2', kind: 'pergunta', tema: 'SP1', n: 1, texto: TEMA.SP1.pergunta },
+      { de: 'Carlos Mendes', deId: 'bot1', para: 'bot2', kind: 'pergunta', tema: 'SP1', n: 2, texto: 'E quem vai pagar por esse metrô?' }];
+    if (demo === 'perguntas') E.pergAjuda = new Set(['1perguntabot2']);
+    E.sala = { fase: 'debate', cfg: {}, i: 0, total: 1, perguntas, jogadores: bots().map(j => ({ ...j, adv: j.id === 'bot2' ? 2 : 0 })) };
+    $('#hud').hidden = false; try { renderHUD(); } catch (e) { console.warn(e); }
+    try { renderAcao(true); } catch (e) { console.warn(e); }
+    if (demo === 'regras') $('#h-regras').hidden = false;
+  }
+}, 600);
