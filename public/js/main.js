@@ -80,6 +80,7 @@ const mic = new Microfone({
   },
   onErro: m => { E.micErro = m; E.micOn = false; toast(m, 'erro'); renderAcao(true); },
   onStatus: m => { const el = $('#h-micst'); if (el) el.textContent = m; },
+  onExclusivo: v => voip.pausar(v),
 });
 function comecarFala(comMic) {
   if (!minhaVez() || E.confirmando) return;
@@ -89,8 +90,8 @@ function comecarFala(comMic) {
 function ligarMic() {
   calar(); pararNarracao(); est.mediadoraFalando(false); E.micErro = '';
   const ta = $('#h-ta'); if (ta) E.meuTexto = ta.value;
-  if (mic.ligar(E.meuTexto)) E.micOn = true;
-  renderAcao(true);
+  E.micOn = true; renderAcao(true);
+  mic.ligar(E.meuTexto).then(ok => { if (!ok) { E.micOn = false; renderAcao(true); } });
 }
 async function desligarMic() { const t = await mic.desligar(); E.micOn = false; enviarTexto(t); renderAcao(true); setTimeout(() => focarTexto(), 50); }
 function alternarMic() {

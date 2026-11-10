@@ -79,5 +79,10 @@ export class Voip {
     } catch { /* sem análise */ }
   }
   fechar(id) { const p = this.peers.get(id); if (!p) return; try { p.pc.close(); } catch { /* */ } if (p.audio) { p.audio.pause(); p.audio.srcObject = null; } this.peers.delete(id); }
+  /** Celular: solta o microfone para o reconhecimento de voz (true) e pega de volta depois (false). */
+  async pausar(v) {
+    if (v) { if (!this.stream) return; this.pausado = true; this.stream.getTracks().forEach(t => t.stop()); this.stream = null; for (const p of this.peers.values()) this.anexar(p); await new Promise(r => setTimeout(r, 250)); }
+    else if (this.pausado) { this.pausado = false; await this.iniciar(); }
+  }
   sair() { for (const id of [...this.peers.keys()]) this.fechar(id); this.stream?.getTracks().forEach(t => t.stop()); this.stream = null; }
 }

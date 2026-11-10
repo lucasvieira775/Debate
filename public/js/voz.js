@@ -13,46 +13,63 @@ export function msgErroVoz(code) {
   })[code] || ('Erro no reconhecimento de voz: ' + code);
 }
 
+// No celular o microfone é exclusivo: se outro getUserMedia (chat de voz, medidor) estiver aberto, o reconhecimento não ouve nada.
+// Lá também o modo contínuo duplica/perde texto, então cada frase é uma sessão curta que reinicia sozinha.
+export const celular = /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+
 export class Microfone {
-  constructor({ onTexto, onNivel, onErro, onStatus } = {}) {
-    Object.assign(this, { onTexto, onNivel, onErro, onStatus });
+  constructor({ onTexto, onNivel, onErro, onStatus, onExclusivo } = {}) {
+    Object.assign(this, { onTexto, onNivel, onErro, onStatus, onExclusivo });
     this.ativo = false; this.final = ''; this.interim = ''; this.rec = null; this.vu = null;
   }
   get texto() { return (this.final + this.interim).trim(); }
-  ligar(textoInicial = '') {
+  async ligar(textoInicial = '') {
     if (this.ativo) return true;
     if (!SR) { this.onErro?.('Este navegador não transcreve voz. Use o Google Chrome ou o Edge, ou digite sua fala.'); return false; }
     this.final = textoInicial ? textoInicial.trim() + ' ' : ''; this.interim = '';
-    const rec = this.rec = new SR(); rec.lang = 'pt-BR'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 1;
+    this.ativo = true;
+    if (celular) { this.exclusivo = true; try { await this.onExclusivo?.(true); } catch { /* */ } if (!this.ativo) return false; }
+    const rec = this.rec = new SR(); rec.lang = 'pt-BR'; rec.continuous = !celular; rec.interimResults = true; rec.maxAlternatives = 1;
     rec.onstart = () => this.onStatus?.('Microfone ligado: pode falar.');
     rec.onspeechstart = () => this.onStatus?.('Ouvindo e transcrevendo…');
     rec.onresult = e => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const r = e.results[i]; if (r.isFinal) this.final += r[0].transcript.trim() + ' '; else interim += r[0].transcript;
+      if (celular) { // sessão curta: reconstrói a frase inteira a cada evento (evita duplicação do Android)
+        let fin = '', inte = '';
+        for (let i = 0; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) fin += r[0].transcript.trim() + ' '; else inte += r[0].transcript; }
+        this.sessao = fin; this.interim = (fin + inte).trim(); this.onNivel?.(.5 + Math.random() * .4);
+      } else {
+        let interim = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const r = e.results[i]; if (r.isFinal) this.final += r[0].transcript.trim() + ' '; else interim += r[0].transcript;
+        }
+        this.interim = interim;
       }
-      this.interim = interim; this.onTexto?.(this.texto);
+      this.onTexto?.(this.texto);
     };
     rec.onerror = e => {
       if (e.error === 'no-speech' || e.error === 'aborted') return;
-      this.ativo = false; this.pararVU(); this.onErro?.(msgErroVoz(e.error));
+      this.ativo = false; this.pararVU(); this.soltar(); this.onErro?.(msgErroVoz(e.error));
     };
-    rec.onend = () => { if (this.ativo) { try { rec.start(); } catch { /* reinício */ } } else this._fim?.(); };
-    this.ativo = true;
-    try { rec.start(); } catch (e) { this.ativo = false; this.onErro?.(msgErroVoz(e.name)); return false; }
-    this.ligarVU();
+    rec.onend = () => {
+      if (celular && this.interim) { this.final += this.interim.trim() + ' '; this.interim = ''; this.sessao = ''; this.onNivel?.(0); }
+      if (this.ativo) setTimeout(() => { if (this.ativo && this.rec === rec) { try { rec.start(); } catch { /* reinício */ } } }, celular ? 120 : 0);
+      else { this.soltar(); this._fim?.(); }
+    };
+    try { rec.start(); } catch (e) { this.ativo = false; this.soltar(); this.onErro?.(msgErroVoz(e.name)); return false; }
+    if (!celular) this.ligarVU();
     return true;
   }
+  soltar() { if (this.exclusivo) { this.exclusivo = false; this.onExclusivo?.(false); } }
   desligar() {
     return new Promise(res => {
-      if (!this.ativo || !this.rec) { this.ativo = false; this.pararVU(); return res(this.texto); }
+      if (!this.ativo || !this.rec) { this.ativo = false; this.pararVU(); this.soltar(); return res(this.texto); }
       this.ativo = false; this.pararVU();
-      let feito = false; const fim = () => { if (feito) return; feito = true; this.interim = this.interim.trim(); res(this.texto); };
+      let feito = false; const fim = () => { if (feito) return; feito = true; this.interim = this.interim.trim(); this.soltar(); res(this.texto); };
       this._fim = fim; try { this.rec.stop(); } catch { fim(); }
       setTimeout(fim, 1400);
     });
   }
-  abortar() { this.ativo = false; this.pararVU(); try { this.rec?.abort(); } catch { /* */ } }
+  abortar() { this.ativo = false; this.pararVU(); try { this.rec?.abort(); } catch { /* */ } this.soltar(); }
   async ligarVU() {
     const token = this.vuToken = Math.random();
     try {
