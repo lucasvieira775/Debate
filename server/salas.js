@@ -540,6 +540,9 @@ class Sala {
       if (!girou || !falou || !this.roleta || this.passo !== p) return;
       this.roleta = null; this.temaAtual = tema;
       this.fila.splice(this.i + 1, 0, ...novos);
+      // só 2 jogadores e já estão no púlpito central: a revanche começa ali mesmo, sem caminhar
+      const d = this.duelo;
+      if (d?.fase === 'no' && [d.a, d.b].includes(id) && [d.a, d.b].includes(alvo)) { d.n = 2; this.emit(); return this.proximo(); }
       // os dois caminham até o púlpito central; quando chegam, a pergunta começa normalmente
       this.duelo = { a: id, b: alvo, fase: 'indo' };
       this.emit();
@@ -587,7 +590,9 @@ class Sala {
   proximo() {
     const seg = this.fila[this.i + 1], d = this.duelo;
     // ainda faz parte do confronto? (pergunta/resposta/réplica/tréplica entre os dois)
-    const doDuelo = d && seg?.tipo === 'fala' && seg.etapa === 2 && [d.a, d.b].includes(seg.falante) && [d.a, d.b].includes(seg.alvo);
+    const doDuelo = d && seg?.tipo === 'fala' && seg.etapa === 2 && [d.a, d.b].includes(seg.falante) && [d.a, d.b].includes(seg.alvo)
+      // só 2 jogadores: ficam no centro até o outro também perguntar (aí sim voltam)
+      || d && d.fase === 'no' && !d.n && seg?.tipo === 'escolha' && seg.etapa === 2 && seg.falante === d.b && this.emAtivo().length === 2;
     if (d && !doDuelo) return this.encerrarDuelo(() => this.proximo());
     if (seg) this.irPara(this.i + 1); else this.finalizarDebate();
   }
