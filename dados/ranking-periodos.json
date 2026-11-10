@@ -53,6 +53,32 @@
     },
     "partido": "PUN",
     "uid": "f1998965-9a26-4537-b3a9-d3d28d691139"
+   },
+   "luk bozossauro": {
+    "nome": "Luk Bozossauro",
+    "pts": 82,
+    "partidas": 1,
+    "vitorias": 0,
+    "avatar": {
+     "genero": "masculino",
+     "pele": "#d19a6a",
+     "cabelo": "curto",
+     "corCabelo": "#a0522d",
+     "barba": "nenhuma",
+     "oculos": "redondo",
+     "chapeu": "nenhum",
+     "roupa": "social",
+     "corRoupa": "#a8a29e",
+     "corCamisa": "#fce7f3",
+     "corGravata": "#1d4ed8",
+     "brinco": false,
+     "broche": true,
+     "extra": "nenhum",
+     "corpo": "largo",
+     "expressao": "simpatico"
+    },
+    "partido": "PUN",
+    "uid": "9e276dfa-05ea-4e14-a42d-adcd2e9fde92"
    }
   }
  },
@@ -110,6 +136,32 @@
     },
     "partido": "PUN",
     "uid": "f1998965-9a26-4537-b3a9-d3d28d691139"
+   },
+   "luk bozossauro": {
+    "nome": "Luk Bozossauro",
+    "pts": 82,
+    "partidas": 1,
+    "vitorias": 0,
+    "avatar": {
+     "genero": "masculino",
+     "pele": "#d19a6a",
+     "cabelo": "curto",
+     "corCabelo": "#a0522d",
+     "barba": "nenhuma",
+     "oculos": "redondo",
+     "chapeu": "nenhum",
+     "roupa": "social",
+     "corRoupa": "#a8a29e",
+     "corCamisa": "#fce7f3",
+     "corGravata": "#1d4ed8",
+     "brinco": false,
+     "broche": true,
+     "extra": "nenhum",
+     "corpo": "largo",
+     "expressao": "simpatico"
+    },
+    "partido": "PUN",
+    "uid": "9e276dfa-05ea-4e14-a42d-adcd2e9fde92"
    }
   }
  }

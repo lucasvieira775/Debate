@@ -1326,9 +1326,9 @@
  "9e276dfa-05ea-4e14-a42d-adcd2e9fde92": {
   "uid": "9e276dfa-05ea-4e14-a42d-adcd2e9fde92",
   "nome": "Luk Bozossauro",
-  "moedas": 100,
+  "moedas": 120,
   "dicasExtra": 0,
-  "partidas": 0,
+  "partidas": 1,
   "vitorias": 0,
   "criadaEm": 1794344833684,
   "cadastro": {
@@ -1336,6 +1336,13 @@
    "nome": "Luk Bozossauro",
    "user": "lukmarston",
    "criadoEm": 1794344932009
-  }
+  },
+  "extrato": [
+   {
+    "t": 1794345501315,
+    "valor": 20,
+    "motivo": "Partida de debate"
+   }
+  ]
  }
 }
