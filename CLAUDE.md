@@ -11,6 +11,10 @@ Jogo multiplayer 3D (1ª pessoa) de debate presidencial. Node + Express 5 + Sock
 - Respostas curtas, em português, sem resumo repetindo o que foi feito. Após mudanças visuais: reiniciar o servidor, tirar print (Edge headless) e conferir a imagem antes de responder.
 - Edite com Edit (trechos pequenos); não reescreva arquivos inteiros.
 
+## Git / GitHub
+- Repo: https://github.com/lucasvieira775/Debate (branch `main`). Hook Stop (`.claude/autopush.ps1`) faz add/commit/push automático ao fim de cada resposta.
+- Ao começar a trabalhar: `git pull`. `.env` não vai pro git — copiar manualmente para o outro PC.
+
 ## Rodar
 - `npm start` (= `node server/index.js`), porta 3000. `INICIAR.bat` abre local; `JOGAR-ONLINE.bat` cria túnel cloudflared.
 - Admin: `/admin.html`, senha via `ADMIN_SENHA` no `.env`.

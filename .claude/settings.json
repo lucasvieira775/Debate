@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"$env:CLAUDE_PROJECT_DIR/.claude/autopush.ps1\"",
+            "shell": "powershell",
+            "timeout": 60,
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}
