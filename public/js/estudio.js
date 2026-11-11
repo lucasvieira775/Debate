@@ -1032,7 +1032,7 @@ export class Estudio {
     for (const p of [d.atk, d.alvo]) this.scene.remove(p.ator);
     const r = d.av.root; r.position.set(0, 0, -.6); r.rotation.set(0, d.rot, 0);
     if (d.av === this.vitrine) { this.scene.add(r); r.visible = this.modo === 'vitrine'; }
-    d.av.anim = null; d.av.andar = 0; d.av.empurra = false;
+    for (const v of [d.av, d.alvo.avatar]) { v.anim = null; v.andar = 0; v.empurra = false; } // volta à postura em pé (posePe) mesmo se a demo parou no meio
   }
   frameDemo(dt, t) {
     const d = this.demoV, l = d.atk.ator.worldToLocal(d.alvo.ator.localToWorld(new THREE.Vector3(0, 1.9, 0))).sub(new THREE.Vector3(0, 2, 0));

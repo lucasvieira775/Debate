@@ -491,11 +491,11 @@ export class Avatar {
     // braços
     for (const b of this.bracos) {
       const s = b.userData.lado;
-      let [rx, rz, cot, ry, gm, mao, om = 0] = REP;
+      let [rx, rz, cot, ry, gm, mao, om = 0] = this.posePe ? REP_PE : REP;
       if (this.empurra && !pose) { rx = -.95; rz = .1; cot = -.3; ry = 0; gm = 0; mao = 'aberta'; } // empurrando algo (equipe de produção)
       else if (an > .05 && !pose) { rx = -.15 - Math.sin(ph) * .45 * s * an; rz = .06; cot = -.35; ry = 0; gm = 0; }
       else if (this.cruza && !pose) [rx, rz, cot, ry, gm, mao, om] = s > 0 ? Q.cruzaE : Q.cruzaD; // parada de braços cruzados
-      else if (pose) { const p = s > 0 ? pose.esq : pose.dir; if (p) [rx, rz, cot = -.25, ry = 0, gm = 0, mao = 'relax', om = 0] = p; }
+      else if (pose) { const p0 = s > 0 ? pose.esq : pose.dir, p = this.posePe && p0 === REP ? REP_PE : p0; if (p) [rx, rz, cot = -.25, ry = 0, gm = 0, mao = 'relax', om = 0] = p; }
       else if (this.gesticula && this.fala > .05) [rx, rz, cot, ry, gm, mao, om] = lerpQ(REP, lerpQ(Q.falaB, Q.falaA, (1 + Math.sin(t * 3.1 + s * 1.7)) / 2), Math.min(1, this.fala * 1.5));
       const bs = b.userData.base, ko = kb;
       b.position.x += (bs.x - s * .03 * om - b.position.x) * ko; b.position.y += (bs.y + .03 * om - b.position.y) * ko; b.position.z += (bs.z + .1 * om - b.position.z) * ko;
@@ -587,6 +587,7 @@ const Q = {
   passA: [-.59, 1.19, -1.44, -.12, 1.1, 'punho'], passB: [-.4, .55, -.8, 0, 0, 'punho'],
 };
 const REP = Q.rep; // braço em repouso (palma para baixo, apoiada no púlpito)
+const REP_PE = [-.08, .07, -.2, 0, 0, 'relax']; // em pé sem púlpito (posePe: vitrine, demo da loja): braços soltos ao lado do corpo
 const nq = x => [x[0], x[1], x[2] ?? -.25, x[3] ?? 0, x[4] ?? 0, x[5] ?? 'relax', x[6] ?? 0];
 function lerpQ(a, b, k) { const B = nq(b); return nq(a).map((v, i) => i === 5 ? (k < .5 ? v : B[i]) : v + (B[i] - v) * k); }
 const onda = (u, f, fase = 0) => (1 - Math.cos(u * f + fase)) / 2; // 0..1 suave

@@ -21,8 +21,9 @@ const CENTRO = V(0, 0, -3.2), R_ARCO = 5.3; // mesa da mediação (estudio.js) e
 const VEL = 2.3;                             // m/s (passo apressado de quem vai brigar)
 const T_PEGA = .4, T_PREP = .6, T_SOME = .5, T_SOLTA = .7;
 // distância até o alvo (ao lado dele) e quem tem passos com barulho do objeto
-const DIST = { cadeirada: 1.08, paulada: 1.0, torta: .8, balde: .64 };
+const DIST = { cadeirada: 1.2, paulada: 1.0, torta: .8, balde: .64 };
 const CARREGA = { cadeirada: 1, balde: 1 };
+const COMP = { cadeirada: .88, paulada: .82 }; // comprimento do objeto a partir da pegada (para não atravessar a cabeça do alvo)
 const AGARRA = { cadeirada: 1, paulada: 1, balde: 1 }; // posição calculada a cada quadro (o resto usa a PEGADA fixa)
 const POSE_GOLPE = { cadeirada: 'golpeCadeira', paulada: 'golpePau', torta: 'tortada', balde: 'baldeada' };
 const POSE_CARREGA = { cadeirada: 'carregaCadeira', paulada: 'carregaPau', torta: 'carregaTorta', balde: 'carregaBalde' };
@@ -233,7 +234,7 @@ export class Acoes {
     const golpe = a.fase === 'golpe' || a.fase === 'depois', u = golpe ? a.ft : 0;
     // k: 0 = carregando → 1 = erguido (preparo); kb: erguido → batendo; volta a carregar no fim
     const k = golpe ? sm(u / .35) * (1 - sm((u - 1.05) / .45)) : 0, kb = golpe ? sm((u - .45) / .15) * (1 - sm((u - 1.05) / .45)) : 0;
-    if (golpe && !a.mira) a.mira = this.cabecaAlvo(a); // mira na cabeça do alvo (onde ela estava no começo do golpe)
+    if (golpe && !a.mira) { a.mira = this.cabecaAlvo(a); a.cabEl = this.caixaCabeca(a); } // mira na cabeça do alvo (onde ela estava no começo do golpe)
     let pos, quat;
     if (id === 'cadeirada' || id === 'paulada') {
       // erguido: o objeto continua a linha do braço; no golpe o punho dobra e ele desce sobre a cabeça do alvo
@@ -241,6 +242,7 @@ export class Acoes {
       const ombro = cad ? av.bracos[0].getWorldPosition(V()).add(av.bracos[1].getWorldPosition(V())).multiplyScalar(.5) : maoDe(av, -1).getWorldPosition(V());
       const leva = cad ? R(0, -1, .35) : R(.15, 1, -.45), bate = cad ? R(0, -.2, 1) : a.mira ? a.mira.clone().sub(m).normalize() : R(0, 0, 1);
       const Y = leva.clone().lerp(m.clone().sub(ombro).normalize(), k).normalize().lerp(bate, kb).normalize();
+      if (golpe && a.cabEl) this.livrar(Y, m, COMP[id] * esc, a.cabEl, R(0, 1, 0)); // encosta na cabeça, sem atravessar
       const X = R(1, 0, 0), Z = X.clone().cross(Y).normalize(); X.crossVectors(Y, Z);
       pos = m; quat = _q3.setFromRotationMatrix(_m.makeBasis(X, Y, Z));
     } else { // balde: na direita pela alça (em pé); para virar, entre as duas mãos e inclinado para frente
@@ -257,6 +259,18 @@ export class Acoes {
 
   // ---------- impacto ----------
   cabecaAlvo(a) { const c = a.alvo.avatar.cabeca; c.updateWorldMatrix(true, false); return c.localToWorld(V(0, .3, 0)); }
+  /** Cabeça do alvo (com cabelo/chapéu) como caixa no espaço dela { inv: mundo → cabeça, box: caixa + folga da espessura do objeto }. */
+  caixaCabeca(a) {
+    const c = a.alvo.avatar.cabeca, box = new THREE.Box3(), bb = new THREE.Box3(); c.updateWorldMatrix(true, true);
+    const inv = c.matrixWorld.clone().invert();
+    c.traverse(o => { if (!o.isMesh || !o.visible || !o.geometry) return; o.geometry.boundingBox || o.geometry.computeBoundingBox(); box.union(bb.copy(o.geometry.boundingBox).applyMatrix4(_m.multiplyMatrices(inv, o.matrixWorld))); });
+    return box.isEmpty() ? null : { inv, box: box.expandByScalar(.035) };
+  }
+  /** Objeto preso em m, na direção Y, com comprimento L: ergue Y (para "cima") até o segmento só encostar na cabeça do alvo. */
+  livrar(Y, m, L, el, cima) {
+    const p = V(), dentro = () => { for (let i = 0; i <= 16; i++) if (el.box.containsPoint(p.copy(m).addScaledVector(Y, L * i / 16).applyMatrix4(el.inv))) return true; return false; };
+    for (let i = 0; i < 40 && dentro(); i++) Y.lerp(cima, .04).normalize();
+  }
   impacto(a) {
     if (a.bateu) return; a.bateu = true;
     const est = this.est, id = a.it.id, pos = this.cabecaAlvo(a);
