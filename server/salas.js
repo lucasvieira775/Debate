@@ -575,18 +575,18 @@ class Sala {
     texto = (texto || '').trim();
     const mod = moderar(texto, this.jorn?.nome), quem = this.porId(p.falante);
     if (mod.expulsa) { f.texto = texto; return this.banir(quem, mod.grave); }
-    // regras: xingamento/palavrão = 1 advertência (2 se for contra a mediação); "cala a boca" contra a mediação = 1; contra candidato = só chamada de atenção
-    const ofensa = !!(mod.grave || mod.leves.length);
-    const nAdv = ofensa ? (mod.mediador ? 2 : 1) : (mod.brandas.length && mod.mediador ? 1 : 0);
-    const motivo = (mod.grave ? 'palavrão pesado' : mod.leves.length ? `xingamento ("${mod.leves[0]}")` : `desrespeito ("${mod.brandas[0]}")`) + (mod.mediador ? ' contra a mediação' : '');
+    // regras: só palavrão pesadíssimo pune (1 advertência, 2 se for contra a mediação); xingamento comum / "cala a boca" = só chamada de atenção
+    const ofensa = !!mod.grave, atencao = mod.leves[0] || mod.brandas[0];
+    const nAdv = ofensa ? (mod.mediador ? 2 : 1) : 0;
+    const motivo = 'palavrão pesado' + (mod.mediador ? ' contra a mediação' : '');
     if (nAdv) { f.texto = texto; if (this.advertir(quem, motivo, nAdv)) return; }
     const porId = Object.fromEntries(this.jog.map(j => [j.id, j]));
     const res = analisar(texto, p, this.jog.map(j => ({ id: j.id, nome: j.nome, sigla: j.partido })));
     if (f.vaiado) { res.nota = Math.max(0, res.nota - VAIA_AGRESSOR); res.vaiado = f.vaiado; } // vaiado(a) por ter agredido um adversário
     if (ofensa) { // xingamento: perde pontos e leva bronca
-      res.xingamentos = mod.grave ? [mod.grave] : mod.leves; res.nota = Math.max(0, res.nota - (mod.grave ? 4 : 2.5));
+      res.xingamentos = [mod.grave]; res.nota = Math.max(0, res.nota - 4);
     }
-    if (!nAdv && mod.brandas.length) this.io.to(this.code).emit('atencao', { id: quem.id, nome: quem.nome, termo: mod.brandas[0] });
+    if (!nAdv && atencao) this.io.to(this.code).emit('atencao', { id: quem.id, nome: quem.nome, termo: atencao });
     aplicar(p, texto, res, porId);
     p.texto = texto; p.res = res;
     f.texto = texto; f.status = 'avaliado'; f.res = res;
@@ -594,7 +594,7 @@ class Sala {
     const d = this.duelo, noDuelo = p.etapa === 2 && p.kind !== 'pergunta' && d?.fase === 'no' && (p.falante === d.a || p.falante === d.b);
     this.reagirPlateia(res, ofensa || nAdv > 0, noDuelo, generoDe(this.porId(p.falante)?.avatar));
     this.postarXzona(postsDaFala(this.dadosPost(this.porId(p.falante), p), res));
-    if (nAdv || mod.brandas.length) { this.emit(); this.narrar(nAdv ? N.advertencia(quem.nome) : N.ordem(), ms => this.auto(ms + 4000)); }
+    if (nAdv || atencao) { this.emit(); this.narrar(nAdv ? N.advertencia(quem.nome) : N.ordem(), ms => this.auto(ms + 4000)); }
     else this.auto(8000);
     this.reacoesBots(p, res);
     this.emit();
