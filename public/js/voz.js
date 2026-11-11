@@ -208,9 +208,9 @@ function palmasReais(dur, vol) {
 }
 /** Som do emote/dança (ElevenLabs via /api/som); sem ele, toca o som sintetizado de reserva. */
 const somFalhou = new Set();
-export function somItem(id, reserva) {
+export function somItem(id, reserva, vol = .8) {
   if (somFalhou.has(id)) return reserva?.();
-  const a = new Audio('/api/som/' + id); a.volume = Math.min(1, .8 * volume);
+  const a = new Audio('/api/som/' + id); a.volume = Math.min(1, vol * volume);
   let tarde = false; const lim = setTimeout(() => { tarde = true; a.pause(); reserva?.(); }, 1500); // ainda gerando: não toca atrasado
   a.play().then(() => { clearTimeout(lim); if (tarde) a.pause(); })
     .catch(e => { clearTimeout(lim); if (tarde) return; if (e?.name !== 'NotAllowedError') somFalhou.add(id); setTimeout(() => somFalhou.delete(id), 60000); reserva?.(); });

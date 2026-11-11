@@ -45,7 +45,7 @@ addEventListener('resize', () => aplicarResolucao(E.cfg.resolucao));
 const socket = io();
 const est = new Estudio($('#cena'), E.cfg);
 // passos, rodinhas e trava do púlpito; sons das ações (acoes/sons.js). Impacto da ação: som do ElevenLabs (se houver) ou o sintetizado
-est.onSom = (tipo, o) => tipo === 'acaoImpacto' ? somItem(o.item, () => SONS_ACAO['impacto_' + o.item]?.(o)) : (sfx[tipo] || SONS_ACAO[tipo])?.(o);
+est.onSom = (tipo, o) => tipo === 'acaoImpacto' ? somItem(o.item, () => SONS_ACAO['impacto_' + o.item]?.(o), Math.max(.35, Math.min(.9, (o.vol ?? .6) * 1.3))) : (sfx[tipo] || SONS_ACAO[tipo])?.(o);
 const voip = new Voip(socket, { onNivel: (id, v) => est.setFalaNivel(id, v), onFalha: () => { if (!E.voipFalhou) { E.voipFalhou = true; toast('Não deu para conectar a voz com outro jogador (rede do celular bloqueia). Tentando de novo…', 'erro'); } } });
 const atualizarConta = c => { if (!c) return; E.conta = c; if (c.cadastro && E.perfil.nome !== c.cadastro.nome) { E.perfil.nome = c.cadastro.nome; salvar(); }
   const a = E.perfil.avatar, tira = a && ['oculos', 'chapeu', 'extra', 'roupa'].filter(k => bloqueio(k, a[k])); // tira itens pagos que a conta não tem

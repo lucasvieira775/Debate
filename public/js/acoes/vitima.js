@@ -166,7 +166,7 @@ export class Vitima {
     const vis = clamp(Math.min((u - .7) / .3, (N_FIM + .2 - u) / .3), 0, 1);
     if (vis > 0 && !this.aves) { this.aves = new THREE.Group(); for (let i = 0; i < 4; i++) this.aves.add(passarinho()); this.est.scene.add(this.aves); }
     if (this.aves) {
-      this.aves.visible = vis > 0; this.aves.position.copy(cab).add(V(0, .78, 0));
+      this.aves.visible = vis > 0; this.aves.position.copy(cab).add(V(0, .92, 0));
       this.aves.children.forEach((b, i) => {
         const a = t * 3.2 + i * PI / 2; b.position.set(cos(a) * .36, sen(t * 6 + i * 1.7) * .05, sen(a) * .36); b.rotation.set(0, -a, 0); b.scale.setScalar(vis);
         for (const w of b.userData.asas) w.rotation.z = w.userData.s * sen(t * 28 + i) * .8;
