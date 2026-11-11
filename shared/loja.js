@@ -21,11 +21,31 @@ export const ITENS = [
   { id: 'bocejo', som: 'Long exaggerated human yawn followed by a bored sigh', seg: 3, tipo: 'provocacao', nome: 'Que sono', preco: 60, anim: 'bocejo', emoji: '🥱', frase: 'Que discurso chato…' },
   { id: 'tchau', som: 'Mocking sing-song bye bye whistle with crowd ooh', seg: 2.5, tipo: 'provocacao', nome: 'Tchau, querido', preco: 80, anim: 'aceno', emoji: '👋', frase: 'Tchau, querido(a)!' },
   { id: 'pipoca', som: 'Popcorn popping and crunchy munching sounds', seg: 3, tipo: 'provocacao', nome: 'Pipoca', preco: 70, anim: 'pipoca', emoji: '🍿', frase: 'Isso vai ser bom…' },
-  // ---- roupas (trajes exclusivos; "roupa" é o valor em avatar.roupa) ----
-  { id: 'batina', tipo: 'roupa', roupa: 'batina', nome: 'Batina de padre', preco: 300, anim: 'aceno', emoji: '⛪', descricao: 'Batina preta com faixa vermelha e crucifixo dourado.' },
-  { id: 'pastor', tipo: 'roupa', roupa: 'pastor', nome: 'Terno com Bíblia', preco: 250, anim: 'joinha', emoji: '📖', descricao: 'Terno escuro e a Bíblia Sagrada sempre na mão.' },];
-/** Trajes vendidos na loja: valor de avatar.roupa → id do item. */
-export const ROUPA_ITEM = Object.fromEntries(ITENS.filter(i => i.tipo === 'roupa').map(i => [i.roupa, i.id]));
+  // ---- acessórios e conjuntos: "av" = valores do avatar que o item desbloqueia (e veste); "cores" só é aplicado ao vestir ----
+  { id: 'oc_aviador', tipo: 'acessorio', av: { oculos: 'aviador' }, nome: 'Óculos aviador dourado', preco: 120, anim: 'joinha', emoji: '🕶️', descricao: 'Armação dourada de quem já nasceu no poder.' },
+  { id: 'oc_pixel', tipo: 'acessorio', av: { oculos: 'pixel' }, nome: 'Óculos pixelado', preco: 150, anim: 'joinha', emoji: '😎', descricao: 'Deal with it. O clássico dos memes.' },
+  { id: 'oc_folha', tipo: 'acessorio', av: { oculos: 'folha' }, nome: 'Óculos folha verde', preco: 200, anim: 'gargalhada', emoji: '🍃', descricao: 'Lentes em forma de folha. Tranquilidade total no debate.' },
+  { id: 'oc_coracao', tipo: 'acessorio', av: { oculos: 'coracao' }, nome: 'Óculos coração', preco: 100, anim: 'coracao', emoji: '😍', descricao: 'Para conquistar o eleitor no olhar.' },
+  { id: 'oc_estrela', tipo: 'acessorio', av: { oculos: 'estrela' }, nome: 'Óculos estrela', preco: 100, anim: 'aceno', emoji: '🤩', descricao: 'Celebridade da política.' },
+  { id: 'ch_cartola', tipo: 'acessorio', av: { chapeu: 'cartola' }, nome: 'Cartola', preco: 150, anim: 'aceno', emoji: '🎩', descricao: 'Cartola preta com fita vermelha.' },
+  { id: 'ch_coroa', tipo: 'acessorio', av: { chapeu: 'coroa' }, nome: 'Coroa', preco: 250, anim: 'aceno', emoji: '👑', descricao: 'Ouro e pedras preciosas. Monarquista?' },
+  { id: 'ch_festa', tipo: 'acessorio', av: { chapeu: 'festa' }, nome: 'Chapéu de festa', preco: 80, anim: 'joinha', emoji: '🥳', descricao: 'Cone listrado para comemorar a vitória.' },
+  { id: 'ch_palhaco', tipo: 'acessorio', av: { chapeu: 'palhaco' }, nome: 'Peruca de palhaço', preco: 120, anim: 'gargalhada', emoji: '🤡', descricao: 'Cachos coloridos para o circo do debate.' },
+  { id: 'ex_faixa', tipo: 'acessorio', av: { extra: 'faixa' }, nome: 'Faixa presidencial', preco: 300, anim: 'continencia', emoji: '🎗️', descricao: 'Já se sente eleito(a)? Vista a faixa.' },
+  { id: 'ex_corrente', tipo: 'acessorio', av: { extra: 'corrente' }, nome: 'Corrente de ouro', preco: 180, anim: 'joinha', emoji: '📿', descricao: 'Ostentação no pescoço.' },
+  { id: 'ex_charuto', tipo: 'acessorio', av: { extra: 'charuto' }, nome: 'Charuto', preco: 120, anim: 'joinha', emoji: '🚬', descricao: 'Charuto cubano de quem fecha acordos.' },
+  { id: 'ex_nariz', tipo: 'acessorio', av: { extra: 'nariz' }, nome: 'Nariz de palhaço', preco: 80, anim: 'gargalhada', emoji: '🔴', descricao: 'Bolinha vermelha no nariz.' },
+  // conjuntos completos (ids 'batina'/'pastor' mantidos: quem já comprou o traje continua com ele)
+  { id: 'batina', tipo: 'conjunto', av: { roupa: 'batina', chapeu: 'padre' }, nome: 'Conjunto Padre', preco: 550, anim: 'aceno', emoji: '⛪', descricao: 'Batina preta com faixa vermelha, crucifixo dourado e chapéu de padre.' },
+  { id: 'pastor', tipo: 'conjunto', av: { roupa: 'pastor' }, cores: { corRoupa: '#111111', corCamisa: '#ffffff', corGravata: '#1d4ed8' }, nome: 'Conjunto Pastor', preco: 400, anim: 'joinha', emoji: '📖', descricao: 'Terno escuro, gravata azul e a Bíblia Sagrada sempre na mão.' },
+  { id: 'cj_magnata', tipo: 'conjunto', av: { chapeu: 'cartola', oculos: 'aviador', extra: 'charuto' }, cores: { corRoupa: '#111111', corGravata: '#ca8a04' }, nome: 'Conjunto Magnata', preco: 330, anim: 'joinha', emoji: '💸', descricao: 'Cartola, óculos aviador e charuto (sai mais barato que separado).' },
+  { id: 'cj_palhaco', tipo: 'conjunto', av: { chapeu: 'palhaco', extra: 'nariz' }, nome: 'Conjunto Palhaço', preco: 170, anim: 'gargalhada', emoji: '🎪', descricao: 'Peruca colorida e nariz vermelho: o circo está armado.' },
+];
+/** Valores bloqueados do avatar: campo → valor → ids dos itens que o liberam (basta ter um). */
+export const AV_ITEM = {};
+for (const i of ITENS) for (const [c, v] of Object.entries(i.av || {})) ((AV_ITEM[c] ||= {})[v] ||= []).push(i.id);
+/** Itens que liberam avatar[campo] = valor (vazio = grátis). */
+export const itensDe = (campo, valor) => AV_ITEM[campo]?.[valor] || [];
 // Pacotes de moedas pagos em reais (PIX). Referência: uma partida rende ~60–150 moedas e todos os
 // cosméticos somam ~1.700 moedas. O pacote menor equivale a ~2 partidas; os maiores dão bônus crescente.
 export const PACOTES_MOEDAS = [

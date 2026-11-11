@@ -7,7 +7,7 @@ import { Voip } from './voip.js';
 import { termosAceitos, mostrarTermos } from './termos.js';
 import { PUNICAO, REGRAS_DEBATE } from '/shared/moderacao.js';
 import { postXzona, limparXzona, mostrarDica, esconderDica, recolherDica, aoLerDica,janela, janelaDenuncia, telaLoja, avisoGanhos, reais, htmlFanpage, janelaFanpage } from './extras.js';
-import { ITENS, ITEM, PACOTES_MOEDAS, ROUPA_ITEM } from '/shared/loja.js';
+import { ITENS, ITEM, PACOTES_MOEDAS, itensDe } from '/shared/loja.js';
 import { CARGOS, XP, XP_PUNICAO, cargo, brasao, htmlBrasao } from '/shared/niveis.js';
 import { animarPromocao } from './promocao.js';
 import { CADASTRO, validarNome, validarUser, validarIdade, formatarNome, formatarUser } from '/shared/cadastro.js';
@@ -45,7 +45,9 @@ const socket = io();
 const est = new Estudio($('#cena'), E.cfg);
 est.onSom = (tipo, o) => sfx[tipo]?.(o); // passos, rodinhas e trava do púlpito
 const voip = new Voip(socket, { onNivel: (id, v) => est.setFalaNivel(id, v), onFalha: () => { if (!E.voipFalhou) { E.voipFalhou = true; toast('Não deu para conectar a voz com outro jogador (rede do celular bloqueia). Tentando de novo…', 'erro'); } } });
-const atualizarConta = c => { if (!c) return; E.conta = c; if (c.cadastro && E.perfil.nome !== c.cadastro.nome) { E.perfil.nome = c.cadastro.nome; salvar(); } const m = $('#moedas-chip'); if (m) m.textContent = '🪙 ' + fmtN(c.moedas); };
+const atualizarConta = c => { if (!c) return; E.conta = c; if (c.cadastro && E.perfil.nome !== c.cadastro.nome) { E.perfil.nome = c.cadastro.nome; salvar(); }
+  const a = E.perfil.avatar, tira = a && ['oculos', 'chapeu', 'extra', 'roupa'].filter(k => bloqueio(k, a[k])); // tira itens pagos que a conta não tem
+  if (tira?.length) { tira.forEach(k => a[k] = k === 'roupa' ? 'terno' : 'nenhum'); salvar(); } const m = $('#moedas-chip'); if (m) m.textContent = '🪙 ' + fmtN(c.moedas); };
 
 // ======================= utilidades =======================
 const agora = () => Date.now() + E.offset;
@@ -583,8 +585,8 @@ function telaDaLoja(ui) {
   if (!E.lojaInfo && !E.lojaPedindo) { E.lojaPedindo = true; socket.emit('lojaInfo', null, i => { E.lojaPedindo = false; E.lojaInfo = i; if (E.tela === 'loja') renderUI(); }); }
   const pos = r => { if (r?.erro) return toast(r.erro, 'erro'); atualizarConta(r.conta); sfx.vitoria(); toast('Compra concluída!', 'ok'); renderUI(); };
   telaLoja(ui, {
-    conta: E.conta, info: E.lojaInfo, aba: E.lojaAba, topo: topo('Loja', voltar), roupaAtual: E.perfil.avatar?.roupa,
-    vestir: id => { E.perfil.avatar = { ...E.perfil.avatar, roupa: ITEM[id].roupa }; salvar(); est.setVitrine(E.perfil.avatar); sincronizarPerfil(); toast(`Você está vestindo: ${ITEM[id].nome}!`, 'ok'); renderUI(); },
+    conta: E.conta, info: E.lojaInfo, aba: E.lojaAba, topo: topo('Loja', voltar), avatar: E.perfil.avatar,
+    vestir: id => { E.perfil.avatar = { ...E.perfil.avatar, ...ITEM[id].av, ...ITEM[id].cores }; salvar(); est.setVitrine(E.perfil.avatar); sincronizarPerfil(); toast(`Você está vestindo: ${ITEM[id].nome}!`, 'ok'); renderUI(); },
     mudarAba: a => { E.lojaAba = a; sfx.clique(); renderUI(); },
     comprarPacote: id => { const p = E.lojaInfo?.pacotes.find(x => x.id === id); janela(`<h2>Confirmar compra</h2><p>${esc(p.nome)} (${p.dicas} dica(s)) por <b>🪙 ${p.preco}</b>?</p><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn peq" id="cx">Cancelar</button><button class="btn peq amarelo" id="ok">Comprar</button></div>`,
       (el, fechar) => { $('#cx', el).onclick = fechar; $('#ok', el).onclick = () => { fechar(); socket.emit('comprar', { uid: UID, pacote: id }, pos); }; }); },
@@ -619,7 +621,7 @@ function telaDaLoja(ui) {
       const tela = $('#ui .tela'); tela.style.transition = 'opacity .3s'; tela.style.opacity = 0; tela.style.pointerEvents = 'none';
       const bt = document.createElement('button'); bt.className = 'btn amarelo'; bt.textContent = '✕ Parar';
       bt.style.cssText = 'position:fixed;bottom:40px;left:50%;transform:translateX(-50%);z-index:50';
-      const roupa = ITEM[id].tipo === 'roupa'; if (roupa) est.setVitrine({ ...E.perfil.avatar, roupa: ITEM[id].roupa }); // prova o traje
+      const roupa = !!ITEM[id].av; if (roupa) est.setVitrine({ ...E.perfil.avatar, ...ITEM[id].av, ...ITEM[id].cores }); // prova o acessório/conjunto
       let tm; const som = roupa ? null : somItem(id); const fim = () => { clearTimeout(tm); som?.pause?.(); bt.remove(); est.pararVitrine(); if (roupa) est.setVitrine(E.perfil.avatar); tela.style.opacity = 1; tela.style.pointerEvents = ''; };
       bt.onclick = fim; document.body.append(bt);
       est.testarNaVitrine(ITEM[id]); tm = setTimeout(fim, ITEM[id].tipo === 'danca' ? 5000 : roupa ? 4500 : 3000);
@@ -769,9 +771,11 @@ function telaSala(ui) {
 
 // ---------- personalização ----------
 const ABAS = { aparencia: '👤 Aparência', roupas: '👔 Roupas', acessorios: '👓 Acessórios', expressoes: '🙂 Expressões', partido: '🏛 Partido' };
-const trajeBloqueado = r => ROUPA_ITEM[r] && !E.conta?.itens?.includes(ROUPA_ITEM[r]);
+/** Item mais barato da loja que libera avatar[campo] = valor, se o jogador ainda não o tem (senão undefined). */
+const bloqueio = (campo, valor) => { const ids = itensDe(campo, valor); if (!ids.length || ids.some(id => E.conta?.itens?.includes(id))) return; return ids.map(id => ITEM[id]).sort((x, y) => x.preco - y.preco)[0]; };
+const rotulos = (campo, opcoes) => Object.fromEntries(Object.entries(opcoes).map(([k, v]) => { const it = bloqueio(campo, k); return [k, it ? `🔒 ${v} · 🪙 ${it.preco}${it.tipo === 'conjunto' ? ` (${it.nome})` : ''}` : v]; }));
 function setAv(campo, valor) {
-  if (campo === 'roupa' && trajeBloqueado(valor)) { E.lojaAba = 'roupa'; toast(`"${AV.roupas[valor]}" está na Loja por 🪙 ${ITEM[ROUPA_ITEM[valor]].preco}.`); return ir('loja'); }
+  const it = bloqueio(campo, valor); if (it) { E.lojaAba = it.tipo; toast(`"${it.nome}" está na Loja por 🪙 ${it.preco}.`); return ir('loja'); }
   E.perfil.avatar = { ...E.perfil.avatar, [campo]: valor };
   if (campo === 'genero') { // ajustes de praxe ao trocar o sexo (tudo pode ser alterado depois)
     const a = E.perfil.avatar;
@@ -816,8 +820,8 @@ function renderPersConteudo() {
   let h = '';
   switch (E.persAba) {
     case 'aparencia': h = g('Sexo', tiles('genero', AV.generos)) + g('Cor da pele', cores('pele', AV.peles)) + g('Cabelo', tiles('cabelo', AV.cabelos)) + g('Cor do cabelo', cores('corCabelo', AV.coresCabelo)) + g('Tipo físico', tiles('corpo', { magro: 'Magro', medio: 'Médio', largo: 'Largo' }, false)); break;
-    case 'roupas': h = g('Traje', tiles('roupa', Object.fromEntries(Object.entries(AV.roupas).map(([k, v]) => [k, trajeBloqueado(k) ? `🔒 ${v} · 🪙 ${ITEM[ROUPA_ITEM[k]].preco}` : v])), false)) + g('Cor do paletó / roupa', cores('corRoupa', AV.coresRoupa)) + g('Cor da camisa', cores('corCamisa', AV.coresCamisa)) + g('Cor da gravata / boné', cores('corGravata', AV.coresGravata)); break;
-    case 'acessorios': h = g('Óculos', tiles('oculos', AV.oculos)) + g('Chapéu', tiles('chapeu', AV.chapeus)) + g('Extras', tiles('extra', AV.extras)) + g('Barba', tiles('barba', AV.barbas)) + g('Detalhes', tg('broche', 'Broche verde-amarelo na lapela') + tg('brinco', 'Brincos')); break;
+    case 'roupas': h = g('Traje', tiles('roupa', rotulos('roupa', AV.roupas), false)) + g('Cor do paletó / roupa', cores('corRoupa', AV.coresRoupa)) + g('Cor da camisa', cores('corCamisa', AV.coresCamisa)) + g('Cor da gravata / boné', cores('corGravata', AV.coresGravata)); break;
+    case 'acessorios': h = g('Óculos', tiles('oculos', rotulos('oculos', AV.oculos))) + g('Chapéu', tiles('chapeu', rotulos('chapeu', AV.chapeus))) + g('Extras', tiles('extra', rotulos('extra', AV.extras))) + g('Barba', tiles('barba', AV.barbas)) + g('Detalhes', tg('broche', 'Broche verde-amarelo na lapela') + tg('brinco', 'Brincos')); break;
     case 'expressoes': h = g('Expressão padrão', tiles('expressao', { simpatico: 'Simpático', serio: 'Sério', confiante: 'Confiante', bravo: 'Bravo' })) + '<p class="mut" style="font-size:13px">A boca se mexe sozinha quando você fala no microfone.</p>'; break;
     case 'partido': {
       const ocupados = new Set((E.sala?.jogadores || []).filter(j => j.id !== E.eu).map(j => j.partido));
@@ -1296,7 +1300,7 @@ const demo = new URLSearchParams(location.search).get('demo');
 if (demo) setTimeout(() => {
   if (demo === 'vitrine') { E.perfil.nome ||= 'Demo'; ir('personalizar'); return; }
   if (demo === 'config') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('config'); return; } // ?demo=config
-  if (demo === 'emote') { const q = new URLSearchParams(location.search), it = ITEM[q.get('item')]; E.perfil.nome ||= 'Demo'; if (it.roupa) E.perfil.avatar = { ...E.perfil.avatar, roupa: it.roupa, genero: 'masculino', barba: q.get('barba') || E.perfil.avatar.barba }; ir('personalizar'); $('#ui').style.opacity = 0; est.testarNaVitrine({ ...it, tipo: 'danca' }); if (est.vitrine?.anim) est.vitrine.anim.ini = -(Number(q.get('t')) || 0); return; } // &t=1 começa a animação 1 s adiantada // ?demo=emote&item=chorao
+  if (demo === 'emote') { const q = new URLSearchParams(location.search), it = ITEM[q.get('item')]; E.perfil.nome ||= 'Demo'; if (it.av) E.perfil.avatar = { ...E.perfil.avatar, ...it.av, ...it.cores, genero: 'masculino', barba: q.get('barba') || E.perfil.avatar.barba }; ir('personalizar'); $('#ui').style.opacity = 0; est.testarNaVitrine({ ...it, tipo: 'danca' }); if (est.vitrine?.anim) est.vitrine.anim.ini = -(Number(q.get('t')) || 0); return; } // &t=1 começa a animação 1 s adiantada // ?demo=emote&item=chorao
   if (demo === 'loja') { E.perfil.nome ||= 'Demo'; E.lojaAba = new URLSearchParams(location.search).get('aba') || 'moedas'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('loja'); return; } // ?demo=loja&aba=assessoria
   if (demo === 'promocao') { const c = CARGOS[(+new URLSearchParams(location.search).get('n') || 2) - 1]; E.perfil.nome ||= 'Demo'; ir('menu'); animarPromocao({ n: c.n, nome: c.nome, recompensa: c.recompensa, bonus: c.bonus }); return; } // ?demo=promocao&n=5
   if (demo === 'carreira') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 900, itens: [], xp: 8200, cargoMax: 5, cadastro: { nome: 'Demo', user: 'demo' } }), set() {} }); ir('menu'); janelaCarreira(); avisoGanhos({ total: 99, itens: [['Participação', 20], ['Bônus de cargo: Senador (×1,45)', 31]], xp: { ganho: 230, antes: 4, depois: 5, xp: 8200 } }); return; }

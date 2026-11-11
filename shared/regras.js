@@ -372,7 +372,7 @@ export const AV = {
   coresCabelo: ['#151515', '#3b2416', '#6a4423', '#a0522d', '#d9b26f', '#8a8a8a', '#e8e8e8'],
   barbas: { nenhuma: 'Nenhuma', bigode: 'Bigode', cavanhaque: 'Cavanhaque', cheia: 'Barba cheia', rala: 'Barba rala' },
   oculos: { nenhum: 'Nenhum', redondo: 'Redondo', quadrado: 'Quadrado', escuro: 'Escuro', aviador: 'Aviador dourado', pixel: 'Pixelado 😎', folha: 'Folha verde 🍃', coracao: 'Coração', estrela: 'Estrela' },
-  chapeus: { nenhum: 'Nenhum', bone: 'Boné', chapeu: 'Chapéu de palha', boina: 'Boina', cartola: 'Cartola', coroa: 'Coroa', festa: 'Chapéu de festa', palhaco: 'Peruca de palhaço' },
+  chapeus: { nenhum: 'Nenhum', bone: 'Boné', chapeu: 'Chapéu de palha', boina: 'Boina', cartola: 'Cartola', coroa: 'Coroa', festa: 'Chapéu de festa', palhaco: 'Peruca de palhaço', padre: 'Chapéu de padre' },
   extras: { nenhum: 'Nenhum', faixa: 'Faixa presidencial', corrente: 'Corrente de ouro', charuto: 'Charuto', nariz: 'Nariz de palhaço' },
   generos: { masculino: 'Masculino', feminino: 'Feminino', nao_binario: 'Não binário' },
   roupas: { terno: 'Terno e gravata', terno_aberto: 'Terno sem gravata', blazer: 'Blazer', saia: 'Blazer e saia', social: 'Camisa social e gravata', colete: 'Colete', polo: 'Camisa polo', batina: 'Batina de padre', pastor: 'Terno com Bíblia' },

@@ -123,12 +123,13 @@ export function janelaDenuncia(jogadores, enviar) {
 }
 
 // ---------------- loja ----------------
-const TIPOS = { moedas: '🪙 Moedas', assessoria: '📝 Assessoria', danca: '💃 Danças', emote: '😀 Emotes', provocacao: '😈 Provocações', roupa: '👔 Roupas' };
+const TIPOS = { moedas: '🪙 Moedas', assessoria: '📝 Assessoria', danca: '💃 Danças', emote: '😀 Emotes', provocacao: '😈 Provocações', acessorio: '👓 Acessórios', conjunto: '🎩 Conjuntos' };
 export const reais = v => 'R$ ' + v.toFixed(2).replace('.', ',');
-export function telaLoja(ui, { conta, info, aba, topo, comprarPacote, comprarItem, comprarMoedas, equipar, mudarAba, testar, roupaAtual, vestir }) {
+export function telaLoja(ui, { conta, info, aba, topo, comprarPacote, comprarItem, comprarMoedas, equipar, mudarAba, testar, avatar, vestir }) {
   const tem = id => conta?.itens?.includes(id);
+  const usando = i => i.av && Object.entries(i.av).every(([c, v]) => avatar?.[c] === v);
   const acaoTem = i => i.tipo === 'danca' ? (conta?.danca === i.id ? '<span class="chip verde">Equipada</span>' : `<button class="btn peq verde" data-eq="${i.id}">Equipar</button>`)
-    : i.tipo === 'roupa' ? (roupaAtual === i.roupa ? '<span class="chip verde">Vestindo</span>' : `<button class="btn peq verde" data-vestir="${i.id}">Vestir</button>`) : '<span class="chip verde">✔ Seu</span>';
+    : i.av ? (usando(i) ? '<span class="chip verde">Usando</span>' : `<button class="btn peq verde" data-vestir="${i.id}">${i.tipo === 'conjunto' ? 'Vestir' : 'Usar'}</button>`) : '<span class="chip verde">✔ Seu</span>';
   const base = PACOTES_MOEDAS[0].reais / PACOTES_MOEDAS[0].moedas;
   const cards = aba === 'moedas'
     ? PACOTES_MOEDAS.map(p => { const tot = p.moedas + p.bonus, eco = Math.round((tot / p.reais * base - 1) * 100);
@@ -142,10 +143,10 @@ export function telaLoja(ui, { conta, info, aba, topo, comprarPacote, comprarIte
         ${p.destaque ? '<div class="selo-loja">MAIS VENDIDO</div>' : ''}<div class="loja-ico dicas">${'<span>📝</span>'.repeat(Math.min(3, p.dicas))}</div>
         <h3>${esc(p.nome)}</h3><p class="mut">${esc(p.descricao)}</p>
         <button class="btn amarelo peq" data-pac="${p.id}">🪙 ${fmtN(p.preco)}</button></div>`).join('')
-    : ITENS.filter(i => i.tipo === aba).map(i => `<div class="loja-card ${conta?.danca === i.id || (i.roupa && roupaAtual === i.roupa) ? 'equipado' : ''}">
+    : ITENS.filter(i => i.tipo === aba).map(i => `<div class="loja-card ${conta?.danca === i.id || usando(i) ? 'equipado' : ''}">
         <div class="loja-ico">${i.emoji}</div><h3>${esc(i.nome)}</h3><p class="mut">${esc(i.descricao || i.frase || '')}</p>
         <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
-          <button class="btn peq" data-testar="${i.id}" title="Ver o seu candidato ${i.tipo === 'roupa' ? 'vestido' : 'fazendo'}">▶ Ver</button>
+          <button class="btn peq" data-testar="${i.id}" title="Ver o seu candidato ${i.av ? 'usando' : 'fazendo'}">▶ Ver</button>
           ${tem(i.id) ? acaoTem(i)
             : `<button class="btn amarelo peq" data-item="${i.id}">🪙 ${fmtN(i.preco)}</button>`}</div></div>`).join('');
   ui.innerHTML = `<div class="tela">${topo}
@@ -156,7 +157,7 @@ export function telaLoja(ui, { conta, info, aba, topo, comprarPacote, comprarIte
     : aba === 'assessoria' ? `<div class="painel loja-como"><h2>Como ganhar moedas</h2><table class="tabela">
       <tr><td>Participar de um debate</td><td>🪙 ${info?.economia?.participacao}</td></tr><tr><td>Desempenho (nota × ${info?.economia?.porPontoDeNota})</td><td>até 🪙 ${info?.economia?.porPontoDeNota * 10}</td></tr>
       <tr><td>Chegar ao 2º turno</td><td>🪙 ${info?.economia?.segundoTurno}</td></tr><tr><td>Ser eleito(a)</td><td>🪙 ${info?.economia?.eleito}</td></tr>
-      <tr><td>Bônus de cargo (sobre participação + desempenho)</td><td>×1 (Candidato) até ×${String(CARGOS.at(-1).bonus).replace('.', ',')} (Presidente)</td></tr></table></div>` : aba === 'roupa' ? '<p class="mut" style="text-align:center">Trajes exclusivos aparecem em Personalizar → Roupas depois de comprados.</p>' : `<p class="mut" style="text-align:center">Danças tocam quando você vence. Emotes e provocações ficam no botão 😀 durante a partida.</p>`}
+      <tr><td>Bônus de cargo (sobre participação + desempenho)</td><td>×1 (Candidato) até ×${String(CARGOS.at(-1).bonus).replace('.', ',')} (Presidente)</td></tr></table></div>` : aba === 'acessorio' || aba === 'conjunto' ? '<p class="mut" style="text-align:center">Depois de comprados, os itens também ficam liberados em Personalizar (Roupas e Acessórios). Conjuntos saem mais em conta que as peças separadas.</p>' : `<p class="mut" style="text-align:center">Danças tocam quando você vence. Emotes e provocações ficam no botão 😀 durante a partida.</p>`}
   </div>`;
   $$('[data-aba]', ui).forEach(b => b.onclick = () => mudarAba(b.dataset.aba));
   $$('[data-pac]', ui).forEach(b => b.onclick = () => comprarPacote(b.dataset.pac));

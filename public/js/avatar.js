@@ -400,6 +400,13 @@ export class Avatar {
       m(esfera(.05), mat('#facc15'), .1, 1.0, 0, H);
       return;
     }
+    if (c.chapeu === 'padre') { // saturno: copa redonda baixa e aba larga e chata, feltro preto
+      const feltro = mat('#141418', { r: .85 });
+      const copa = m(geo('satCopa', () => new THREE.SphereGeometry(.24, 22, 12, 0, Math.PI * 2, 0, Math.PI / 2)), feltro, 0, .57, -.01, H); copa.scale.set(1, .78, 1);
+      m(geo('satAba', () => new THREE.CylinderGeometry(.47, .47, .025, 32)), feltro, 0, .575, -.01, H);
+      m(geo('satFita', () => new THREE.CylinderGeometry(.243, .243, .035, 22)), mat('#2a2a30', { r: .5 }), 0, .6, -.01, H);
+      return;
+    }
     if (c.chapeu === 'palhaco') { // peruca colorida
       const cores = ['#ef4444', '#f97316', '#facc15', '#22c55e', '#3b82f6', '#a855f7'];
       for (let k = 0; k < 22; k++) { const a = k / 22 * Math.PI * 2; const lado = Math.abs(Math.sin(a)) > .5 ? .34 : .26; m(esfera(.12), mat(cores[k % 6], { r: .9 }), Math.sin(a) * lado, .5 + Math.abs(Math.cos(a * 1.5)) * .12, Math.cos(a) * .22 - .05, H); }

@@ -16,7 +16,7 @@ import { XP, XP_PUNICAO, cargo } from '../shared/niveis.js';
 import { Pagamentos } from './pagamentos.js';
 import { PACOTES_MOEDAS } from '../shared/loja.js';
 import { gerarDica } from './dicas.js';
-import { ITEM, ROUPA_ITEM } from '../shared/loja.js';
+import { ITEM, AV_ITEM } from '../shared/loja.js';
 import { postsDaFala, postsDe } from '../shared/xzona.js';
 const VOZES_GRITO = ['Fenrir', 'Leda']; // um homem e uma mulher gritando na plateia
 // "coro" da plateia: várias vozes tocadas juntas, com pequenas diferenças, soam como uma multidão
@@ -32,9 +32,9 @@ const dur = txt => Math.round(txt.length * 62 + 900); // estimativa do tempo de 
 const gerarCodigo = () => Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[crypto.randomInt(32)]).join('');
 const uid = () => crypto.randomBytes(8).toString('hex');
 
-function limparAvatar(a, tem = () => false) { // tem(itemId): a conta possui o item (trajes da loja)
+function limparAvatar(a, tem = () => false) { // tem(itemId): a conta possui o item (acessórios/conjuntos da loja)
   const base = avatarAleatorio(); if (!a || typeof a !== 'object') return base;
-  if (ROUPA_ITEM[a.roupa] && !tem(ROUPA_ITEM[a.roupa])) a = { ...a, roupa: base.roupa };
+  for (const [campo, vals] of Object.entries(AV_ITEM)) { const ids = vals[a[campo]]; if (ids && !ids.some(tem)) a = { ...a, [campo]: campo === 'roupa' ? base.roupa : 'nenhum' }; }
   const ok = (v, lista) => (lista.includes(v) ? v : undefined);
   const cor = v => (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v : undefined);
   return {
