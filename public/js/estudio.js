@@ -1043,7 +1043,8 @@ export class Estudio {
   adiantarDemo(s) { const dt = 1 / 30; for (let k = 0; k < s / dt && this.demoV; k++) { this.t += dt; this.acoes.update(dt, this.t); this.vitrine.update(dt, this.t); this.demoV && this.frameDemo(dt, this.t); } }
   pararVitrine() { this.pararDemo();if (this.vitrine) this.vitrine.anim = null; }
   /** X na tela (px) dos pés do avatar da vitrine, para alinhar botões embaixo dele. */
-  xVitrine() { const v = new THREE.Vector3(); if (!this.vitrine) return innerWidth / 2; this.vitrine.root.getWorldPosition(v).project(this.camera); const r = this.canvas.getBoundingClientRect(); return r.left + (v.x + 1) / 2 * r.width; }
+  xVitrine() { const v = new THREE.Vector3(); if (!this.vitrine || this.demoV) { const r = this.canvas.getBoundingClientRect(); return r.left + r.width / 2; } // demo de ação: centralizado (o atacante anda)
+    this.vitrine.root.getWorldPosition(v).project(this.camera); const r = this.canvas.getBoundingClientRect(); return r.left + (v.x + 1) / 2 * r.width; }
   folhear(id) { this.podios.get(id)?.avatar.animar('folhear', id === this.meuId && this.lendo ? 9999 : 3.4); }
   /** Lendo a anotação da assessoria: a câmera desce suave até o papel do púlpito e o avatar fica folheando até guardar. */
   lerDica(on) {
@@ -1288,8 +1289,11 @@ export class Estudio {
         this.ultOlhar = agora; this.olharEnv = { ...this.olhar }; this.onOlhar(this.olhar.y, this.olhar.p);
       }
     } else if (this.modo === 'vitrine' && this.demoV) { // demo de ação: abre o plano para caber o adversário (mais longe em tela estreita)
-      const dist = Math.max(5, 2.9 / (.384 * this.camera.aspect)); this.camera.position.set(.05, 1.7, -.7 + dist); this.camera.lookAt(.05, 1.4, -.7);
+      const c = this.camera, va = Math.min(c.aspect, innerWidth / innerHeight), fov = Math.max(42, 2 * Math.atan(1.9 / (5 * va)) * 180 / Math.PI); // tela estreita: abre a lente (afastar demais põe a parede/plateia na frente)
+      if (Math.abs(c.fov - fov) > .1) { c.fov = fov; c.updateProjectionMatrix(); }
+      c.position.set(.05, 1.7, 4.3); c.lookAt(.05, 1.4, -.7);
     } else if (this.modo === 'vitrine') {
+      if (this.camera.fov !== 42) { this.camera.fov = 42; this.camera.updateProjectionMatrix(); }
       this.camera.position.set(-.25, 1.75, 3.6); this.camera.lookAt(.75, 1.45, -.6);
     } else if (this.modo === 'revelacao' && Rv) { this.camRevelacao(Rv, t); this.renderRevelacao(Rv, t);
     } else if (this.modo === 'vencedor' && this.campeao) { // câmera de frente para o vencedor, balançando devagar

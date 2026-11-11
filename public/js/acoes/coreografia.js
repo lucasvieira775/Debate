@@ -169,8 +169,8 @@ export class Acoes {
     return r;
   }
   rota(a) {
-    if (a.demo) { // vitrine: reto até o lado do alvo (um pouco à frente: a câmera vê o rosto de quem leva)
-      const A = a.casa, Bp = a.alvo.ator.position.clone().setY(0), dir = A.pos.clone().sub(Bp).setY(0).normalize().add(V(0, 0, .5)).normalize();
+    if (a.demo) { // vitrine: reto até o lado do alvo (ao lado, sem ficar entre a câmera e quem leva)
+      const A = a.casa, Bp = a.alvo.ator.position.clone().setY(0), dir = A.pos.clone().sub(Bp).setY(0).normalize().add(V(0, 0, -.15)).normalize(); // lado a lado (quase na mesma profundidade): o atacante não tapa o alvo
       a.alvoPos = Bp; return [A.pos.clone(), Bp.clone().addScaledVector(dir, DIST[a.it.id] || 1)];
     }
     const A = this.ponta(a.atk, a.orig), Bp = this.ponta(a.alvo, a.alvo.lugar === 'duelo' ? 'duelo' : 'podio');
@@ -310,7 +310,7 @@ export class Acoes {
       if (a.fase === 'pega' && a.t >= T_SOLTA) {
         const de = a.mao.localToWorld(V(.05, -.1, 0)), ate = this.cabecaAlvo(a), dur = clamp(de.distanceTo(ate) / 9, .55, .85);
         this.soltar(a, false); this.som(a, 'arremesso', .8);
-        const ef = PROPS.lancar?.(this.est, a.it.id, de, ate, dur); if (ef) { ef.demo = a.demo; this.efeitos.push(ef); }
+        const ef = PROPS.lancar?.(this.est, a.it.id, de, ate, dur, a.demo ? .3 : undefined); if (ef) { ef.demo = a.demo; this.efeitos.push(ef); }
         a.tImpacto = a.t + dur; this.irPara(a, 'voo');
       } else if (a.fase === 'voo' && a.t >= a.tImpacto) { this.impacto(a); this.irPara(a, 'depois'); }
       else if (a.fase === 'depois' && a.ft >= .6) { a.yawVolta = at.rotation.y; this.irPara(a, 'volta'); }

@@ -261,8 +261,8 @@ function balao(est, pos, palavra, dur = 1.1) {
 
 // ---------- voo (arremesso) ----------
 /** Objeto voando em arco parabólico girando de `de` até `ate` em `dur` s. Some ao chegar (as flores soltam pétalas no caminho). */
-export function lancar(est, item, de, ate, dur = .7) {
-  const id = item?.id ?? item, obj = criarProp(id), dist = de.distanceTo(ate), h = .35 + dist * .18, giro = id === 'flores' ? 5 : id === 'tomate' ? 9 : 7;
+export function lancar(est, item, de, ate, dur = .7, alt) {
+  const id = item?.id ?? item, obj = criarProp(id), dist = de.distanceTo(ate), h = alt ?? .35 + dist * .18, giro = id === 'flores' ? 5 : id === 'tomate' ? 9 : 7;
   obj.position.copy(de); est.scene.add(obj); let t = 0;
   const extra = [];
   if (id === 'flores') extra.push(particulas(est, esf(.02, 6), M('#ffffff', { r: .6 }), 18, i => ({ atraso: i / 18 * dur, pos: V(), vel: V(rnd(-.3, .3), rnd(0, .3), rnd(-.3, .3)), esc: V(1, .25, 1.4), vida: 1.6, cor: CORES_PET[i % CORES_PET.length] }), { grav: -1.2, arrasto: 2, oscila: .4, nascer: p => p.pos.copy(obj.position) }));
