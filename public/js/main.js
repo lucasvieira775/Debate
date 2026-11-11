@@ -221,6 +221,7 @@ socket.on('advertencia', d => {
   anunciar(`⚠ ${d.nome.toUpperCase()} ADVERTIDO(A) · ${d.n}/${d.max}`); sfx.martelo();
   toast(`${d.id === E.eu ? 'Você recebeu' : d.nome + ' recebeu'} ${d.dupla ? '2 advertências' : 'uma advertência'} da moderação: ${d.motivo} (${d.n}/${d.max}).${d.id === E.eu && d.n === d.max - 1 ? ' Mais uma e você está fora!' : ''}`, 'erro');
 });
+socket.on('tempoExtra', d => { anunciar(`⏱ +${d.s} s PARA ${d.nome.toUpperCase()}`); toast(`⏱ ${d.id === E.eu ? 'Você foi agredido(a)' : d.nome + ' foi agredido(a)'} durante a fala: +${d.s} s no relógio.`); });
 socket.on('atencao', d => toast(`🗣 Chamada de atenção para ${d.id === E.eu ? 'você' : d.nome}: “${d.termo}” não é postura de debate. Desta vez, sem punição.`));
 socket.on('punicao', d => {
   let msg = d.susp === 'perm' ? 'Sua conta foi BANIDA PERMANENTEMENTE (3ª suspensão de 30 dias).'
@@ -931,7 +932,7 @@ function renderHUD() {
         if (E.acoesUsadas?.has(it.id)) return toast(`Você já usou "${it.nome}" neste debate.`, 'erro');
         const alvos = (E.sala?.jogadores || []).filter(j => j.id !== E.eu && !j.banido && !j.saiu);
         const obs = it.reacao === 'amor' ? '💐 Gesto de carinho: rende simpatia do eleitor e alguns seguidores.'
-          : `⚠ Agressão pesa na votação: afasta eleitores moderados, vira assunto no Xzona e você será vaiado(a) na próxima fala${it.reacao === 'nocaute' ? '. Vale advertência da mediação!' : '.'} Se a vítima estiver falando, ganha +15 s.`;
+          : `⚠ Agressão pesa na votação: afasta eleitores moderados, vira assunto no Xzona e você será vaiado(a) na próxima fala${it.adv ? '. Vale advertência da mediação!' : '.'} Se a vítima estiver falando, ganha +15 s.`;
         p.innerHTML = `<div class="em-tit">${it.emoji} ${esc(it.nome)}: em quem?</div><div class="em-obs">${obs}</div>${alvos.map(j => `<button data-alvo="${j.id}" class="em-alvo"><img src="${retrato(j.avatar)}"><small>${esc(j.nome)}</small></button>`).join('')}<button data-volta class="em-alvo">↩<small>Voltar</small></button>`;
         $('[data-volta]', p).onclick = () => { p.hidden = true; $('#h-emotes-b').click(); };
         $$('[data-alvo]', p).forEach(a => a.onclick = () => { p.hidden = true; socket.emit('acao', { item: it.id, alvo: a.dataset.alvo }, r => { if (r?.erro) return toast(r.erro, 'erro'); E.ultAcao = Date.now(); (E.acoesUsadas ||= new Set()).add(it.id); }); });
@@ -1025,6 +1026,7 @@ function renderLateral() {
     if (r.ataque) chips.push(`<span class="chip vermelho">Ataques: ${r.ataque}${r.danoEm.length ? ' → ' + r.danoEm.map(id => esc(jog(id)?.nome)).join(', ') : ''}</span>`);
     if (r.fugiu) chips.push('<span class="chip vermelho">Fugiu da pergunta</span>');
     if (r.xingamentos?.length) chips.push(`<span class="chip vermelho">Ofensa (nota reduzida): ${esc(r.xingamentos.join(', '))}</span>`);
+    if (r.vaiado) chips.push(`<span class="chip vermelho">Vaiado(a) pela agressão (${ITEM[r.vaiado]?.emoji || ''} nota −0,4)</span>`);
     if (r.banido) chips.push('<span class="chip vermelho">🚫 Banido pela moderação</span>');
     if (r.rebateu) chips.push('<span class="chip verde">Rebateu bem</span>');
     if (r.vicios) chips.push(`<span class="chip vermelho">Vícios: ${r.vicios}</span>`);

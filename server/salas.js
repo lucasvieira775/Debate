@@ -3,21 +3,29 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {
   PARTIDO, PARTIDOS, AV, SEGUNDOS, DUR_MULT, TEMA, analisar, aplicar, apurar, novoStats, perf, percebida,
-  rotuloPos, sortearTema, shuffle, pick, avatarAleatorio, generoDe, DIFICULDADES, JORNALISTAS, alvosValidos,
+  rotuloPos, sortearTema, shuffle, pick, avatarAleatorio, generoDe, DIFICULDADES, JORNALISTAS, alvosValidos, registrarAcao,
 } from '../shared/regras.js';
 const PULPITO_MS = 10000; // a produção leva ~8 s empurrando o púlpito do confronto até o centro (cliente: PULP_EMPURRA)
+const TEMPO_EXTRA_MS = 15000; // vítima de agressão durante a própria fala ganha +15 s
+const VAIA_AGRESSOR = .4; // nota a menos na próxima fala de quem agrediu (a plateia vaia)
+const GRITOS_AGRESSOR = {
+  tomate: ['Tomate não é proposta!', 'Respeita o adversário!'], torta: ['Torta não é proposta!', 'Isso é debate, não circo!'],
+  balde: ['Balde não é argumento!', 'Isso é debate, não circo!'], paulada: ['Pancada não é argumento!', 'Violento!'],
+  cadeirada: ['Cadeirada não é proposta!', 'Violento!'],
+};
 const CAMINHADA_MS = 5500; // tempo da caminhada automática até o púlpito central (e de volta); o cliente anima em até 5 s
 import { gerarFala, nomeIA } from '../shared/ia.js';
 import { Dublagem, VOZES_IA, DIR_PLATEIA } from './voz.js';
 import { N, trechosFixos, trechosTemas, sortearVariacao, FALAS_ACAO, FALAS_LEVE, FALAS_FLORES } from './narracao.js';
 import { moderar, GRITOS, PUNICAO } from '../shared/moderacao.js';
-import { Contas, ECONOMIA } from './contas.js';
+import { Contas, ECONOMIA, SEGUIDORES } from './contas.js';
 import { XP, XP_PUNICAO, cargo } from '../shared/niveis.js';
 import { Pagamentos } from './pagamentos.js';
 import { PACOTES_MOEDAS } from '../shared/loja.js';
 import { gerarDica } from './dicas.js';
 import { ITEM, AV_ITEM, ACAO_ESPERA_MS } from '../shared/loja.js';
 import { postsDaFala, postsDe } from '../shared/xzona.js';
+import * as xz from '../shared/xzona.js'; // xz.postsDaAcao (repercussão das ações), se existir
 const VOZES_GRITO = ['Fenrir', 'Leda']; // um homem e uma mulher gritando na plateia
 // "coro" da plateia: várias vozes tocadas juntas, com pequenas diferenças, soam como uma multidão
 const CORO = { vaia: ['Buuuuuuuuu!', 'Uuuuuuuuuh!', 'Fooora!'], vibra: ['Uhuuuuuuu!', 'Éééééééé!', 'Isso aíííí!'], duelo: ['Isso é fake news!', 'Vagabundo!', 'Mentiroso!'] }; // duelo: torcida rival no fim de cada resposta do 1x1
@@ -326,7 +334,7 @@ class Sala {
     if (ativos.some(j => j.id !== this.hostId && !j.pronto)) return 'Todos os candidatos precisam estar prontos.';
     this.jog = this.jog.filter(j => j.conectado);
     this.reset();
-    this.jog.forEach(j => { j.st = novoStats(); j.banido = false; j.motivoBan = null; j.dicasUsadas = 0; j.advertencias = 0; j.saiu = false; j.ausenteAte = null; clearTimeout(j.tAus); j.acoes = new Set(); });
+    this.jog.forEach(j => { j.st = novoStats(); j.banido = false; j.motivoBan = null; j.dicasUsadas = 0; j.advertencias = 0; j.saiu = false; j.ausenteAte = null; clearTimeout(j.tAus); j.acoes = new Set(); j.vaiaPend = []; });
     this.abst = .18 + Math.random() * .04;
     const ids = this.jog.slice().sort((a, b) => a.slot - b.slot).map(j => j.id);
     const nome = id => this.porId(id).nome;
@@ -466,7 +474,9 @@ class Sala {
     if (this.narrando()) return void this.later(Math.min(1000, this.narrandoAte - Date.now()) + 50, () => this.comecar(id, mic)); // a vez só é liberada depois que a(o) jornalista termina (tenta de novo; não trava o início automático)
     this.limpar();
     f.status = 'ativo'; f.mic = !!mic; f.fimEm = Date.now() + p.segundos * 1000;
-    this.later(p.segundos * 1000, () => this.esgotar());
+    this.tEsg = this.later(p.segundos * 1000, () => this.esgotar()); // guardado: +15 s de quem é agredido(a) falando reprograma
+    const j = this.porId(id), ag = j?.vaiaPend?.shift(); // agrediu alguém: a plateia vaia o início da próxima fala (e a nota sofre um pouco)
+    if (ag) { f.vaiado = ag; this.plateia('vaia', [], [], [pick(GRITOS_AGRESSOR[ag] || GRITOS_AGRESSOR.cadeirada), 'Agressor!']); }
     this.emit();
   }
   esgotar() {
@@ -527,8 +537,8 @@ class Sala {
     this.emit();
   }
   /** Reação da plateia: tipo 'vaia' | 'vibra' | 'ih' | 'confusao' | 'aplauso'. Gritos com voz real se já estiverem gerados. */
-  plateia(tipo, extras = [], duelo = []) {
-    const lista = shuffle([...(GRITOS[tipo] || []), ...extras]).slice(0, tipo === 'aplauso' ? 0 : duelo.length ? 2 : 3);
+  plateia(tipo, extras = [], duelo = [], fixos = []) {
+    const lista = [...fixos, ...shuffle([...(GRITOS[tipo] || []), ...extras])].slice(0, tipo === 'aplauso' ? 0 : duelo.length ? 2 : 3);
     const gritos = [...duelo.map(t => [t, 1]), ...lista.map(t => [t, 0])].map(([t, d], k) => {
       const pr = this.mgr.dub.pronto(t, VOZES_GRITO[k % 2]);
       if (!pr && (k === 0 || d)) this.mgr.dub.sintetizar(t, VOZES_GRITO[k % 2], 'baixa', false, OPC_PLATEIA); // gera aos poucos para as próximas vezes
@@ -569,6 +579,7 @@ class Sala {
     if (nAdv) { f.texto = texto; if (this.advertir(quem, motivo, nAdv)) return; }
     const porId = Object.fromEntries(this.jog.map(j => [j.id, j]));
     const res = analisar(texto, p, this.jog.map(j => ({ id: j.id, nome: j.nome, sigla: j.partido })));
+    if (f.vaiado) { res.nota = Math.max(0, res.nota - VAIA_AGRESSOR); res.vaiado = f.vaiado; } // vaiado(a) por ter agredido um adversário
     if (ofensa) { // xingamento: perde pontos e leva bronca
       res.xingamentos = mod.grave ? [mod.grave] : mod.leves; res.nota = Math.max(0, res.nota - (mod.grave ? 4 : 2.5));
     }
@@ -826,13 +837,35 @@ class Sala {
     for (const [k, v] of ults) if (Date.now() - v > ACAO_ESPERA_MS) ults.delete(k);
     ults.set(chave, j.ultAcao);
     this.acaoAte = Date.now() + (it.golpe === 'perto' ? 13000 : 6000);
+    const bane = it.adv && (j.advertencias || 0) + it.adv >= PUNICAO.advertencias; // a advertência do impacto vai tirá-lo do debate: a mediação não comenta por cima
+    setTimeout(() => this.consequenciasAcao(j, alvo, it), it.golpe === 'perto' ? 5000 : 1500); // ~impacto da animação (setTimeout: limpar() da troca de etapa não cancela)
     const n = this.acaoN = (this.acaoN || 0) + 1, t = pick(it.reacao === 'amor' ? FALAS_FLORES : it.reacao === 'nocaute' ? FALAS_ACAO : FALAS_LEVE);
     this.io.to(this.code).emit('acao', { n, id: j.id, alvo: alvo.id, item: it.id, fala: t });
     // a fala da mediação toca no impacto: o áudio (já em cache, quase sempre) chega antes
     const dub = this.mgr.dub;
+    if (bane) return;
     if (this.jorn) Promise.race([dub.sintetizar(t, this.jorn.voz, 'alta'), new Promise(r => setTimeout(r, 4000))])
       .then(r => this.io.to(this.code).emit('acaoFala', { n, t, url: r?.url || null }));
     else this.io.to(this.code).emit('acaoFala', { n, t, url: null });
+  }
+  /** No impacto: voto (regras.registrarAcao), seguidores, Xzona, vaia na próxima fala, +15 s à vítima que estava falando, advertência (paulada/cadeirada). */
+  consequenciasAcao(j, alvo, it) {
+    if (this.fase !== 'debate' || !this.jog.includes(j) || !this.jog.includes(alvo) || j.banido || j.saiu) return;
+    registrarAcao(j.st, alvo.st, it);
+    const S = SEGUIDORES.acao, contas = this.mgr.contas, p = this.passo, pp = p?.tipo === 'fala' ? p : null;
+    if (!j.bot) contas.seguidoresAcao(this.conta(j), it.agr ? S.agressor * it.agr : S.simpatia * (it.simp || 0));
+    if (it.agr && !alvo.bot) contas.seguidoresAcao(this.conta(alvo), S.vitima * it.agr);
+    this.postarXzona(xz.postsDaAcao?.(this.dadosPost(j, pp), this.dadosPost(alvo, pp), it.id) || []);
+    if (!it.agr) return; // flores: só simpatia
+    (j.vaiaPend ||= []).push(it.id);
+    const f = this.fala; // agredido(a) durante a própria fala: +15 s (candidato humano; a IA fala só o texto dela)
+    if (pp?.falante === alvo.id && f && !alvo.bot && !alvo.banido && (f.status === 'ativo' || f.status === 'pronto')) {
+      if (f.status === 'ativo') { f.fimEm += TEMPO_EXTRA_MS; clearTimeout(this.tEsg); this.timers.delete(this.tEsg); this.tEsg = this.later(f.fimEm - Date.now(), () => this.esgotar()); }
+      else pp.segundos += TEMPO_EXTRA_MS / 1000;
+      this.io.to(this.code).emit('tempoExtra', { id: alvo.id, nome: alvo.nome, s: TEMPO_EXTRA_MS / 1000 });
+      this.emit();
+    }
+    if (it.adv) this.advertir(j, `${it.nome.toLowerCase()} em ${alvo.nome}`, it.adv, 'mediação');
   }
   // ---------- denúncia ----------
   denunciar(j, d = {}) {

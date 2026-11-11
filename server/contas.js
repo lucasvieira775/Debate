@@ -11,6 +11,7 @@ export const SEGUIDORES = {
   inicial: 0, maxPosts: 30,
   porNota: [[8, 250], [6.5, 100], [5, 30], [4, -20], [3, -60], [0, -120]], // nota de desempenho (0–10)
   segundoTurno: 60, eleito: 300, banido: -300, ataque: 5, fuga: -15,
+  acao: { agressor: -80, vitima: 50, simpatia: 60 }, // × peso do item (agr/simp em shared/loja.js): cadeirada ≈ −64 / +40, tomate ≈ −20 / +12, flores ≈ +18
 };
 export const ABANDONO = { limite: 2, janelaMs: 24 * 3600000, banMs: 3600000, seguidores: 200 };
 const limparTxt =(t, n) => String(t || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
@@ -123,6 +124,12 @@ export class Contas {
     }
     this.salvar();
     return { delta, total: f.seguidores, itens };
+  }
+  /** Ação da loja no debate: ajusta seguidores na hora (sem post). Retorna o delta ou null (sem fanpage). */
+  seguidoresAcao(c, fator) {
+    const f = c?.fanpage; if (!f || !fator) return null;
+    const delta = Math.max(-f.seguidores, Math.round(fator * (.85 + Math.random() * .3)));
+    f.seguidores += delta; this.salvar(); return delta;
   }
   tem(c, item) { return GRATIS.includes(item) || !!c?.itens?.includes(item); }
   comprarItem(c, id) {
