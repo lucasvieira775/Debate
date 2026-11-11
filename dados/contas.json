@@ -790,5 +790,13 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794423878034
+ },
+ "81dc8874-3a7a-4f59-a7e4-f3d48008ad66": {
+  "uid": "81dc8874-3a7a-4f59-a7e4-f3d48008ad66",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794425469806
  }
 }

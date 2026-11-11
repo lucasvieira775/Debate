@@ -684,9 +684,10 @@ const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julh
 const nomeMes = id => { const [a, m] = String(id || '').split('-'); return m ? `${MESES[+m - 1]} de ${a}` : ''; };
 function telaRanking(ui) {
   const per = E.rankPer ||= 'semana';
-  ui.innerHTML = `<div class="tela">${topo('Ranking')}<div class="painel scroll" style="max-width:760px;width:100%;margin:0 auto;flex:1">
-    <div class="rank-abas">${[['semana', '📅 Semanal'], ['mes', '🗓 Mensal'], ['geral', '🏆 Geral']].map(([k, t]) => `<button class="btn peq ${k === per ? 'on' : ''}" data-per="${k}">${t}</button>`).join('')}</div>
-    <p class="mut" id="rank-info" style="margin:0 0 10px"></p><div id="rank"><p class="mut">Carregando…</p></div></div></div>`;
+  ui.innerHTML = `<div class="tela">${topo('')}<div class="painel scroll rank-card">
+    <div class="rank-tit"><span class="louro">🌿</span><div><h2>RANKING</h2><div class="estrelas">★ ★ ★ ★</div></div><span class="louro dir">🌿</span></div>
+    <div class="rank-abas">${[['semana', '📅', 'Semanal'], ['mes', '🗓', 'Mensal'], ['geral', '🏆', 'Geral']].map(([k, ic, t]) => `<button class="${k === per ? 'on' : ''}" data-per="${k}"><i>${ic}</i>${t}</button>`).join('')}</div>
+    <div class="rank-info"><span class="i">i</span><p id="rank-info"></p></div><div id="rank"><p class="mut" style="text-align:center">Carregando…</p></div></div></div>`;
   ligarIr(ui);
   $$('[data-per]', ui).forEach(b => b.onclick = () => { E.rankPer = b.dataset.per; sfx.clique(); renderUI(); });
   socket.emit('ranking', { periodo: per }, d => {
@@ -698,9 +699,11 @@ function telaRanking(ui) {
       : 'Pontuação acumulada de todos os tempos.';
     if (!lista.length) { el.innerHTML = '<p class="mut">Ninguém pontuou ainda neste período. Jogue uma partida para entrar no ranking!</p>'; return; }
     const img = r => r.avatar ? ret(r.avatar) : '';
-    const top = [lista[1], lista[0], lista[2]];
-    el.innerHTML = `<div class="rank-podio">${top.map((r, i) => r ? `<div class="lugar"><img src="${img(r)}"><div class="bloco" style="height:${[90, 130, 70][i]}px">${['🥈', '🥇', '🥉'][i]} ${htmlBrasao(r.nivel, 20)}${esc(r.nome)}<br><small>${fmtN(r.pts)} pts</small></div></div>` : '').join('')}</div>
-      <div class="rank-lista">${lista.map((r, i) => `<div class="jog"><span class="pos">${i + 1}</span><img class="av" src="${img(r)}"><div class="nome"><b>${htmlBrasao(r.nivel)}${esc(r.nome)}</b><small>${r.nivel ? CARGOS[r.nivel - 1].nome + ' · ' : ''}${r.partidas} partidas · ${r.vitorias} vitórias${r.partido && PARTIDO[r.partido] ? ' · ' + PARTIDO[r.partido].sigla : ''}</small></div><b>${fmtN(r.pts)} pts</b></div>`).join('')}</div>`;
+    const top = [[lista[1], 2, 'prata'], [lista[0], 1, 'ouro'], [lista[2], 3, 'bronze']];
+    const cargo = r => r.nivel ? CARGOS[r.nivel - 1].nome : '—', sigla = r => r.partido && PARTIDO[r.partido] ? PARTIDO[r.partido].sigla : '—';
+    el.innerHTML = `<div class="rank-podio">${top.map(([r, n, c]) => r ? `<div class="lugar ${c}">${n === 1 ? '<span class="coroa">👑</span>' : ''}<div class="foto"><img src="${img(r)}"><span class="med">${n}º</span></div><div class="bloco"><b>${htmlBrasao(r.nivel, 18)}${esc(r.nome)}</b><span>${fmtN(r.pts)} <small>pts</small></span></div></div>` : '').join('')}</div>
+      <div class="rank-tab"><div class="cab"><span>#</span><span>👤 Candidato(a)</span><span>🏛 Cargo</span><span>🎮 Partidas</span><span>🏆 Vitórias</span><span>Sigla</span><span>📊 Pontuação</span></div>
+      ${lista.map((r, i) => `<div class="lin ${['ouro', 'prata', 'bronze'][i] || ''}"><span class="pos">${i + 1}º</span><span class="cand"><img src="${img(r)}"><b>${esc(r.nome)}</b></span><span class="cargo">${htmlBrasao(r.nivel, 22)}${cargo(r)}</span><span>${r.partidas}</span><span>${r.vitorias}</span><span><em class="sig">${sigla(r)}</em></span><span><em class="pts">${fmtN(r.pts)} <small>pts</small></em></span></div>`).join('')}</div>`;
   });
 }
 function telaConfig(ui) {
@@ -1364,6 +1367,7 @@ if (demo) setTimeout(() => {
   if (demo === 'vitrine') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); E.persAba = new URLSearchParams(location.search).get('aba') || E.persAba; ir('personalizar'); const pr = new URLSearchParams(location.search).get('provar'); if (pr) setAv(...pr.split(':')); return; } // ?demo=vitrine&aba=roupas[&provar=roupa:batina]
   if (demo === 'config') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('config'); return; } // ?demo=config
   if (demo === 'emote') { const q = new URLSearchParams(location.search), it = ITEM[q.get('item')]; E.perfil.nome ||= 'Demo'; if (it.av) E.perfil.avatar = { ...E.perfil.avatar, ...it.av, ...it.cores, genero: 'masculino', barba: q.get('barba') || E.perfil.avatar.barba }; ir('personalizar'); $('#ui').style.opacity = 0; if (it.tipo === 'acao') { setTimeout(() => { est.testarNaVitrine(it); est.adiantarDemo(Number(q.get('t')) || 0); }, 400); return; } est.testarNaVitrine({ ...it, tipo: 'danca' }); if (est.vitrine?.anim) est.vitrine.anim.ini = -(Number(q.get('t')) || 0); return; } // &t=1 começa a animação 1 s adiantada // ?demo=emote&item=chorao
+  if (demo === 'ranking') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} });E.rankPer = new URLSearchParams(location.search).get('per') || 'semana'; ir('ranking'); return; } // ?demo=ranking&per=geral
   if (demo === 'loja') { E.perfil.nome ||= 'Demo'; E.lojaAba = new URLSearchParams(location.search).get('aba') || 'moedas'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('loja'); return; } // ?demo=loja&aba=assessoria
   if (demo === 'promocao') { const c = CARGOS[(+new URLSearchParams(location.search).get('n') || 2) - 1]; E.perfil.nome ||= 'Demo'; ir('menu'); animarPromocao({ n: c.n, nome: c.nome, recompensa: c.recompensa, bonus: c.bonus }); return; } // ?demo=promocao&n=5
   if (demo === 'carreira') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 900, itens: [], xp: 8200, cargoMax: 5, cadastro: { nome: 'Demo', user: 'demo' } }), set() {} }); ir('menu'); janelaCarreira(); avisoGanhos({ total: 99, itens: [['Participação', 20], ['Bônus de cargo: Senador (×1,45)', 31]], xp: { ganho: 230, antes: 4, depois: 5, xp: 8200 } }); return; }
