@@ -129,7 +129,11 @@ export class Vitima {
   /** false = terminou (a coreografia chama limpar). */
   update(dt, t) {
     this.vida += dt; const av = this.p.avatar, est = this.est;
-    if (location.search.includes('dbgvit') && (this.dbg = (this.dbg || 0) + dt) > .5) { this.dbg = 0; console.log('[vit]', this.vida.toFixed(2), this.t.toFixed(2), performance.now().toFixed(0), est.camera.parent?.type, est.camera.position.toArray().map(v => v.toFixed(2)).join(',')); }
+    if (this.sim === undefined && (this.sim = Number(new URLSearchParams(location.search).get('vitsim')) || 0)) { // teste: ?vitsim=s pula direto para s segundos após o impacto
+      this.impacto(); const n = Math.round(this.sim * 30);
+      for (let i = 0; i < n; i++) { this.update(1 / 30, est.t + i / 30); if (this.minha && est.modo === 'fp') this.camera(1 / 30, est.t + i / 30); }
+      if (av.anim) av.anim.ini = est.t - this.sim;
+    }
     if (this.vida > 25) return false; // segurança: o impacto nunca veio
     if (!this.bateu) { // vira a cabeça para quem vem bater
       const a = this.atk();
@@ -137,7 +141,7 @@ export class Vitima {
       return true;
     }
     this.t += dt; const u = this.t;
-    if (av.anim?.nome !== POSE[this.tipo] && u < this.dur - .1) av.animar(POSE[this.tipo], this.dur - u); // um emote no meio não interrompe a reação
+    if (av.anim?.nome !== POSE[this.tipo] && u < this.dur - .1) { av.animar(POSE[this.tipo], this.dur); av.anim.ini = t - u; } // um emote no meio não interrompe a reação
     if (this.tipo === 'nocaute') this.nocaute(u, dt, t);
     if (this.tipo === 'amor' && u > .3 && u < 2.5) this.emitir(dt, .2, () => this.coracao());
     this.parts = this.parts.filter(o => o.update(dt) || (this.est.scene.remove(o.obj), o.obj.material?.dispose(), false));

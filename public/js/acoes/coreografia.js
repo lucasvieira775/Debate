@@ -25,7 +25,8 @@ const DIST = { cadeirada: 1.08, paulada: 1.0, torta: .62, balde: .74 };
 const CARREGA = { cadeirada: 1, balde: 1 };
 const POSE_GOLPE = { cadeirada: 'golpeCadeira', paulada: 'golpePau', torta: 'tortada', balde: 'baldeada' };
 const POSE_CARREGA = { cadeirada: 'carregaCadeira', paulada: 'carregaPau', torta: 'carregaTorta', balde: 'carregaBalde' };
-const CAM_DEBUG = typeof location !== 'undefined' && new URLSearchParams(location.search).get('acaocam');
+const Q_DEBUG = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
+const CAM_DEBUG = Q_DEBUG.get('acaocam'), ADIANTA = Number(Q_DEBUG.get('acaot')) || 0; // só para prints de teste
 
 // ---------- poses do atacante ----------
 // braço [rot x, abertura z, cotovelo, giro do braço, giro da mão, mão, avanço do ombro]
@@ -120,6 +121,12 @@ export class Acoes {
       a.yaw0 = atk.ator.rotation.y;
     }
     this.lista.push(a);
+    if (ADIANTA && !this.adiantou) { this.adiantou = true; this.adiantar(ADIANTA); }
+  }
+  /** Teste (?acaot=s): pula s segundos da ação de uma vez (o print headless renderiza poucos quadros). */
+  adiantar(seg) {
+    const est = this.est, dt = 1 / 30;
+    for (let k = 0; k < seg / dt; k++) { est.t += dt; this.update(dt, est.t); for (const p of est.podios.values()) p.avatar.update(dt, est.t); }
   }
 
   // ---------- caminho: sai pela lateral do púlpito, passa pela frente (arco) e chega ao lado do alvo ----------
@@ -330,9 +337,9 @@ export class Acoes {
   camDebug() {
     const a = this.lista[0], est = this.est, p1 = a.atk.ator.getWorldPosition(V()), p2 = a.alvo.ator.getWorldPosition(V());
     const m = p1.clone().add(p2).multiplyScalar(.5), dir = CENTRO.clone().sub(m).setY(0).normalize();
-    if (CAM_DEBUG === '2') dir.applyAxisAngle(V(0, 1, 0), .9);
-    const dist = 2.6 + p1.distanceTo(p2) * .45;
-    est.camera.position.copy(m).addScaledVector(dir, dist).setY(2.1); est.camera.lookAt(m.x, 1.5, m.z);
+    dir.applyAxisAngle(V(0, 1, 0), Number(CAM_DEBUG) || 0); const foco = Q_DEBUG.get('foco') === 'atk' ? p1 : Q_DEBUG.get('foco') === 'alvo' ? p2 : m;
+    const dist = Number(Q_DEBUG.get('dist')) || 2.6 + p1.distanceTo(p2) * .45;
+    est.camera.position.copy(foco).addScaledVector(dir, dist).setY(Number(Q_DEBUG.get('alt')) || 2.1); est.camera.lookAt(foco.x, 1.4, foco.z);
     return true;
   }
   ocupado(id) { return this.lista.some(a => (a.atkVivo && a.atk.id === id) || (a.vitViva && a.alvo.id === id)); }

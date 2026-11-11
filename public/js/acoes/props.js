@@ -141,12 +141,12 @@ export function criarProp(item) { const id = item?.id ?? item, g = (FAB[id] || (
 /** Encaixe sugerido na mão do avatar (coords locais de avatar.bracos[k].userData.mao; a mão aponta para -Y e
  *  os dedos fecham em volta do eixo Z). 'dir' = braço com lado -1. A coreografia pode ajustar. */
 export const PEGADA = {
-  cadeirada: { pos: [.03, -.09, 0], rot: [PI / 2, 0, 0], mao: 'dir' },  // segura o topo do encosto; a cadeira sai pela frente da mão
-  paulada: { pos: [.03, -.09, 0], rot: [PI / 2, 0, 0], mao: 'dir' },    // punho fechado no cabo; pau sai pela frente
-  tomate: { pos: [.07, -.11, .01], rot: [0, 0, 0], mao: 'dir' },        // na palma
-  flores: { pos: [.03, -.09, 0], rot: [PI / 2, 0, 0], mao: 'dir' },     // segura os caules abaixo do laço
-  torta: { pos: [.06, -.1, 0], rot: [0, 0, -PI / 2], mao: 'ambas' },    // prato apoiado na palma, creme para fora da palma
-  balde: { pos: [.03, -.09, 0], rot: [0, 0, PI / 2], mao: 'ambas' },    // pegador da alça no punho; balde pendurado
+  cadeirada: { pos: [.03, -.09, 0], rot: [-PI / 2, 0, 0], mao: 'dir' },  // segura o topo do encosto; a cadeira sai pela frente da mão
+  paulada: { pos: [.03, -.09, 0], rot: [-PI / 2, 0, 0], mao: 'dir' },    // punho fechado no cabo; pau sai pela frente
+  tomate: { pos: [.08, -.1, 0], rot: [0, 0, 0], mao: 'dir' },        // na palma
+  flores: { pos: [.03, -.09, 0], rot: [-PI / 2, 0, 0], mao: 'dir' },     // segura os caules abaixo do laço
+  torta: { pos: [.035, -.1, 0], rot: [0, PI / 2, 0], mao: 'ambas' },    // fundo do prato na palma, creme para fora da palma
+  balde: { pos: [.03, -.09, 0], rot: [0, PI / 2, 0], mao: 'ambas' },    // pegador da alça no punho; balde pendurado
 };
 
 // ===== EFEITOS =====
@@ -289,7 +289,7 @@ export function impacto(est, item, p) {
   const add = f => f && lista.push(f);
   if (id === 'tomate') {
     add(particulas(est, esf(.03, 6), M('#ffffff', { r: .35 }), 26, i => ({ pos: r.pos.clone().addScaledVector(F, .03), vel: dirAleat(F, 1.4, 1.2).multiplyScalar(rnd(1.2, 3.2)), esc: V(rnd(.6, 1.4), rnd(.4, .8), rnd(.6, 1.4)), vida: rnd(1.6, 2.6), cor: i % 7 === 0 ? '#e9d36a' : i % 3 ? '#e3261c' : '#a8120c', raio: .01, deitado: true }), { grav: -9.5 }));
-    add(sujeiraNoRosto(p, '#d81e14', [[0, .28, .27, .12, 1.2, 1, .25], [.09, .36, .255, .07, 1, .8], [-.1, .2, .255, .065, 1, 1.1], [-.06, .38, .26, .05], [.07, .16, .25, .045, 1, 1, .35, .15], [-.13, .3, .245, .04, 1, 1, .35, .2], [.02, .2, .3, .04, 1, 1.4, .4, .12], [0, .26, .3, .06, 1, 1, .6]]));
+    add(sujeiraNoRosto(p, '#d81e14', [[0, .3, .252, .13, 1.3, 1, .12], [.12, .38, .25, .07, 1, .8, .12], [-.13, .22, .25, .07, 1.1, 1, .12], [-.09, .41, .25, .05, 1, 1, .12], [.17, .29, .246, .035, 1, 1, .12], [-.19, .34, .244, .03, 1, 1, .12], [.1, .2, .252, .045, .8, 1, .14, .14], [-.04, .16, .254, .035, .7, 1.3, .16, .2], [.04, .44, .25, .03, 1, 1, .12], [0, .25, .292, .05, 1.15, 1, .2]]));
   } else if (id === 'flores') {
     add(particulas(est, esf(.022, 6), M('#ffffff', { r: .6 }), 60, i => ({ pos: r.pos.clone().add(V(rnd(-.1, .1), rnd(-.1, .1), rnd(-.1, .1))), vel: dirAleat(F, 2, 1.6).multiplyScalar(rnd(1, 2.6)).add(V(0, 1.2, 0)), esc: V(rnd(.8, 1.2), .22, rnd(1.1, 1.6)), vida: rnd(2.6, 3.6), cor: CORES_PET[i % CORES_PET.length], giro: V(rnd(-3, 3), rnd(-3, 3), rnd(-3, 3)) }), { grav: -1.4, arrasto: 2.2, oscila: .5 }));
     add(particulas(est, geoCoracao(), M('#ff4d88', { r: .4, em: '#ff2a6d', ei: .6, ds: true }), 12, i => ({ atraso: i * .12, pos: r.pos.clone().add(V(rnd(-.35, .35), rnd(-.1, .25), rnd(-.35, .35))), vel: V(rnd(-.1, .1), rnd(.5, .8), rnd(-.1, .1)), esc: rnd(.09, .16), vida: rnd(1.6, 2.2), cor: i % 3 ? '#ffffff' : '#ff9ec4', rot: V(0, 0, rnd(-2, 2)) }), { grav: 0, billboard: true, oscila: .25 }));
