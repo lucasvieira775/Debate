@@ -107,12 +107,28 @@ export class Acoes {
     if (this.ocupado(d.id) || this.ocupado(d.alvo)) { if (this.fila.length < 3) this.fila.push({ d, t: est.t }); return; }
     // quem estava no meio da caminhada do confronto já aparece no destino
     for (const p of [atk, alvo]) if (p.caminho) est.colocarAtor(p, p.caminho.destino);
-    const orig = atk.lugar === 'duelo' ? 'duelo' : 'podio';
-    const a = { d, it, atk, alvo, orig, t: 0, fase: 'pega', ft: 0, bateu: false, atkVivo: true, vitViva: true, perto: it.golpe === 'perto' };
-    a.eu = atk.id === est.meuId;
+    this.comecar(d, it, atk, alvo, false);
+    if (ADIANTA && !this.adiantou) { this.adiantou = true; this.adiantar(ADIANTA); }
+  }
+  /** Demonstração na vitrine da loja: atk/alvo = púlpitos "falsos" { id, ator (Group solto na cena), avatar }.
+   *  Mesma coreografia, sem câmera, púlpitos nem mediadora; aoFim() quando atacante e vítima terminam. */
+  demo(atk, alvo, item, aoFim) {
+    const it = ITEM[item]; if (!it) return null;
+    const a = this.comecar({ id: atk.id, alvo: alvo.id, item }, it, atk, alvo, true);
+    if (a) a.aoFim = aoFim; return a;
+  }
+  pararDemo() {
+    this.lista = this.lista.filter(a => { if (!a.demo) return true; this.soltar(a, false); try { a.vit.limpar?.(); } catch {} return false; });
+    this.efeitos = this.efeitos.filter(e => { if (!e.demo) return true; try { e.limpar?.(); } catch {} return false; });
+  }
+  comecar(d, it, atk, alvo, demo) {
+    const est = this.est, orig = atk.lugar === 'duelo' ? 'duelo' : 'podio';
+    const a = { d, it, atk, alvo, orig, demo, t: 0, fase: 'pega', ft: 0, bateu: false, atkVivo: true, vitViva: true, perto: it.golpe === 'perto' };
+    a.eu = !demo && atk.id === est.meuId;
     a.av = atk.avatar; a.av.festa = false; a.av.empurra = false;
     try { this.segurar(a); } catch (e) { console.warn(e); this.soltar(a, false); return; }
     a.vit = new Vitima(est, alvo, it, d); // depois do objeto: se ele falhar, a vítima não fica com o olhar travado
+    if (demo) { a.vit.atk = () => atk; a.casa = { pos: atk.ator.position.clone(), yaw: atk.ator.rotation.y }; }
     this.som(a, 'pega', .8);
     if (a.perto) {
       a.av.animar(POSE_CARREGA[it.id] || 'carregaPau', 60);
@@ -121,8 +137,7 @@ export class Acoes {
       a.av.animar('arremessar', 2);
       a.yaw0 = atk.ator.rotation.y;
     }
-    this.lista.push(a);
-    if (ADIANTA && !this.adiantou) { this.adiantou = true; this.adiantar(ADIANTA); }
+    this.lista.push(a); return a;
   }
   /** Teste (?acaot=s): pula s segundos da ação de uma vez (o print headless renderiza poucos quadros). */
   adiantar(q) { // "3.5" = 3,5 s; "golpe:0.3" = 0,3 s depois de começar a fase golpe
@@ -154,6 +169,10 @@ export class Acoes {
     return r;
   }
   rota(a) {
+    if (a.demo) { // vitrine: reto até a frente do alvo (do lado de onde veio)
+      const A = a.casa, Bp = a.alvo.ator.position.clone().setY(0), dir = A.pos.clone().sub(Bp).setY(0).normalize();
+      a.alvoPos = Bp; return [A.pos.clone(), Bp.clone().addScaledVector(dir, DIST[a.it.id] || 1)];
+    }
     const A = this.ponta(a.atk, a.orig), Bp = this.ponta(a.alvo, a.alvo.lugar === 'duelo' ? 'duelo' : 'podio');
     const sai = this.saida(A, Bp), chega = this.chegada(Bp, A, DIST[a.it.id] || 1);
     const pts = [A.pos, ...sai, ...this.arco(sai[sai.length - 1], chega[0]), ...chega];
@@ -242,10 +261,10 @@ export class Acoes {
     if (a.bateu) return; a.bateu = true;
     const est = this.est, id = a.it.id, pos = this.cabecaAlvo(a);
     a.vit.impacto?.();
-    try { const ef = PROPS.impacto?.(est, id, a.alvo); if (ef) this.efeitos.push(ef); } catch (e) { console.warn(e); }
+    try { const ef = PROPS.impacto?.(est, id, a.alvo); if (ef) { ef.demo = a.demo; this.efeitos.push(ef); } } catch (e) { console.warn(e); }
     est.onSom?.('acaoImpacto', { item: id, ...est.somEm(pos) });
     est.onSom?.(a.it.reacao === 'amor' ? 'plateiaAww' : 'plateiaOh', { vol: .55, pan: 0 });
-    est.onAcao?.('impacto', a.d);
+    if (!a.demo) est.onAcao?.('impacto', a.d); // na loja: sem plateia agitada nem mediadora
     if (id === 'torta') this.soltar(a, false); // o prato voa (props.impacto) e o creme fica no rosto
   }
   som(a, nome, base = .7) {
@@ -261,7 +280,7 @@ export class Acoes {
     this.efeitos = this.efeitos.filter(e => { try { if (e.update(dt, t)) return true; } catch (er) { console.warn(er); } e.limpar?.(); return false; });
     this.lista = this.lista.filter(a => {
       // púlpito sumiu/foi recriado: encerra sem travar ninguém
-      if (est.podios.get(a.d.id) !== a.atk || est.podios.get(a.d.alvo) !== a.alvo) { this.abortar(a); return false; }
+      if (!a.demo && (est.podios.get(a.d.id) !== a.atk || est.podios.get(a.d.alvo) !== a.alvo)) { this.abortar(a); return false; }
       a.t += dt;
       if (a.atkVivo) { try { this.passoAtk(a, dt); } catch (er) { console.warn(er); try { this.terminarAtk(a); } catch (e2) { console.warn(e2); a.atkVivo = false; } } }
       if (a.vitViva) {
@@ -269,6 +288,7 @@ export class Acoes {
         if (!viva && (a.bateu || !a.atkVivo)) { a.vitViva = false; try { a.vit.limpar?.(); } catch (er) { console.warn(er); } }
       }
       if (a.atkVivo || a.vitViva) return true;
+      if (a.demo) { try { a.aoFim?.(); } catch (er) { console.warn(er); } return false; }
       try { est.aplicarDuelo(false); } catch (er) { console.warn(er); } return false;
     });
     // fila: ações que chegaram com alguém ocupado
@@ -290,7 +310,7 @@ export class Acoes {
       if (a.fase === 'pega' && a.t >= T_SOLTA) {
         const de = a.mao.localToWorld(V(.05, -.1, 0)), ate = this.cabecaAlvo(a), dur = clamp(de.distanceTo(ate) / 9, .55, .85);
         this.soltar(a, false); this.som(a, 'arremesso', .8);
-        const ef = PROPS.lancar?.(this.est, a.it.id, de, ate, dur); if (ef) this.efeitos.push(ef);
+        const ef = PROPS.lancar?.(this.est, a.it.id, de, ate, dur); if (ef) { ef.demo = a.demo; this.efeitos.push(ef); }
         a.tImpacto = a.t + dur; this.irPara(a, 'voo');
       } else if (a.fase === 'voo' && a.t >= a.tImpacto) { this.impacto(a); this.irPara(a, 'depois'); }
       else if (a.fase === 'depois' && a.ft >= .6) { a.yawVolta = at.rotation.y; this.irPara(a, 'volta'); }
@@ -313,7 +333,7 @@ export class Acoes {
       if (a.prop && a.ft >= T_PREP + T_SOME) this.soltar(a);
       if (a.ft >= T_PREP + .8) {
         av.empurra = false; av.anim = null;
-        const casa = this.ponta(a.atk, a.orig), pts = a.cam.pts.slice().reverse(); pts[pts.length - 1] = casa.pos;
+        const casa = a.demo ? a.casa : this.ponta(a.atk, a.orig), pts = a.cam.pts.slice().reverse(); pts[pts.length - 1] = casa.pos;
         this.caminho(a, pts, casa.yaw); this.irPara(a, 'volta');
       }
     } else if (a.fase === 'volta') {
@@ -325,6 +345,7 @@ export class Acoes {
     if (!a.atkVivo) return; a.atkVivo = false;
     this.soltar(a, false);
     const av = a.av; av.andar = 0; av.empurra = false; if (av.anim && [...Object.values(POSE_GOLPE), ...Object.values(POSE_CARREGA), 'arremessar'].includes(av.anim.nome)) av.anim = null;
+    if (a.demo) { a.atk.ator.position.copy(a.casa.pos); a.atk.ator.rotation.set(0, a.casa.yaw, 0); a.atk.lugar = 'podio'; return; }
     this.est.colocarAtor(a.atk, a.orig);
     if (a.eu && a.perto) this.olharFrente();
     this.est.aplicarDuelo(false);
@@ -333,7 +354,7 @@ export class Acoes {
   abortar(a) {
     this.soltar(a, false); try { a.vit.limpar?.(); } catch {}
     a.vitViva = false;
-    if (a.atkVivo && this.est.podios.get(a.d.id) === a.atk) this.terminarAtk(a); else a.atkVivo = false;
+    if (a.atkVivo && (a.demo || this.est.podios.get(a.d.id) === a.atk)) this.terminarAtk(a); else a.atkVivo = false;
   }
 
   /** true = a câmera foi posicionada aqui (você é o alvo: 3ª pessoa). */

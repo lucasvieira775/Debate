@@ -1,6 +1,7 @@
 // "Xzona": rede social fictícia e cômica. Depois de cada fala, perfis inventados comentam o candidato.
 // {nome} = candidato · {partido} = sigla · {estado} = estado do tema · {tema} = título do tema · {num} = número do partido
 import { pick, shuffle } from './regras.js';
+import { MAIS_POSTS, MAIS_PERFIS, MAIS_VERIFICADOS, TAGS_ACAO } from './xzona-posts.js';
 
 export const PERFIS = [
   ['Tia do Zap', 'tiadozap_oficial'], ['Cidadão Indignado', 'indignado_24h'], ['Eleitor Raiz', 'eleitor_raiz'], ['Memes de Brasília', 'memesdebrasilia'],
@@ -16,12 +17,13 @@ export const PERFIS = [
   ['Sindicalista Raiz', 'sindicato_na_veia'], ['Empreendedor de Palco', 'ceo_de_mim_mesmo'], ['Gringo Confuso', 'gringo_no_brasil'], ['Bot Suspeito 3000', 'user8472913'],
   ['Analista de Sobrancelha', 'olho_no_gesto'], ['Cientista Política Exausta', 'cientista_politica'], ['Mototaxista Veloz', 'moto_taxi_zl'], ['Rádio Poste FM', 'radioposte_fm'],
   ['Sobrinho do Prefeito', 'sobrinho_do_prefeito'], ['Ex-BBB Engajada', 'exbbb_engajada'], ['Velho Desconfiado', 'nao_creio_em_nada'], ['Cozinheira de Marmita', 'marmita_da_lu'],
+  ...MAIS_PERFIS,
 ];
-const VERIFICADOS = new Set(['memesdebrasilia', 'jornalzinho24h', 'paodequeijonews', 'nerd_da_politica', 'fiscal_de_debate', 'checa_ai', 'radioposte_fm', 'exbbb_engajada', 'cientista_politica']);
+const VERIFICADOS = new Set(['memesdebrasilia', 'jornalzinho24h', 'paodequeijonews', 'nerd_da_politica', 'fiscal_de_debate', 'checa_ai', 'radioposte_fm', 'exbbb_engajada', 'cientista_politica', ...MAIS_VERIFICADOS]);
 // palavrões censurados ao estilo gibi
 const CENSURA = ['@#$%', '#@$%&', '$%#@!', '@#$!', '%$#@&'];
 export const censurar = p => p ? p.split(' ').map(w => w[0] + pick(CENSURA).slice(0, Math.max(3, Math.min(5, w.length - 1)))).join(' ') : pick(CENSURA);
-const TAGS = { geral: ['#DebateNaXzona', '#DebatePresidencial', '#Eleições', '#AoVivo', '#ForaEnrolação', '#Brasil'], ruim: ['#VergonhaAlheia', '#Desliguei', '#CadêAProposta'], bom: ['#{partido}', '#{num}NaUrna', '#VaiQueÉTua'] };
+const TAGS = { geral: ['#DebateNaXzona', '#DebatePresidencial', '#Eleições', '#AoVivo', '#ForaEnrolação', '#Brasil'], ruim: ['#VergonhaAlheia', '#Desliguei', '#CadêAProposta'], bom: ['#{partido}', '#{num}NaUrna', '#VaiQueÉTua'], ...TAGS_ACAO };
 
 export const POSTS = {
   pessima: [
@@ -185,6 +187,7 @@ export const POSTS = {
     'Hoje ninguém dorme cedo no Brasil 🌙',
   ],
 };
+for (const [g, l] of Object.entries(MAIS_POSTS)) POSTS[g] = [...(POSTS[g] || []), ...l]; // posts extras (xzona-posts.js)
 
 /** Escolhe 2–4 posts para uma fala avaliada. res = resultado da análise da fala. */
 export function postsDaFala({ nome, partido, num, estado, tema, genero }, res) {
@@ -199,15 +202,26 @@ export function postsDaFala({ nome, partido, num, estado, tema, genero }, res) {
 }
 export function postsDe(grupo, dados, n = 3) { return montar(Array(n).fill(grupo), dados, grupo); }
 
+/** Repercussão de uma ação no palco (tomate, torta, balde, paulada, cadeirada, flores): 3–4 posts.
+ *  agr/alvo no formato de dadosPost(j): {nome, partido, num, genero}. {nome} = quem fez, {alvo} = quem recebeu. */
+export function postsDaAcao(agr = {}, alvo, itemId) {
+  if (!POSTS[itemId]) return [];
+  const resto = itemId === 'flores' ? ['flores', 'flores'] : [itemId, Math.random() < .5 ? 'agressao' : 'vitima'];
+  if (Math.random() < .5) resto.push(itemId === 'flores' ? 'flores' : pick(['agressao', 'vitima', itemId]));
+  return montar([itemId, ...shuffle(resto)], { ...agr, alvo: alvo?.nome || 'adversário', generoAlvo: alvo?.nome ? alvo.genero : 'masculino' }, itemId);
+}
+
 // Concordância de gênero: os modelos estão no masculino; ajusta para candidata ou pessoa não binária.
-const FEM = [[/Fraquinho o \{nome\}/g, 'Fraquinha a {nome}'], [/\bno \{nome\}/g, 'na {nome}'], [/\b([Oo]) \{nome\}/g, (_, o) => (o === 'O' ? 'A' : 'a') + ' {nome}'], [/\bdo \{nome\}/g, 'da {nome}'], [/\bpro \{nome\}/g, 'pra {nome}'],
+const FEM = [[/Fraquinho o \{nome\}/g, 'Fraquinha a {nome}'], [/\bno \{nome\}/g, 'na {nome}'], [/\bpelo \{nome\}/g, 'pela {nome}'], [/\bao \{nome\}/g, 'à {nome}'], [/\b([Oo]) \{nome\}/g, (_, o) => (o === 'O' ? 'A' : 'a') + ' {nome}'], [/\bdo \{nome\}/g, 'da {nome}'], [/\bpro \{nome\}/g, 'pra {nome}'],
   [/\b([Ee])sse \{nome\}/g, '$1ssa {nome}'], [/esse candidato/g, 'essa candidata'], [/nesse candidato/g, 'nessa candidata'], [/[Ee]sse cara/g, 'Essa mulher'], [/ELEITO\(A\)/g, 'ELEITA'], [/querido\(a\)/g, 'querida']];
-const NB = [[/Fraquinho o \{nome\}/g, 'Fraquinha a resposta de {nome}'], [/\bno \{nome\}/g, 'em {nome}'], [/\b[Oo] \{nome\}/g, '{nome}'], [/\bdo \{nome\}/g, 'de {nome}'], [/\bpro \{nome\}/g, 'pra {nome}'], [/\b([Ee])sse \{nome\}/g, '{nome}'],
+const NB = [[/Fraquinho o \{nome\}/g, 'Fraquinha a resposta de {nome}'], [/\bno \{nome\}/g, 'em {nome}'], [/\bpelo \{nome\}/g, 'por {nome}'], [/\bao \{nome\}/g, 'a {nome}'], [/\b[Oo] \{nome\}/g, '{nome}'], [/\bdo \{nome\}/g, 'de {nome}'], [/\bpro \{nome\}/g, 'pra {nome}'], [/\b([Ee])sse \{nome\}/g, '{nome}'],
   [/esse candidato \{nome\}/g, '{nome}'], [/nesse candidato/g, 'nessa candidatura'], [/[Ee]sse cara/g, 'Essa pessoa'], [/ELEITO\(A\)/g, 'ELEITE'], [/querido\(a\)/g, 'queride']];
 const MASC = [[/ELEITO\(A\)/g, 'ELEITO'], [/querido\(a\)/g, 'querido']];
-export function concordar(txt, genero) {
+/** chave: placeholder a concordar ('nome' = candidato; 'alvo' = vítima de uma ação — troca temporariamente com {nome}). */
+export function concordar(txt, genero, chave = 'nome') {
   const regras = genero === 'feminino' ? FEM : genero === 'naobinario' || genero === 'nao_binario' || genero === 'nb' ? NB : MASC;
-  const t = regras.reduce((s, [re, sub]) => s.replace(re, sub), txt);
+  const troca = s => chave === 'nome' ? s : s.replace(/\{nome\}/g, '{\u0001}').replace(new RegExp(`\\{${chave}\\}`, 'g'), '{nome}').replace(/\{\u0001\}/g, `{${chave}}`);
+  const t = troca(regras.reduce((s, [re, sub]) => s.replace(re, sub), troca(txt)));
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
@@ -217,15 +231,15 @@ function montar(grupos, dados, nivel) {
     let txt; do txt = pick(POSTS[g]); while (usados.has(txt) && POSTS[g].length > usados.size);
     usados.add(txt);
     const [nomeP, user] = perfis[k];
-    const viral = ['pessima', 'otima', 'xingou', 'banido', 'vitoria'].includes(nivel) ? 6 : 1;
-    if (Math.random() < .35) { // hashtag no fim, às vezes
-      const t = pick(['pessima', 'ruim', 'xingou', 'banido', 'silencio'].includes(g) ? TAGS.ruim : ['boa', 'otima', 'vitoria'].includes(g) ? TAGS.bom : TAGS.geral);
+    const viral = ['paulada', 'cadeirada'].includes(nivel) ? 8 : ['pessima', 'otima', 'xingou', 'banido', 'vitoria'].includes(nivel) ? 6 : TAGS_ACAO[nivel] ? 3 : 1;
+    if (Math.random() < (TAGS_ACAO[g] ? .6 : .35)) { // hashtag no fim, às vezes
+      const t = pick(TAGS_ACAO[g] || (['pessima', 'ruim', 'xingou', 'banido', 'silencio'].includes(g) ? TAGS.ruim : ['boa', 'otima', 'vitoria'].includes(g) ? TAGS.bom : TAGS.geral));
       txt += ' ' + t;
     }
     const subst = (_, c) => dados[c] ?? '';
     return {
       nome: nomeP, user, verificado: VERIFICADOS.has(user),
-      texto: concordar(txt, dados.genero).replace(/#\{(\w+)\}/g, (_, c) => '#' + String(dados[c] ?? '').replace(/\s+/g, '')).replace(/\{(\w+)\}/g, subst),
+      texto: concordar(dados.alvo ? concordar(txt, dados.generoAlvo, 'alvo') : txt, dados.genero).replace(/(#[^\s#{]*)\{(\w+)\}/g, (_, h, c) => h + String(dados[c] ?? '').replace(/\s+/g, '')).replace(/\{(\w+)\}/g, subst),
       curtidas: Math.round((50 + Math.random() * 900) * viral), reposts: Math.round((5 + Math.random() * 200) * viral), respostas: Math.round(Math.random() * 120 * viral),
     };
   });

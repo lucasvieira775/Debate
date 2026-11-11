@@ -7,7 +7,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { Avatar, mat } from './avatar.js';
-import { PARTIDO, TEMAS, TEMA, AV_MEDIADORA, ETAPAS } from '/shared/regras.js';
+import { PARTIDO, TEMAS, TEMA, AV_MEDIADORA, ETAPAS, avatarAleatorio } from '/shared/regras.js';
 import { desenharSimbolo, escurecer, fmtT, clamp } from './util.js';
 import { brasao } from '/shared/niveis.js';
 import { Acoes } from './acoes/coreografia.js';
@@ -1004,18 +1004,44 @@ export class Estudio {
     this.renderer.setRenderTarget(R.rt); this.renderer.render(this.scene, R.camRT); this.renderer.setRenderTarget(null);
     c.root.visible = false; m2.map = R.rt.texture; R.sobre.visible = true;
   }
+  /** Testa um item da loja na vitrine. Ação: devolve a duração da demonstração (ms). */
   testarNaVitrine(it) {
-    this.tirarPropVitrine(); this.vitrine?.animar(it.anim, it.tipo === 'danca' ? 5 : 3);
-    if (it.tipo !== 'acao' || !this.vitrine) return; // ação: objeto na mão da vitrine enquanto a animação toca
-    const k = this.propVitrineK = (this.propVitrineK || 0) + 1;
-    import('./acoes/props.js').then(({ criarProp, PEGADA }) => { // dinâmico: um erro em props.js não derruba o estúdio
-      if (k !== this.propVitrineK || !this.vitrine) return;
-      const pg = PEGADA[it.id] || { pos: [0, -.09, 0], rot: [0, 0, 0] }, pr = criarProp(it.id), b = this.vitrine.bracos.find(b => b.userData.lado === -1);
-      pr.position.fromArray(pg.pos); pr.rotation.fromArray(pg.rot); b.userData.mao.add(pr); this.propVitrine = pr; this.propVitrineT = setTimeout(() => this.tirarPropVitrine(), 3000);
-    }).catch(e => console.warn('props.js', e));
+    this.pararVitrine(); if (!this.vitrine) return;
+    if (it.tipo === 'acao') return this.demoAcao(it);
+    this.vitrine.animar(it.anim, it.tipo === 'danca' ? 5 : 3);
   }
-  tirarPropVitrine() { this.propVitrineK = (this.propVitrineK || 0) + 1; clearTimeout(this.propVitrineT); this.propVitrine?.removeFromParent(); this.propVitrine = null; }
-  pararVitrine() { this.tirarPropVitrine(); if (this.vitrine) this.vitrine.anim = null; }
+  // ---------- DEMO DE AÇÃO NA VITRINE ----------
+  /** A ação de verdade em miniatura (acoes/coreografia.js): o seu avatar contra um adversário de exemplo. */
+  demoAcao(it) {
+    const av = this.vitrine, V = (x, z) => new THREE.Vector3(x, 0, z);
+    const ator = (avatar, pos, yaw, id) => { const g = new THREE.Group(); g.position.copy(pos); g.rotation.y = yaw; g.add(avatar.root); avatar.root.position.set(0, 0, 0); avatar.root.rotation.set(0, 0, 0); this.scene.add(g); return { id, ator: g, avatar, lugar: 'podio', demo: true }; };
+    if (!this.demoAlvoAv) { // adversário genérico (sempre o mesmo enquanto a página estiver aberta), com placa "Adversário"
+      const al = this.demoAlvoAv = new Avatar({ ...avatarAleatorio(), oculos: 'nenhum', expressao: 'serio' }); al.posePe = true;
+      const { ctx, tex } = canvasTex(256, 64); ctx.fillStyle = 'rgba(15,23,42,.85)'; ctx.beginPath(); ctx.roundRect(4, 4, 248, 56, 18); ctx.fill();
+      ctx.font = 'bold 34px Arial, sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Adversário', 128, 34);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false })); sp.renderOrder = 998; sp.scale.set(.9, .225, 1); sp.position.y = 2.68; this.demoPlaca = sp;
+    }
+    const d = this.demoV = { av, rot: av.root.rotation.y, atk: ator(av, V(-1.2, -.5), .95, '_demoAtk'), alvo: ator(this.demoAlvoAv, V(1.3, -.9), -.85, '_demoAlvo') };
+    d.alvo.ator.add(this.demoPlaca); // a placa fica no lugar (não cai junto no nocaute)
+    d.a = this.acoes.demo(d.atk, d.alvo, it.id, () => { d.fim = true; });
+    return 1000 * ((it.golpe === 'perto' ? 2.4 : 1.5) + (it.reacao === 'nocaute' ? 5.4 : 3) + .8);
+  }
+  pararDemo() {
+    const d = this.demoV; if (!d) return; this.demoV = null;
+    this.acoes.pararDemo();
+    for (const p of [d.atk, d.alvo]) this.scene.remove(p.ator);
+    const r = d.av.root; r.position.set(0, 0, -.6); r.rotation.set(0, d.rot, 0);
+    if (d.av === this.vitrine) { this.scene.add(r); r.visible = this.modo === 'vitrine'; }
+    d.av.anim = null; d.av.andar = 0; d.av.empurra = false;
+  }
+  frameDemo(dt, t) {
+    const d = this.demoV, l = d.atk.ator.worldToLocal(d.alvo.ator.localToWorld(new THREE.Vector3(0, 1.9, 0))).sub(new THREE.Vector3(0, 2, 0));
+    d.av.setOlhar(clamp(Math.atan2(l.x, l.z), -.8, .8), Math.atan2(l.y, Math.hypot(l.x, l.z))); // o atacante olha para o adversário
+    d.alvo.avatar.update(dt, t); if (d.av.andar) this.passos(d.av, d.atk.ator.position, false);
+  }
+  /** Teste (?demo=emote&item=tomate&t=s): pula s segundos da demo (o print headless renderiza poucos quadros). */
+  adiantarDemo(s) { const dt = 1 / 30; for (let k = 0; k < s / dt && this.demoV; k++) { this.t += dt; this.acoes.update(dt, this.t); this.vitrine.update(dt, this.t); this.demoV && this.frameDemo(dt, this.t); } }
+  pararVitrine() { this.pararDemo();if (this.vitrine) this.vitrine.anim = null; }
   /** X na tela (px) dos pés do avatar da vitrine, para alinhar botões embaixo dele. */
   xVitrine() { const v = new THREE.Vector3(); if (!this.vitrine) return innerWidth / 2; this.vitrine.root.getWorldPosition(v).project(this.camera); const r = this.canvas.getBoundingClientRect(); return r.left + (v.x + 1) / 2 * r.width; }
   folhear(id) { this.podios.get(id)?.avatar.animar('folhear', id === this.meuId && this.lendo ? 9999 : 3.4); }
@@ -1050,8 +1076,9 @@ export class Estudio {
 
   // ===================== CÂMERA =====================
   setModo(modo) {
-    this.modo = modo; this.camTVok = false;
-    if (modo === 'vitrine' || modo === 'menu') { this.acoes?.limpar(); this.modo = modo; } // (limpar pode chamar setModo('fp')) saiu da partida no meio de uma ação: nada sobra na cena
+    const antes = this.modo; this.modo = modo; this.camTVok = false;
+    if (modo !== 'vitrine') this.pararDemo?.(); // saiu da loja no meio da demonstração de uma ação
+    if ((modo === 'vitrine' || modo === 'menu') && antes !== modo) { this.acoes?.limpar(); this.modo = modo; } // (limpar pode chamar setModo('fp')) saiu da partida no meio de uma ação: nada sobra na cena
     if (modo === 'fp') {
       const pd = this.podios.get(this.meuId);
       if (pd) { pd.ator.add(this.rig); this.rig.position.set(0, 2.0, .1); this.camFP.add(this.camera); this.camera.position.set(0, 0, 0); this.camera.rotation.set(0, 0, 0); this.camera.fov = 68; this.camera.updateProjectionMatrix(); }
@@ -1066,7 +1093,7 @@ export class Estudio {
   }
   setVitrine(cfgAv) {
     const k = JSON.stringify(cfgAv);
-    if (this.vitrineKey === k) return; this.vitrineKey = k;
+    if (this.vitrineKey === k) return; this.vitrineKey = k; this.pararDemo();
     const rot = this.vitrine ? this.vitrine.root.rotation.y : -.35;
     if (this.vitrine) this.scene.remove(this.vitrine.root);
     this.vitrine = new Avatar(cfgAv); this.vitrine.root.position.set(0, 0, -.6); this.vitrine.root.rotation.y = rot;
@@ -1083,7 +1110,7 @@ export class Estudio {
       const dx = e.clientX - lx, dy = e.clientY - ly; lx = e.clientX; ly = e.clientY; moveu += Math.abs(dx) + Math.abs(dy);
       const k = .0042 * this.cfg.sens;
       if (this.modo === 'fp' && !this.andandoEu()) { this.olhar.y = clamp(this.olhar.y - dx * k, -1.9, 1.9); this.olhar.p = clamp(this.olhar.p - dy * k, -.85, .7); }
-      else if (this.modo === 'vitrine' && this.vitrine) this.vitrine.root.rotation.y += dx * .01;
+      else if (this.modo === 'vitrine' && this.vitrine && !this.demoV) this.vitrine.root.rotation.y += dx * .01;
     });
     cv.addEventListener('pointercancel', () => { arrastando = false; }); addEventListener('blur', () => { arrastando = false; });
     cv.addEventListener('pointerup', e => { if (!arrastando) return; arrastando = false; if (moveu < 6) this.pick(e.clientX, e.clientY); });
@@ -1234,7 +1261,7 @@ export class Estudio {
     med.setOlhar(medVira ? .95 : alvoY * .5, medVira ? .12 : .05);
     if (this.medFalando) med.setFala(.55 + Math.random() * .45);
     med.gesticula = !!this.medFalando; med.update(dt, t);
-    if (this.vitrine && this.vitrine.root.visible) { this.vitrine.setOlhar(Math.sin(t * .6) * .25, .05); this.vitrine.update(dt, t); if (!this.vitrine.anim) this.vitrine.bracos.forEach(b => { b.rotation.x = -.12 + Math.sin(t * 1.5 + b.userData.lado) * .04; }); }
+    if (this.vitrine && this.vitrine.root.visible) { this.vitrine.setOlhar(Math.sin(t * .6) * .25, .05); this.vitrine.update(dt, t); if (this.demoV) this.frameDemo(dt, t); else if (!this.vitrine.anim) this.vitrine.bracos.forEach(b => { b.rotation.x = -.12 + Math.sin(t * 1.5 + b.userData.lado) * .04; }); }
     if (this.campeao && (this.campeao.root.visible || Rv)) { this.campeao.setOlhar(Math.sin(t * .5) * .2, .05); this.campeao.update(dt, t); }
     // efeitos (emojis)
     this.efeitos = this.efeitos.filter(e => { const k = (t - e.t0) / (e.dur || 1.8); if (k >= 1) { this.scene.remove(e.sp); return false; } e.sp.position.set(e.base.x, e.base.y + k * 1.1, e.base.z); e.sp.material.opacity = 1 - k * k; return true; });
@@ -1260,6 +1287,8 @@ export class Estudio {
       if (this.onOlhar && agora - (this.ultOlhar || 0) > 100 && (Math.abs(this.olhar.y - (this.olharEnv?.y ?? 9)) > .01 || Math.abs(this.olhar.p - (this.olharEnv?.p ?? 9)) > .01)) {
         this.ultOlhar = agora; this.olharEnv = { ...this.olhar }; this.onOlhar(this.olhar.y, this.olhar.p);
       }
+    } else if (this.modo === 'vitrine' && this.demoV) { // demo de ação: abre o plano para caber o adversário (mais longe em tela estreita)
+      const dist = Math.max(5, 2.9 / (.384 * this.camera.aspect)); this.camera.position.set(.05, 1.7, -.7 + dist); this.camera.lookAt(.05, 1.4, -.7);
     } else if (this.modo === 'vitrine') {
       this.camera.position.set(-.25, 1.75, 3.6); this.camera.lookAt(.75, 1.45, -.6);
     } else if (this.modo === 'revelacao' && Rv) { this.camRevelacao(Rv, t); this.renderRevelacao(Rv, t);
