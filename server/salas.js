@@ -195,7 +195,7 @@ class Sala {
     const conta = this.mgr.contas.conta(perfil?.uid);
     if (!conta?.cadastro) return 'Faça seu cadastro antes de jogar.';
     if (conta.banPerm) return 'Sua conta foi banida permanentemente (3 suspensões de 30 dias por desrespeito às regras do debate).';
-    if (this.mgr.contas.banido(conta)) return conta.banAbandono === conta.banidoAte ? `Você abandonou 2 partidas em 24 horas e está suspenso(a) até ${new Date(conta.banidoAte).toLocaleString('pt-BR')}.` : `Sua conta está suspensa pela moderação até ${new Date(conta.banidoAte).toLocaleString('pt-BR')}.`;
+    if (this.mgr.contas.banido(conta)) return conta.banVotos === conta.banidoAte ? `Você foi denunciado(a) por abandono de debate por mais de 4 jogadores hoje e está suspenso(a) até ${new Date(conta.banidoAte).toLocaleString('pt-BR')}.` : conta.banAbandono === conta.banidoAte ? `Você abandonou 2 partidas em 24 horas e está suspenso(a) até ${new Date(conta.banidoAte).toLocaleString('pt-BR')}.` : `Sua conta está suspensa pela moderação até ${new Date(conta.banidoAte).toLocaleString('pt-BR')}.`;
     let nome = limparNome(conta.cadastro.nome); const base = nome; let n = 2;
     while (this.jog.some(j => j.nome.toLowerCase() === nome.toLowerCase())) nome = `${base} ${n++}`;
     let partido = PARTIDO[perfil?.partido] ? perfil.partido : null;
@@ -884,6 +884,18 @@ class Sala {
     console.log(`   Denúncia registrada: ${j.nome} denunciou ${alvo.nome} (${d.motivo}).`);
     return null;
   }
+  /** Denúncia por abandono de debate (só contra quem saiu da partida). */
+  denunciarAbandono(j, id) {
+    const alvo = this.porId(id); if (!j || !alvo || alvo === j || alvo.bot || !alvo.saiu) return { erro: 'Só é possível denunciar quem abandonou a partida.' };
+    if (j.saiu) return { erro: 'Você também saiu desta partida.' };
+    j.denunciados ||= new Set(); if (j.denunciados.has('ab:' + alvo.id)) return { erro: 'Você já denunciou este jogador por abandono.' };
+    const r = this.mgr.contas.votoAbandono(this.conta(alvo), j.uid); if (typeof r === 'string') return { erro: r };
+    j.denunciados.add('ab:' + alvo.id);
+    this.mgr.contas.denunciar({ sala: this.code, motivo: 'abandono', detalhe: r.ban ? 'Atingiu 5 denúncias por abandono em 24 h: suspenso por 1 h.' : `Denúncia ${r.n} de 5 por abandono em 24 h.`,
+      denunciante: { nome: j.nome, uid: j.uid }, denunciado: { nome: alvo.nome, uid: alvo.uid, partido: alvo.partido }, falas: [] });
+    console.log(`   Denúncia por abandono: ${j.nome} → ${alvo.nome}${r.ban ? ' (suspenso 1 h)' : ''}.`);
+    return { ok: true, ban: r.ban };
+  }
   voltarLobby() {
     this.reset(); this.fase = 'lobby';
     this.jog = this.jog.filter(j => j.conectado);
@@ -1080,6 +1092,7 @@ export class Salas {
     socket.on('pedirDica', async (d, cb) => { const s = sala(), j = eu(); if (!s || !j) return resp(cb, { erro: 'Fora de uma partida.' }); resp(cb, await s.pedirDica(j, d || {})); });
     socket.on('emote', (item, cb) => { const s = sala(), j = eu(); const e = s && j ? s.emote(j, item) : 'Fora da partida.'; resp(cb, e ? { erro: e } : { ok: true }); });
     socket.on('acao', (d, cb) => { const s = sala(), j = eu(); const e = s && j ? s.acao(j, d) : 'Fora da partida.'; resp(cb, e ? { erro: e } : { ok: true }); });
+    socket.on('denunciarAbandono', (d, cb) => { const s = sala(), j = eu(); resp(cb, s && j ? s.denunciarAbandono(j, d?.alvo) : { erro: 'Fora de uma sala.' }); });
     socket.on('denunciar', (d, cb) => { const s = sala(), j = eu(); resp(cb, { erro: s && j ? s.denunciar(j, d) : 'Fora de uma sala.' }); });
     // ---- voz entre jogadores (WebRTC): o servidor só repassa a sinalização dentro da sala ----
     socket.on('rtc', d => {

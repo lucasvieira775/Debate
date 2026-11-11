@@ -13,11 +13,13 @@ export const SEGUIDORES = {
   segundoTurno: 60, eleito: 300, banido: -300, ataque: 5, fuga: -15,
   acao: { agressor: -80, vitima: 50, simpatia: 60 }, // × peso do item (agr/simp em shared/loja.js): cadeirada ≈ −64 / +40, tomate ≈ −20 / +12, flores ≈ +18
 };
-export const ABANDONO = { limite: 2, janelaMs: 24 * 3600000, banMs: 3600000, seguidores: 200 };
+export const ABANDONO = { limite: 2, janelaMs: 24 * 3600000, banMs: 3600000, seguidores: 200, votos: 5 }; // votos: denúncias de jogadores diferentes em 24 h (mais de 4) → 1 h de suspensão
+// TESTES: todas as contas ficam com pelo menos 10 mil moedas. VOLTAR PARA null (e ECONOMIA.inicial = 100) AO FINALIZAR O JOGO.
+export const MOEDAS_TESTE = 10000;
 const limparTxt =(t, n) => String(t || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
 
 export const ECONOMIA = {
-  inicial: 100,
+  inicial: MOEDAS_TESTE || 100,
   participacao: 20, porPontoDeNota: 4, segundoTurno: 30, eleito: 80,
   dicasGratis: 1,
   pacotes: [
@@ -35,6 +37,7 @@ export class Contas {
     fs.mkdirSync(path.dirname(this.arq), { recursive: true });
     try { this.contas = JSON.parse(fs.readFileSync(this.arq, 'utf8')); } catch { this.contas = {}; }
     try { this.denuncias = JSON.parse(fs.readFileSync(this.arqDen, 'utf8')); } catch { this.denuncias = []; }
+    if (MOEDAS_TESTE) { Object.values(this.contas).forEach(c => { if ((c.moedas || 0) < MOEDAS_TESTE) c.moedas = MOEDAS_TESTE; }); this.salvar(); }
   }
   salvar() { try { fs.writeFileSync(this.arq, JSON.stringify(this.contas, null, 1)); } catch (e) { console.error('contas:', e.message); } }
   salvarDen() { try { fs.writeFileSync(this.arqDen, JSON.stringify(this.denuncias, null, 1)); } catch (e) { console.error('denúncias:', e.message); } }
@@ -181,6 +184,16 @@ export class Contas {
     }
     const xp = this.mudarXp(c, -(XP_PUNICAO.abandono + (ban ? XP_PUNICAO.suspensaoAbandono : 0)));
     this.salvar(); return { n: c.abandonos.length, ban, perda, ate: ban ? c.banidoAte : 0, xp };
+  }
+  /** Voto de denúncia por abandono: mais de 4 jogadores diferentes em 24 h → suspensão de 1 h. Retorna { n, ban } ou erro (string). */
+  votoAbandono(c, deUid) {
+    if (!c) return 'Jogador inválido.';
+    const agora = Date.now(), A = ABANDONO; c.votosAbandono = (c.votosAbandono || []).filter(v => agora - v.t < A.janelaMs);
+    if (c.votosAbandono.some(v => v.de === deUid)) return 'Você já denunciou este jogador por abandono hoje.';
+    c.votosAbandono.push({ t: agora, de: deUid });
+    let ban = false;
+    if (c.votosAbandono.length >= A.votos) { ban = true; c.votosAbandono = []; c.banidoAte = Math.max(c.banidoAte || 0, agora + A.banMs); c.banVotos = c.banidoAte; }
+    this.salvar(); return { n: c.votosAbandono.length, ban };
   }
   denunciar(d) { this.denuncias.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), data: Date.now(), status: 'aberta', ...d }); this.salvarDen(); }
 }

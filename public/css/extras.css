@@ -179,6 +179,9 @@ img.xz-av{object-fit:cover;background:#1d2a4a}
 .jl-lista{display:flex;flex-direction:column;gap:6px;overflow:auto;min-height:0}
 .jl{display:grid;grid-template-columns:40px minmax(0,1fr) 118px 70px;align-items:center;gap:7px;padding:7px 8px;background:#24176b;border:2px solid var(--borda);border-radius:14px}
 .jl.off{opacity:.55}
+.jl.saiu>*:not(.jl-info){opacity:.35}.jl.saiu .jl-info>b,.jl.saiu .jl-info>small:not(.jl-saiu){opacity:.4}
+.jl-info .jl-saiu{display:block;white-space:normal;margin-top:3px;color:#fca5a5;font-size:11px;line-height:1.25}
+.jl-denab{align-self:flex-start;white-space:nowrap;margin-top:5px;padding:3px 9px;font-size:11px;border-radius:999px;border:1px solid #ef444499;background:#3a1030;color:#fecaca;cursor:pointer}.jl-denab:hover:not(:disabled){background:#ef4444;color:#fff}.jl-denab:disabled{opacity:.6;cursor:default}
 .jl .av{width:40px;height:40px}
 .jl-info{min-width:0;display:flex;flex-direction:column;gap:2px}
 .jl-info b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.jl-cargo span{line-height:1.15;font-size:11.5px}

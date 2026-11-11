@@ -232,7 +232,9 @@ socket.on('punicao', d => {
 });
 socket.on('voce', d => { E.eu = d.id; E.jaConectou = true; salvarSessao({ code: d.code, token: d.token }); });
 socket.on('penalidade', t => t && toast(t, 'erro'));
-socket.on('saiuPartida', d => { if (d.id !== E.eu) toast(d.wo ? `${d.nome} ${d.voluntario ? 'abandonou' : 'não voltou a tempo'}. ${d.wo} vence por W.O.!` : `${d.nome} ${d.voluntario ? 'abandonou a partida' : 'não voltou a tempo e foi retirado(a) da partida'}. O debate segue.`, 'erro'); });
+socket.on('saiuPartida', d => { if (d.id === E.eu) return; sfx.clique?.();
+  anunciar(`🚪 ${d.nome.toUpperCase()} ABANDONOU O DEBATE`);
+  toast(`🚪 ${d.nome} ${d.voluntario ? 'abandonou a partida' : 'não voltou a tempo e foi retirado(a) do debate'}. ${d.wo ? `${d.wo} vence por W.O.!` : 'O debate segue.'} Você pode denunciá-lo(a) por abandono em 👥 Jogadores.`, 'erro'); });
 socket.on('voltouPartida', d => { if (d.id !== E.eu) toast(`${d.nome} voltou ao debate!`); });
 socket.on('estado', s => { if (s.fase === 'lobby') E.acoesUsadas = null; onEstado(s); });
 // ---------- ações (cadeirada, tomate, flores…): a animação roda em est.acao; no impacto, a mediação comenta ----------
@@ -985,20 +987,25 @@ function abrirJogadores(abrir) { const el = $('#h-jog'); if (!el) return; el.hid
 // lista dos candidatos da sala: retrato | nome + partido | cargo | Xzona
 function renderJogadores() {
   const el = $('#h-jog'); if (!el || el.hidden || !E.sala) return;
-  const lista = E.sala.jogadores.filter(j => !j.banido && !j.saiu).sort((a, b) => a.slot - b.slot);
-  const k = JSON.stringify(lista.map(j => [j.id, j.nome, j.partido, j.conectado, j.nivel, !!j.fanpage, j.bot, j.avatar]));
+  const lista = E.sala.jogadores.filter(j => !j.banido).sort((a, b) => !!a.saiu - !!b.saiu || a.slot - b.slot);
+  const k = JSON.stringify(lista.map(j => [j.id, j.nome, j.partido, j.conectado, j.nivel, !!j.fanpage, j.bot, j.avatar, j.saiu, E.denAband?.has(j.id)]));
   if (k === E.jogKey) return; E.jogKey = k;
   const rol = $('.jl-lista', el)?.scrollTop || 0;
-  el.innerHTML = `<div class="jl-topo"><b>👥 Jogadores no debate <span class="mut">(${lista.length})</span></b><button class="jl-x" title="Fechar (Esc)">✕</button></div><div class="jl-lista">${lista.map(j => {
-    const p = PARTIDO[j.partido], c = CARGOS[(j.nivel || 0) - 1], off = !j.bot && !j.conectado && j.id !== E.eu, fp = !j.bot && j.fanpage;
-    return `<div class="jl ${off ? 'off' : ''}"><img class="av" src="${ret(j.avatar)}" alt="">
-      <div class="jl-info"><b><span>${esc(j.nome)}</span>${!j.bot && j.id !== E.eu ? `<button class="jl-den" data-den="${j.id}" title="Denunciar ${esc(j.nome)}">🚩</button>` : ''}</b><small><i style="background:${p?.cor || '#888'}"></i>${p ? `${p.sigla} · ${p.numero}` : ''}${j.id === E.eu ? ' · você' : ''}${off ? ' · <span class="jl-off">desconectado</span>' : ''}</small></div>
+  el.innerHTML = `<div class="jl-topo"><b>👥 Jogadores no debate <span class="mut">(${lista.filter(j => !j.saiu).length})</span></b><button class="jl-x" title="Fechar (Esc)">✕</button></div><div class="jl-lista">${lista.map(j => {
+    const p = PARTIDO[j.partido], c = CARGOS[(j.nivel || 0) - 1], saiu = !!j.saiu, off = !saiu && !j.bot && !j.conectado && j.id !== E.eu, fp = !j.bot && j.fanpage, jaDen = E.denAband?.has(j.id);
+    return `<div class="jl ${off ? 'off' : ''} ${saiu ? 'saiu' : ''}"><img class="av" src="${ret(j.avatar)}" alt="">
+      <div class="jl-info"><b><span>${esc(j.nome)}</span>${!j.bot && j.id !== E.eu && !saiu ? `<button class="jl-den" data-den="${j.id}" title="Denunciar ${esc(j.nome)}">🚩</button>` : ''}</b><small><i style="background:${p?.cor || '#888'}"></i>${p ? `${p.sigla} · ${p.numero}` : ''}${j.id === E.eu ? ' · você' : ''}${off ? ' · <span class="jl-off">desconectado</span>' : ''}</small>
+      ${saiu ? `<small class="jl-saiu">🚪 Abandonou a partida · retirado(a) do debate</small>${!j.bot && j.id !== E.eu && !E.sala.jogadores.find(x => x.id === E.eu)?.saiu ? `<button class="jl-denab" data-denab="${j.id}" ${jaDen ? 'disabled' : ''}>${jaDen ? '✔ Denunciado por abandono' : '🚩 Denunciar por abandono'}</button>` : ''}` : ''}</div>
       <div class="jl-cargo">${j.bot ? '<span class="chip ia">🤖 IA</span>' : c ? `${htmlBrasao(c.n, 28)}<span>${c.nome}</span>` : ''}</div>
       <button class="jl-xz" data-xz="${j.id}" ${fp ? 'title="Ver perfil na Xzona"' : 'disabled title="sem fanpage"'}><span class="xz-logo">Xzona</span></button></div>`; }).join('')}</div>`;
   const lst = $('.jl-lista', el); lst.scrollTop = rol;
   $('.jl-x', el).onclick = () => abrirJogadores(false);
   $$('[data-den]', el).forEach(b => b.onclick = () => { const j = jog(b.dataset.den); if (!j) return; sfx.clique(); // denúncia direto daquele jogador
     janelaDenuncia([j], d => socket.emit('denunciar', d, r => r?.erro ? toast(r.erro, 'erro') : toast('Denúncia enviada aos administradores. Obrigado!', 'ok'))); });
+  $$('[data-denab]', el).forEach(b => b.onclick = () => { const j = jog(b.dataset.denab); if (!j || b.disabled) return; sfx.clique();
+    if (!confirm(`Denunciar ${j.nome} por abandono de debate?\n\nCom mais de 4 denúncias de jogadores diferentes no mesmo dia, o jogador fica suspenso por 1 hora.`)) return;
+    socket.emit('denunciarAbandono', { alvo: j.id }, r => { if (r?.erro) return toast(r.erro, 'erro'); (E.denAband ||= new Set()).add(j.id); E.jogKey = null; renderJogadores();
+      toast(r.ban ? `${j.nome} atingiu 5 denúncias por abandono hoje e foi suspenso(a) por 1 hora.` : 'Denúncia por abandono registrada. Obrigado!', 'ok'); }); });
   $$('[data-xz]', el).forEach(b => b.onclick = () => { if (b.disabled) return; const j = jog(b.dataset.xz), p = PARTIDO[j?.partido]; sfx.clique();
     if (E.demo) return toast('Demo: fanpage indisponível offline.');
     socket.emit('verFanpage', { id: b.dataset.xz }, fp => fp && j ? janelaFanpage(fp, { img: ret(j.avatar), partido: p ? `${p.sigla} ${p.numero}` : '' }) : toast('Fanpage indisponível.', 'erro')); });
@@ -1417,7 +1424,7 @@ if (demo) setTimeout(() => {
     else { est.setPulpito(true, true); est.setDuelo({ a: 'bot1', b: 'bot2', fase: 'indo' }); for (const p of est.podios.values()) if (p.caminho) p.caminho.t = adianta; }
   }
   if (demo === 'jogadores' || demo === 'etiquetas') { // ?demo=jogadores (painel aberto) | ?demo=etiquetas (brasões sobre a cabeça)
-    const niv = [1, 5, 8, 0, 3], fake = bots().map((j, i) => ({ ...j, bot: i === 3, nivel: niv[i], conectado: i !== 4, fanpage: i === 3 || i === 4 ? null : { nome: j.nome, user: 'u' + i, seguidores: 100 * (i + 1), nivel: niv[i] } }));
+    const niv = [1, 5, 8, 0, 3], fake = bots().map((j, i) => ({ ...j, bot: i === 3, nivel: niv[i], conectado: i !== 4, saiu: i === 4 && !!new URLSearchParams(location.search).get('saiu'), fanpage: i === 3 || i === 4 ? null : { nome: j.nome, user: 'u' + i, seguidores: 100 * (i + 1), nivel: niv[i] } }));
     est.setJogadores(fake, 'bot2');
     if (demo === 'etiquetas') { est.setFalante(null); est.olhar = { y: Number(new URLSearchParams(location.search).get('y')) || 1.0, p: -.12 };
       if (new URLSearchParams(location.search).get('cv')) { const box = document.createElement('div'); box.style.cssText = 'position:fixed;left:10px;top:10px;display:flex;flex-direction:column;gap:8px;z-index:99;background:#333;padding:8px'; for (const p of est.podios.values()) box.appendChild(p.et.c); document.body.appendChild(box); }
