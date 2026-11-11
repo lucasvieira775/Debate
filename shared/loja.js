@@ -42,8 +42,8 @@ export const ITENS = [
   { id: 'cj_palhaco', tipo: 'conjunto', av: { chapeu: 'palhaco', extra: 'nariz' }, nome: 'Conjunto Palhaço', preco: 170, anim: 'gargalhada', emoji: '🎪', descricao: 'Peruca colorida e nariz vermelho: o circo está armado.' },
 ];
 /** Valores bloqueados do avatar: campo → valor → ids dos itens que o liberam (basta ter um). */
-export const AV_ITEM = {};
-for (const i of ITENS) for (const [c, v] of Object.entries(i.av || {})) ((AV_ITEM[c] ||= {})[v] ||= []).push(i.id);
+export const AV_ITEM = Object.create(null); // sem protótipo: valores vindos do cliente ('constructor', '__proto__'…) não casam
+for (const i of ITENS) for (const [c, v] of Object.entries(i.av || {})) ((AV_ITEM[c] ||= Object.create(null))[v] ||= []).push(i.id);
 /** Itens que liberam avatar[campo] = valor (vazio = grátis). */
 export const itensDe = (campo, valor) => AV_ITEM[campo]?.[valor] || [];
 // Pacotes de moedas pagos em reais (PIX). Referência: uma partida rende ~60–150 moedas e todos os

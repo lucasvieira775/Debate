@@ -47,7 +47,7 @@ est.onSom = (tipo, o) => sfx[tipo]?.(o); // passos, rodinhas e trava do púlpito
 const voip = new Voip(socket, { onNivel: (id, v) => est.setFalaNivel(id, v), onFalha: () => { if (!E.voipFalhou) { E.voipFalhou = true; toast('Não deu para conectar a voz com outro jogador (rede do celular bloqueia). Tentando de novo…', 'erro'); } } });
 const atualizarConta = c => { if (!c) return; E.conta = c; if (c.cadastro && E.perfil.nome !== c.cadastro.nome) { E.perfil.nome = c.cadastro.nome; salvar(); }
   const a = E.perfil.avatar, tira = a && ['oculos', 'chapeu', 'extra', 'roupa'].filter(k => bloqueio(k, a[k])); // tira itens pagos que a conta não tem
-  if (tira?.length) { tira.forEach(k => a[k] = k === 'roupa' ? 'terno' : 'nenhum'); salvar(); } const m = $('#moedas-chip'); if (m) m.textContent = '🪙 ' + fmtN(c.moedas); };
+  if (tira?.length) { tira.forEach(k => a[k] = k === 'roupa' ? avatarAleatorio(a.genero).roupa : 'nenhum'); salvar(); } const m = $('#moedas-chip'); if (m) m.textContent = '🪙 ' + fmtN(c.moedas); };
 
 // ======================= utilidades =======================
 const agora = () => Date.now() + E.offset;
