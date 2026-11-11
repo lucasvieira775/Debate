@@ -1038,7 +1038,7 @@ export class Estudio {
     this.modo = modo; this.camTVok = false;
     if (modo === 'fp') {
       const pd = this.podios.get(this.meuId);
-      if (pd) { pd.ator.add(this.rig); this.rig.position.set(0, 2.0, -.16); this.camFP.add(this.camera); this.camera.position.set(0, 0, 0); this.camera.rotation.set(0, 0, 0); this.camera.fov = 68; this.camera.updateProjectionMatrix(); }
+      if (pd) { pd.ator.add(this.rig); this.rig.position.set(0, 2.0, .1); this.camFP.add(this.camera); this.camera.position.set(0, 0, 0); this.camera.rotation.set(0, 0, 0); this.camera.fov = 68; this.camera.updateProjectionMatrix(); }
     } else {
       this.scene.add(this.camera); this.camera.fov = modo === 'vitrine' || modo === 'vencedor' || modo === 'revelacao' ? 42 : 55; this.camera.updateProjectionMatrix();
     }

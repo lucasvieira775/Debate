@@ -211,5 +211,29 @@
   "xp": 0,
   "banidoAte": 1794411925532,
   "banAbandono": 1794411925532
+ },
+ "e8562296-8c42-4f66-8007-a732bee0f905": {
+  "uid": "e8562296-8c42-4f66-8007-a732bee0f905",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794409362484
+ },
+ "fd0c4308-7b78-4660-a5d7-ee3090fc5e33": {
+  "uid": "fd0c4308-7b78-4660-a5d7-ee3090fc5e33",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794409395895
+ },
+ "6afb6ebb-792a-440c-a2ba-6f11455a74fe": {
+  "uid": "6afb6ebb-792a-440c-a2ba-6f11455a74fe",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794409583078
  }
 }

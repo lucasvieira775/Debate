@@ -171,7 +171,7 @@ export class Avatar {
       piv.userData = { lado: s, cot, mao, folha, pipoca, base: piv.position.clone() }; this.bracos.push(piv);
     }
     // pescoço e cabeça
-    m(geo('pesc', () => new THREE.CylinderGeometry(.085, .095, .14, 14)), peleEsc, 0, .8, 0, this.torso);
+    this.pescoco = m(geo('pesc', () => new THREE.CylinderGeometry(.085, .095, .14, 14)), peleEsc, 0, .8, 0, this.torso);
     this.cabeca = new THREE.Group(); this.cabeca.position.set(0, .84, 0); this.torso.add(this.cabeca);
     const H = this.cabeca;
     if (gen === 'masculino') { m(rbox(.52, .57, .48, .1), pele, 0, .28, 0, H); m(rbox(.4, .1, .4, .05), pele, 0, .04, .02, H); } // rosto mais quadrado, queixo marcado
@@ -428,7 +428,7 @@ export class Avatar {
 
   setOlhar(y, p) { this.olhar.y = y; this.olhar.p = p; }
   setFala(v) { this.falaAlvo = Math.max(this.falaAlvo, v); }
-  ocultarCabeca(v) { this.cabeca.visible = !v; }
+  ocultarCabeca(v) { this.cabeca.visible = this.pescoco.visible = !v; }
 
   update(dt, t) {
     this.ocioso += dt;

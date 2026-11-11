@@ -1344,7 +1344,7 @@ if (demo) setTimeout(() => {
     ir('fanpage'); avisoGanhos({ total: 54, itens: [['Participação', 20], ['Desempenho', 34]], seguidores: { delta: -172, total: 388 } }); return; }
   E.demo = true; E.eu = 'bot2'; $('#ui').innerHTML = '';
   est.setJogadores(bots(), 'bot2'); est.setModo('fp'); est.setFalante('bot1');
-  est.olhar = demo === 'lado' ? { y: 1.0, p: -.15 } : { y: 0, p: -.28 };
+  est.olhar = demo === 'lado' ? { y: 1.0, p: -.15 } : demo === 'baixo' ? { y: 0, p: -.85 } : { y: 0, p: -.28 }; // ?demo=baixo (olhando o próprio corpo)
   est.setLED({ modo: 'fala', nome: 'Carlos Mendes', partido: 'MSD', tempo: '00:42', texto: 'Vou criar um programa nacional de mobilidade, com metrô e corredores de ônibus, e investir 20 bilhões no primeiro ano.', rotulo: 'Pergunta · SP · Mobilidade na metrópole' });
   setInterval(() => est.setFalaNivel('bot1', Math.random()), 120);
   est.reacao('bot3', '👏');
