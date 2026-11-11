@@ -996,5 +996,77 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794430391479
+ },
+ "fcd138c3-29e1-43a1-b3f8-1e4e4b42b5b1": {
+  "uid": "fcd138c3-29e1-43a1-b3f8-1e4e4b42b5b1",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794430501211
+ },
+ "5f2ff160-bcc5-495d-88a0-446c740097a4": {
+  "uid": "5f2ff160-bcc5-495d-88a0-446c740097a4",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794430734244
+ },
+ "0403e129-070b-4591-b1f0-e1b14503b0c1": {
+  "uid": "0403e129-070b-4591-b1f0-e1b14503b0c1",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794430743463
+ },
+ "54a66f94-dbe4-4344-90b2-5b712eac070b": {
+  "uid": "54a66f94-dbe4-4344-90b2-5b712eac070b",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794430750994
+ },
+ "d2221034-38aa-4b1f-ad29-e5630d45550d": {
+  "uid": "d2221034-38aa-4b1f-ad29-e5630d45550d",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794430751313
+ },
+ "5be60978-7666-4d4f-bbbd-b728d8b872f2": {
+  "uid": "5be60978-7666-4d4f-bbbd-b728d8b872f2",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794430805596
+ },
+ "4e5200c0-f208-49ed-b996-5beed7e780c7": {
+  "uid": "4e5200c0-f208-49ed-b996-5beed7e780c7",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794431137278
+ },
+ "68d7716e-6e19-457a-9494-897635624db1": {
+  "uid": "68d7716e-6e19-457a-9494-897635624db1",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794431137771
+ },
+ "0bb23ccc-cf8c-44e0-be83-78e5a628d73c": {
+  "uid": "0bb23ccc-cf8c-44e0-be83-78e5a628d73c",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794431189941
  }
 }
