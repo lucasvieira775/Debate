@@ -800,9 +800,9 @@ class Sala {
   emote(j, item) {
     const it = ITEM[item]; if (!it || !j) return 'Item inválido.';
     if (!j.bot && !this.mgr.contas.tem(this.conta(j), item)) return 'Você não tem esse item.';
-    // limite: emotes/provocações a cada 15 s, danças a cada 1 min
-    const k = it.tipo === 'danca' ? 'ultDanca' : 'ultEmote', espera = (it.tipo === 'danca' ? 60000 : 15000) - (Date.now() - (j[k] || 0));
-    if (espera > 0) return `Aguarde ${Math.ceil(espera / 1000)} s para ${it.tipo === 'danca' ? 'dançar' : 'usar um emote'} de novo.`;
+    // limite: emotes, danças e provocações — 1 min entre usos (cada tipo)
+    const k = 'ult_' + it.tipo, espera = 60000 - (Date.now() - (j[k] || 0));
+    if (espera > 0) return `Aguarde ${Math.ceil(espera / 1000)} s para ${it.tipo === 'danca' ? 'dançar' : it.tipo === 'provocacao' ? 'provocar' : 'usar um emote'} de novo.`;
     j[k] = Date.now();
     this.io.to(this.code).emit('emote', { id: j.id, item });
   }
