@@ -23,6 +23,7 @@ import { XP, XP_PUNICAO, cargo } from '../shared/niveis.js';
 import { Pagamentos } from './pagamentos.js';
 import { PACOTES_MOEDAS } from '../shared/loja.js';
 import { gerarDica } from './dicas.js';
+import { revisarFala } from './revisao.js';
 import { ITEM, AV_ITEM, ACAO_ESPERA_MS } from '../shared/loja.js';
 import { postsDaFala, postsDe } from '../shared/xzona.js';
 import * as xz from '../shared/xzona.js'; // xz.postsDaAcao (repercussão das ações), se existir
@@ -786,7 +787,7 @@ class Sala {
       const xp = this.mgr.contas.mudarXp(c, xpGanho);
       this.mgr.contas.creditar(c, total, 'Partida de debate'); c.partidas = (c.partidas || 0) + 1; if (r.vencedor === j.id) c.vitorias = (c.vitorias || 0) + 1; this.mgr.contas.salvar();
       const m = j.st.melhor, seguidores = this.mgr.contas.registrarDebate(c, { nota: perf(j.st), eleito: r.vencedor === j.id, segundoTurno: finalistas.includes(j.id), banido: !!j.banido,
-        ataques: j.st.ataques, fugas: j.st.fugas, fala: j.banido ? null : m?.texto, tema: TEMA[m?.tema]?.titulo });
+        ataques: j.st.ataques, fugas: j.st.fugas, fala: j.banido ? null : m?.texto, tema: TEMA[m?.tema]?.titulo, revisar: t => revisarFala(this.mgr.dub.chave, t) });
       this.socketDe(j.id)?.emit('ganhos', { total, itens, seguidores, xp: { ganho: xpGanho, ...xp } }); this.enviarConta(j);
     }
     this.mgr.registrarRanking(candidatos, r.r1, r.vencedor);

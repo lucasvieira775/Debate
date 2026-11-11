@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ITEM, GRATIS } from '../shared/loja.js';
+import { revisarLocal } from '../shared/revisao.js';
 import { moderar, nomeImproprio, PUNICAO } from '../shared/moderacao.js';
 import { cargo, CARGOS, XP_PUNICAO } from '../shared/niveis.js';
 import { CADASTRO, validarNome, validarUser, validarIdade, formatarNome, formatarUser, chaveNome } from '../shared/cadastro.js';
@@ -106,7 +107,7 @@ export class Contas {
     this.salvar(); return null;
   }
   /** Fim de debate: ganha/perde seguidores e publica a melhor fala. Retorna { delta, total, itens } ou null. */
-  registrarDebate(c, { nota, eleito, segundoTurno, banido, ataques = 0, fugas = 0, fala, tema }) {
+  registrarDebate(c, { nota, eleito, segundoTurno, banido, ataques = 0, fugas = 0, fala, tema, revisar }) {
     const f = c?.fanpage; if (!f) return null;
     const itens = [];
     if (banido) itens.push(['Banido ao vivo', SEGUIDORES.banido]);
@@ -122,9 +123,11 @@ export class Contas {
     f.seguidores += delta;
     if (fala) {
       const viral = Math.max(.2, nota / 5) * (eleito ? 3 : 1);
-      f.posts.unshift({ t: Date.now(), texto: limparTxt(fala, 400), tema: tema || '', nota: Math.round(nota * 10) / 10, delta,
-        curtidas: Math.round((20 + Math.random() * 300) * viral), reposts: Math.round((2 + Math.random() * 60) * viral), respostas: Math.round(Math.random() * 40 * viral) });
+      const post = { t: Date.now(), texto: limparTxt(revisarLocal(fala), 400), tema: tema || '', nota: Math.round(nota * 10) / 10, delta,
+        curtidas: Math.round((20 + Math.random() * 300) * viral), reposts: Math.round((2 + Math.random() * 60) * viral), respostas: Math.round(Math.random() * 40 * viral) };
+      f.posts.unshift(post);
       if (f.posts.length > SEGUIDORES.maxPosts) f.posts.length = SEGUIDORES.maxPosts;
+      revisar?.(fala).then(t => { if (t) { post.texto = limparTxt(t, 400); this.salvar(); } }).catch(() => {}); // refino (Gemini) chega depois
     }
     this.salvar();
     return { delta, total: f.seguidores, itens };

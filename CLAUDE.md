@@ -25,7 +25,7 @@ Jogo multiplayer 3D (1ª pessoa) de debate presidencial. Node + Express 5 + Sock
 - `index.js` — Express (estáticos: `public/`, `/shared`, `/vendor/three`, `/audio`), API admin, Socket.io.
 - `salas.js` — `class Sala` (l.62) e `class Salas` (l.694). Sala: jornalista/narração (~74), jogadores (~183), partida `iniciar/irPara/prepararFala` (~272), bots IA (~356), moderação/plateia `banir/plateia/finalizar/escolher` (~434), apuração `finalizarDebate/encerrarPartida` (~544), Xzona (~633), dica (~636), ferramentas do jornalista (~653), emotes (~666), denúncia (~673). Salas: `conectar(socket)` (~730) = todos os handlers de eventos socket. Confronto direto: `escolher` → `this.duelo {a,b,fase:'indo'|'no'|'voltando'}` (caminhada `CAMINHADA_MS`), `proximo()` chama `encerrarDuelo` quando o próximo passo não é do duelo; `elegiveis(p)` aplica o equilíbrio (`alvosValidos` em regras.js).
 - `voz.js` — `class Dublagem`: TTS Gemini com cache em `dados/audio` (VERSAO no hash), fallback p/ voz do navegador.
-- `narracao.js` — falas fixas da(o) jornalista. `dicas.js` — dicas da assessoria (Gemini + fallback local). `contas.js` — moedas/economia, `dados/contas.json`.
+- `narracao.js` — falas fixas da(o) jornalista. `dicas.js` — dicas da assessoria (Gemini + fallback local). `contas.js` — moedas/economia, `dados/contas.json`. `revisao.js` — `revisarFala` (Gemini corrige a fala antes de ir pra fanpage da Xzona; fallback `revisarLocal` em `shared/revisao.js`, sem custo).
 
 **shared/** (usado no server e no navegador via `/shared`)
 - `regras.js` — partidos, ideologias, temas dos 27 estados (`TEMA_BASE` l.36), tempos (`SEGUNDOS`), `analisar` (nota da fala), `aplicar`, `apurar` (votação), avatares (`AV`), jornalistas.
