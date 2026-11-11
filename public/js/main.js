@@ -773,7 +773,7 @@ function telaSala(ui) {
 const ABAS = { aparencia: '👤 Aparência', roupas: '👔 Roupas', acessorios: '👓 Acessórios', expressoes: '🙂 Expressões', partido: '🏛 Partido' };
 /** Item mais barato da loja que libera avatar[campo] = valor, se o jogador ainda não o tem (senão undefined). */
 const bloqueio = (campo, valor) => { const ids = itensDe(campo, valor); if (!ids.length || ids.some(id => E.conta?.itens?.includes(id))) return; return ids.map(id => ITEM[id]).sort((x, y) => x.preco - y.preco)[0]; };
-const rotulos = (campo, opcoes) => Object.fromEntries(Object.entries(opcoes).map(([k, v]) => { const it = bloqueio(campo, k); return [k, it ? `🔒 ${v} · 🪙 ${it.preco}${it.tipo === 'conjunto' ? ` (${it.nome})` : ''}` : v]; }));
+const ICONE_ROUPA = { terno: '🤵', terno_aberto: '🧥', blazer: '💼', saia: '👗', social: '👔', colete: '🦺', polo: '👕', batina: '⛪', pastor: '📖' };
 function setAv(campo, valor) {
   const it = bloqueio(campo, valor); if (it) { E.lojaAba = it.tipo; toast(`"${it.nome}" está na Loja por 🪙 ${it.preco}.`); return ir('loja'); }
   E.perfil.avatar = { ...E.perfil.avatar, [campo]: valor };
@@ -814,14 +814,15 @@ function telaPersonalizar(ui) {
 function renderPersConteudo() {
   const el = $('.pers-conteudo'); if (!el) return; const a = E.perfil.avatar;
   const cores = (campo, lista) => `<div class="cores">${lista.map(c => `<button class="cor ${a[campo] === c ? 'on' : ''}" style="background:${c}" data-c="${campo}" data-v="${c}"></button>`).join('')}</div>`;
-  const tiles = (campo, opcoes, comRetrato = true) => `<div class="grade">${Object.entries(opcoes).map(([v, nome]) => `<button class="opc ${a[campo] === v ? 'on' : ''}" data-c="${campo}" data-v="${v}">${comRetrato ? `<img src="${ret({ ...a, [campo]: v })}">` : ''}<span>${esc(nome)}</span></button>`).join('')}</div>`;
+  const tiles = (campo, opcoes, comRetrato = true, icones) => `<div class="grade">${Object.entries(opcoes).map(([v, nome]) => { const it = bloqueio(campo, v);
+    return `<button class="opc ${a[campo] === v ? 'on' : ''} ${it ? 'bloq' : ''}" data-c="${campo}" data-v="${v}" ${it ? `title="${esc(it.nome)} · 🪙 ${it.preco}"` : ''}>${comRetrato ? `<img src="${ret({ ...a, [campo]: v })}">` : icones ? `<i class="opc-ico">${icones[v] || '✨'}</i>` : ''}<span>${esc(nome)}</span>${it ? `<small class="opc-preco">🔒 🪙 ${it.preco}</small>` : ''}</button>`; }).join('')}</div>`;
   const tg = (campo, nome) => `<div class="cfg-linha"><span>${nome}</span><button class="toggle ${a[campo] ? 'on' : ''}" data-t="${campo}"></button></div>`;
   const g = (t, c) => `<div class="grupo"><h4>${t}</h4>${c}</div>`;
   let h = '';
   switch (E.persAba) {
     case 'aparencia': h = g('Sexo', tiles('genero', AV.generos)) + g('Cor da pele', cores('pele', AV.peles)) + g('Cabelo', tiles('cabelo', AV.cabelos)) + g('Cor do cabelo', cores('corCabelo', AV.coresCabelo)) + g('Tipo físico', tiles('corpo', { magro: 'Magro', medio: 'Médio', largo: 'Largo' }, false)); break;
-    case 'roupas': h = g('Traje', tiles('roupa', rotulos('roupa', AV.roupas), false)) + g('Cor do paletó / roupa', cores('corRoupa', AV.coresRoupa)) + g('Cor da camisa', cores('corCamisa', AV.coresCamisa)) + g('Cor da gravata / boné', cores('corGravata', AV.coresGravata)); break;
-    case 'acessorios': h = g('Óculos', tiles('oculos', rotulos('oculos', AV.oculos))) + g('Chapéu', tiles('chapeu', rotulos('chapeu', AV.chapeus))) + g('Extras', tiles('extra', rotulos('extra', AV.extras))) + g('Barba', tiles('barba', AV.barbas)) + g('Detalhes', tg('broche', 'Broche verde-amarelo na lapela') + tg('brinco', 'Brincos')); break;
+    case 'roupas': h = g('Traje', tiles('roupa', AV.roupas, false, ICONE_ROUPA)) + g('Cor do paletó / roupa', cores('corRoupa', AV.coresRoupa)) + g('Cor da camisa', cores('corCamisa', AV.coresCamisa)) + g('Cor da gravata / boné', cores('corGravata', AV.coresGravata)); break;
+    case 'acessorios': h = g('Óculos', tiles('oculos', AV.oculos)) + g('Chapéu', tiles('chapeu', AV.chapeus)) + g('Extras', tiles('extra', AV.extras)) + g('Barba', tiles('barba', AV.barbas)) + g('Detalhes', tg('broche', 'Broche verde-amarelo na lapela') + tg('brinco', 'Brincos')); break;
     case 'expressoes': h = g('Expressão padrão', tiles('expressao', { simpatico: 'Simpático', serio: 'Sério', confiante: 'Confiante', bravo: 'Bravo' })) + '<p class="mut" style="font-size:13px">A boca se mexe sozinha quando você fala no microfone.</p>'; break;
     case 'partido': {
       const ocupados = new Set((E.sala?.jogadores || []).filter(j => j.id !== E.eu).map(j => j.partido));
@@ -1298,7 +1299,7 @@ window.__debate = { E, est, socket };
 // modo de demonstração visual: ?demo=fp | ?demo=lado | ?demo=vitrine
 const demo = new URLSearchParams(location.search).get('demo');
 if (demo) setTimeout(() => {
-  if (demo === 'vitrine') { E.perfil.nome ||= 'Demo'; ir('personalizar'); return; }
+  if (demo === 'vitrine') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); E.persAba = new URLSearchParams(location.search).get('aba') || E.persAba; ir('personalizar'); return; } // ?demo=vitrine&aba=roupas
   if (demo === 'config') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('config'); return; } // ?demo=config
   if (demo === 'emote') { const q = new URLSearchParams(location.search), it = ITEM[q.get('item')]; E.perfil.nome ||= 'Demo'; if (it.av) E.perfil.avatar = { ...E.perfil.avatar, ...it.av, ...it.cores, genero: 'masculino', barba: q.get('barba') || E.perfil.avatar.barba }; ir('personalizar'); $('#ui').style.opacity = 0; est.testarNaVitrine({ ...it, tipo: 'danca' }); if (est.vitrine?.anim) est.vitrine.anim.ini = -(Number(q.get('t')) || 0); return; } // &t=1 começa a animação 1 s adiantada // ?demo=emote&item=chorao
   if (demo === 'loja') { E.perfil.nome ||= 'Demo'; E.lojaAba = new URLSearchParams(location.search).get('aba') || 'moedas'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('loja'); return; } // ?demo=loja&aba=assessoria
