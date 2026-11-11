@@ -74,7 +74,7 @@ export const REGRAS_DEBATE = [
   ['🤝 Respeite os candidatos', 'Critique ideias e propostas, nunca a pessoa. Nada de xingamentos, apelidos ou deboche.'],
   ['🎤 Respeite a mediação', 'A(o) jornalista conduz o debate. Palavrão pesado contra a mediação conta como 2 advertências.'],
   ['⏱ Fale na sua vez', 'Respeite o tempo e a ordem das falas. Não atrapalhe a fala dos outros.'],
-  ['🚫 Tolerância zero', 'Racismo, xenofobia, machismo, LGBTfobia, ameaças, violência ou apologia ao nazismo: expulsão imediata da sala.'],
+  ['🚫 Tolerância zero', 'Racismo, xenofobia, machismo, LGBTfobia, ameaças, violência ou apologia ao nazismo: na 1ª vez, 2 advertências (a transcrição de voz pode errar); se repetir, expulsão imediata da sala.'],
   ['🗣 Debate quente', '“Idiota”, “canalha”, “cala a boca”, “drogado” e afins: só chamada de atenção, sem punição.'],
   ['⚠ Advertências', 'Só palavrões pesadíssimos (“filho da puta”, “vai tomar no...”) geram advertência e derrubam a nota.'],
   ['⛔ Banimentos', `${PUNICAO.advertencias} advertências = banido da sala (sai da votação, não ganha moedas e perde seguidores na Xzona). ${PUNICAO.bansSemana} banimentos na semana = conta suspensa por ${PUNICAO.diasSemana} dias. ${PUNICAO.suspMes} suspensões de ${PUNICAO.diasSemana} dias no mês = conta suspensa por ${PUNICAO.diasMes} dias. ${PUNICAO.susp30Perm} suspensões de ${PUNICAO.diasMes} dias = conta banida permanentemente.`],

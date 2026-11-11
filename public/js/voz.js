@@ -1,6 +1,9 @@
 // Reconhecimento de voz (pt-BR), medidor de volume, voz da mediadora e efeitos sonoros.
+import { moderar } from '/shared/moderacao.js';
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 export const temReconhecimento = !!SR;
+// o reconhecimento às vezes "ouve" ofensa onde não houve: entre as alternativas que ele considerou, fica com a primeira sem ofensa grave
+const melhor = r => { for (let k = 0; k < r.length; k++) if (!moderar(r[k].transcript).grave) return r[k].transcript; return r[0].transcript; };
 export const contextoSeguro = window.isSecureContext;
 
 export function msgErroVoz(code) {
@@ -26,6 +29,8 @@ export class Microfone {
     this.ativo = false; this.final = ''; this.interim = ''; this.rec = null; this.vu = null; this.trilha = null;
   }
   get texto() { return (this.final + this.interim).trim(); }
+  /** Só o que o reconhecimento já confirmou (sem o trecho provisório, que muda e erra muito). */
+  get confirmado() { return (this.final + (celular ? this.sessao || '' : '')).trim(); }
   /** Inicia o reconhecimento: na faixa compartilhada do chat de voz (se houver) ou no microfone direto. */
   partir(rec) { if (this.trilha) rec.start(this.trilha); else rec.start(); }
   largarTrilha() { this.trilha?.stop(); this.trilha = null; }
@@ -51,23 +56,23 @@ export class Microfone {
     return true;
   }
   criar() {
-    const rec = this.rec = new SR(); rec.lang = 'pt-BR'; rec.continuous = !celular; rec.interimResults = true; rec.maxAlternatives = 1;
+    const rec = this.rec = new SR(); rec.lang = 'pt-BR'; rec.continuous = !celular; rec.interimResults = true; rec.maxAlternatives = 5;
     rec.onstart = () => this.rec === rec && this.onStatus?.('Microfone ligado: pode falar.');
     rec.onspeechstart = () => this.rec === rec && this.onStatus?.('Ouvindo e transcrevendo…');
     rec.onresult = e => {
       if (this.rec !== rec) return;
       if (celular) { // sessão curta: reconstrói a frase inteira a cada evento (evita duplicação do Android)
         let fin = '', inte = '';
-        for (let i = 0; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) fin += r[0].transcript.trim() + ' '; else inte += r[0].transcript; }
+        for (let i = 0; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) fin += melhor(r).trim() + ' '; else inte += melhor(r); }
         this.sessao = fin; this.interim = (fin + inte).trim(); this.onNivel?.(.5 + Math.random() * .4);
       } else {
         let interim = '';
         for (let i = e.resultIndex; i < e.results.length; i++) {
-          const r = e.results[i]; if (r.isFinal) this.final += r[0].transcript.trim() + ' '; else interim += r[0].transcript;
+          const r = e.results[i]; if (r.isFinal) this.final += melhor(r).trim() + ' '; else interim += melhor(r);
         }
         this.interim = interim;
       }
-      this.onTexto?.(this.texto);
+      this.onTexto?.(this.texto, this.confirmado);
     };
     rec.onerror = e => {
       if (this.rec !== rec || e.error === 'no-speech' || e.error === 'aborted') return;

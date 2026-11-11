@@ -487,13 +487,14 @@ class Sala {
     this.emit();
     this.later(2500, () => this.finalizar(f.texto));
   }
-  receberTexto(socket, id, t) {
+  receberTexto(socket, id, t, conf) {
     const f = this.fala, p = this.passo;
     if (!f || p.falante !== id || !(f.status === 'ativo' || f.status === 'encerrando')) return;
     f.texto = String(t || '').slice(0, 4000);
     socket.to(this.code).emit('texto', { t: f.texto });
-    const mod = moderar(f.texto); // discriminação/ameaça interrompe a fala na hora
-    if (mod.expulsa) this.banir(this.porId(id), mod.grave);
+    // reincidência em discriminação/ameaça interrompe a fala na hora — só pelo trecho já confirmado (o provisório erra muito)
+    const j = this.porId(id), mod = moderar(String(conf ?? t ?? '').slice(0, 4000));
+    if (mod.expulsa && j?.alertaGrave) this.banir(j, mod.grave);
   }
   // ---------- moderação e plateia ----------
   emAtivo() { return this.jog.filter(j => !j.banido && !j.saiu); }
@@ -574,11 +575,13 @@ class Sala {
     this.limpar();
     texto = (texto || '').trim();
     const mod = moderar(texto, this.jorn?.nome), quem = this.porId(p.falante);
-    if (mod.expulsa) { f.texto = texto; return this.banir(quem, mod.grave); }
+    // a transcrição pode ter errado: a 1ª ofensa grave na partida vale 2 advertências e aviso; a reincidência expulsa
+    if (mod.expulsa && quem?.alertaGrave) { f.texto = texto; return this.banir(quem, mod.grave); }
+    if (mod.expulsa) { quem.alertaGrave = true; this.socketDe(quem.id)?.emit('alertaGrave', { motivo: mod.grave }); }
     // regras: só palavrão pesadíssimo pune (1 advertência, 2 se for contra a mediação); xingamento comum / "cala a boca" = só chamada de atenção
     const ofensa = !!mod.grave, atencao = mod.leves[0] || mod.brandas[0];
-    const nAdv = ofensa ? (mod.mediador ? 2 : 1) : 0;
-    const motivo = 'palavrão pesado' + (mod.mediador ? ' contra a mediação' : '');
+    const nAdv = mod.expulsa ? 2 : ofensa ? (mod.mediador ? 2 : 1) : 0;
+    const motivo = mod.expulsa ? `${mod.grave} (1º aviso: se repetir, expulsão)` : 'palavrão pesado' + (mod.mediador ? ' contra a mediação' : '');
     if (nAdv) { f.texto = texto; if (this.advertir(quem, motivo, nAdv)) return; }
     const porId = Object.fromEntries(this.jog.map(j => [j.id, j]));
     const res = analisar(texto, p, this.jog.map(j => ({ id: j.id, nome: j.nome, sigla: j.partido })));
@@ -1061,7 +1064,7 @@ export class Salas {
     socket.on('iniciar', (_, cb) => { const s = sala(); if (!s || !ehHost() || s.fase !== 'lobby') return; resp(cb, { erro: s.iniciar() }); });
     socket.on('avancar', () => { if (eu()) sala().avancar(socket.data.pid); });
     socket.on('comecar', d => sala()?.comecar(socket.data.pid, d?.mic));
-    socket.on('texto', d => { const s = sala(); if (s) s.receberTexto(socket, socket.data.pid, d?.t); });
+    socket.on('texto', d => { const s = sala(); if (s) s.receberTexto(socket, socket.data.pid, d?.t, d?.conf); });
     socket.on('confirmar', d => sala()?.confirmar(socket.data.pid, d?.t));
     socket.on('escolher', d => sala()?.escolher(socket.data.pid, d?.alvo));
     socket.on('revelar2', () => { if (ehHost()) sala().revelar2(); });

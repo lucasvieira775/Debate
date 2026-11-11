@@ -89,15 +89,15 @@ function bots() {
 
 // ======================= microfone =======================
 let envT = 0, envTimer = null, nivelT = 0;
-function enviarTexto(t) {
-  E.meuTexto = t;
-  const enviar = () => { envT = Date.now(); socket.emit('texto', { t: E.meuTexto }); };
+function enviarTexto(t, conf = t) { // conf = parte já confirmada pelo reconhecimento (só ela pode punir durante a fala)
+  E.meuTexto = t; E.meuConf = conf;
+  const enviar = () => { envT = Date.now(); socket.emit('texto', { t: E.meuTexto, conf: E.meuConf }); };
   clearTimeout(envTimer);
   if (Date.now() - envT > 220) enviar(); else envTimer = setTimeout(enviar, 220);
   atualizarLegenda();
 }
 const mic = new Microfone({
-  onTexto: t => { const ta = $('#h-ta'); if (ta) { ta.value = t; ta.scrollTop = ta.scrollHeight; } enviarTexto(t); },
+  onTexto: (t, conf) => { const ta = $('#h-ta'); if (ta) { ta.value = t; ta.scrollTop = ta.scrollHeight; } enviarTexto(t, conf); },
   onNivel: v => {
     const b = $('#h-vu'); if (b) b.style.width = Math.min(100, v * 100) + '%';
     if (Date.now() - nivelT > 120) { nivelT = Date.now(); socket.emit('nivel', v); }
@@ -222,6 +222,7 @@ socket.on('advertencia', d => {
   toast(`${d.id === E.eu ? 'Você recebeu' : d.nome + ' recebeu'} ${d.dupla ? '2 advertências' : 'uma advertência'} da moderação: ${d.motivo} (${d.n}/${d.max}).${d.id === E.eu && d.n === d.max - 1 ? ' Mais uma e você está fora!' : ''}`, 'erro');
 });
 socket.on('tempoExtra', d => { anunciar(`⏱ +${d.s} s PARA ${d.nome.toUpperCase()}`); toast(`⏱ ${d.id === E.eu ? 'Você foi agredido(a)' : d.nome + ' foi agredido(a)'} durante a fala: +${d.s} s no relógio.`); });
+socket.on('alertaGrave', d => toast(`⚠ A transcrição registrou ${d.motivo} na sua fala. Se foi erro do reconhecimento de voz, fale com calma e pausadamente. Se acontecer de novo, você será expulso(a) da sala.`));
 socket.on('atencao', d => toast(`🗣 Chamada de atenção para ${d.id === E.eu ? 'você' : d.nome}: “${d.termo}” não é postura de debate. Desta vez, sem punição.`));
 socket.on('punicao', d => {
   let msg = d.susp === 'perm' ? 'Sua conta foi BANIDA PERMANENTEMENTE (3ª suspensão de 30 dias).'
