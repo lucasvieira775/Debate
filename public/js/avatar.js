@@ -627,6 +627,10 @@ for (const [k, s] of Object.entries({ festa: 1, samba: 1, robo: .6, passinho: 1,
   const f = POSES[k]; POSES[k] = u => ({ sorriso: s, ...f(u) });
 }
 export const ANIMACOES = Object.keys(POSES);
+/** Poses vindas de outros módulos (ex.: public/js/acoes/): fn(u) devolve o mesmo formato das POSES acima. */
+export function registrarPose(nome, fn, sorriso = 0) { POSES[nome] = sorriso ? u => ({ sorriso, ...fn(u) }) : fn; }
+/** Fórmulas-chave dos braços (Q) e repouso (REP), para quem cria poses fora deste arquivo. */
+export const POSE_Q = Q;
 
 // ---------- retratos (imagem 2D do rosto para a interface) ----------
 let rRenderer = null, rScene = null, rCam = null;

@@ -34,6 +34,27 @@ const temaComPergunta = t => `${aberturaTema(t)} ${t.pergunta}`;
 /** Todos os trechos de tema (54 temas), para gerar em segundo plano. */
 export const trechosTemas = () => TEMAS.flatMap(t => [temaComPergunta(t), aberturaTema(t)]);
 
+// ações da loja (cadeirada, tomate, flores…): falas fixas, sem nome (ficam em cache na dublagem)
+export const FALAS_ACAO = [
+  'Calma, gente, vamos manter a calma! Não foi nada, candidato, levante!',
+  'Opa, opa, opa! Isso aqui é um debate, não é ringue! Candidato, o senhor está bem? Levante, por favor!',
+  'Pelo amor de Deus, gente! Produção, alguém ajuda aqui! Não foi nada, candidato, respira fundo e levanta!',
+  'Senhores, senhoras, isso é inadmissível! Vamos voltar às propostas! Tá tudo bem aí, candidato?',
+  'Gente, a audiência está lá em cima, mas vamos com calma! Levanta, candidato, sacode a poeira!',
+  'Isso não estava no regulamento! Candidato, levante, a democracia precisa do senhor!',
+  'Calma, calma! Ninguém se machucou de verdade. Vamos manter o nível, por favor!',
+  'Que é isso, minha gente! Segura essa emoção aí! Candidato, levante, o debate continua!',
+  'Ai, meu Deus! Corta pro intervalo! Não, não, estamos ao vivo! Levanta, candidato, não foi nada!',
+  'Vamos respeitar o adversário, por favor! Candidato, levante, foi só um susto!',
+];
+export const FALAS_FLORES = [
+  'Que lindo! Olha só, gente, finalmente um pouco de amor neste debate!',
+  'Ownn, que gesto bonito! É disso que o Brasil precisa: mais flores e menos cadeiradas!',
+  'Que carinho! Até a bancada da mediação ficou emocionada!',
+  'Flores no debate! A política brasileira tem jeito, sim, senhoras e senhores!',
+  'Que coisa mais fofa! Guardem esse momento, porque não acontece todo dia!',
+];
+
 export const N = {
   intro: (jorn, nomes) => [
     abertura(jorn),

@@ -10,6 +10,7 @@ import { Avatar, mat } from './avatar.js';
 import { PARTIDO, TEMAS, TEMA, AV_MEDIADORA, ETAPAS } from '/shared/regras.js';
 import { desenharSimbolo, escurecer, fmtT, clamp } from './util.js';
 import { brasao } from '/shared/niveis.js';
+import { Acoes } from './acoes/coreografia.js';
 
 const CENTRO = new THREE.Vector3(0, 0, -3.2);   // mesa da mediadora
 const RAIO = 6.4;                                // raio do arco de púlpitos
@@ -96,6 +97,7 @@ export class Estudio {
 
     this.construirPalco(); this.construirTelao(); this.construirPlateia(); this.construirLuzes(); this.construirMediadora(); this.construirDuelo(); this.construirConfete();
     this.vitrine = null;
+    this.acoes = new Acoes(this); // cadeirada, tomate, flores… (public/js/acoes/)
 
     this.composer = new EffectComposer(r);
     this.composer.addPass(new RenderPass(s, this.camera));
@@ -669,6 +671,7 @@ export class Estudio {
       const k = ids.indexOf(p.id);
       const quer = k >= 0 ? 'duelo' : 'podio';
       if (k >= 0) p.lado = ladoDe(k);
+      if (this.acoes.ocupado(p.id)) continue; // no meio de uma ação: ao terminar, a ação chama aplicarDuelo de novo
       if (p.lugar === quer && !p.caminho) { if (instantaneo) this.colocarAtor(p, quer); continue; }
       if (p.caminho?.destino === quer && !instantaneo) continue; // já está a caminho
       if (instantaneo || (d && d.fase === 'no' && quer === 'duelo')) { this.colocarAtor(p, quer); continue; } // entrou no meio: já aparece no lugar
@@ -744,7 +747,7 @@ export class Estudio {
     else this.onSom('passo', { ...this.somEm(pos.clone().setY(.1), .8), tenis });
   }
   /** Você está sendo levado(a) automaticamente: a câmera não responde ao mouse. */
-  andandoEu() { return !!this.podios.get(this.meuId)?.caminho; }
+  andandoEu() { return !!this.podios.get(this.meuId)?.caminho || this.acoes.andando(this.meuId); }
   // ===================== PÚLPITOS E JOGADORES =====================
   posicaoSlot(i, n) {
     const a = ANGULOS[n][i] * D2R;
@@ -757,6 +760,7 @@ export class Estudio {
     const chave = ordenada.map(j => j.id + JSON.stringify(j.avatar) + j.partido + j.nome + !!j.bot).join('|') + n + meuId;
     if (chave === this.chaveJog) { this.atualizarNiveis(lista); this.atualizarConexoes(lista); return; }
     this.chaveJog = chave;
+    this.acoes.limpar(); // as ações em andamento apontam para os púlpitos antigos
     for (const p of this.podios.values()) { this.scene.remove(p.grupo, p.ator, p.spot, p.spot.target, p.spot.userData.corpo); }
     this.podios.clear();
     ordenada.forEach((j, i) => this.podios.set(j.id, this.criarPodio(j, i, n)));
@@ -925,7 +929,8 @@ export class Estudio {
     sp.position.copy(base); sp.scale.set(1.5, .59, 1); this.scene.add(sp);
     this.efeitos.push({ sp, t0: this.t, base, dur: 2.8 });
   }
-  /** Candidato consultando a assessoria: folheia as anotações no púlpito. */
+  /** Ação da loja (cadeirada, tomate, flores…): d = { n, id: atacante, alvo, item }. Ver public/js/acoes/coreografia.js. */
+  acao(d) { this.acoes.iniciar(d); }
   /** Vencedor dançando sozinho no centro do palco (visível só no modo 'vencedor'); cfg null remove. */
   setCampeao(cfg, anim) {
     const k = cfg ? JSON.stringify([cfg, anim]) : ''; if (this.campeaoKey === k) return; this.campeaoKey = k;
@@ -1191,7 +1196,7 @@ export class Estudio {
     if (this.excitacaoAte && performance.now() > this.excitacaoAte) { this.excitacao *= .95; if (this.excitacao < .02) { this.excitacao = 0; this.excitacaoAte = 0; } }
     this.atualizarPlateia(t, dt);
     // avatares
-    this.andarAtores(dt); this.animarPulpito(dt); this.animarCameras(dt, t);
+    this.andarAtores(dt); this.acoes.update(dt, t); this.animarPulpito(dt); this.animarCameras(dt, t);
     const prod = this.producao;
     if (prod.root.visible) { const m = this.pulp.fase === 'saindo' || prod.empurra; prod.setOlhar(m ? 0 : Math.sin(t * .7) * .3, prod.empurra ? -.1 : .02); prod.update(dt, t); this.passos(prod, prod.root.position, false, true); }
     for (const p of this.podios.values()) {
@@ -1233,7 +1238,8 @@ export class Estudio {
     const kc = 1 - Math.exp(-dt * (this.andandoEu() || this.suaveAte > t ? 3.2 : 14));
     this.olharSuave.y += (this.olhar.y - this.olharSuave.y) * kc; this.olharSuave.p += (this.olhar.p - this.olharSuave.p) * kc;
     const eu = this.podios.get(this.meuId);
-    if (this.modo === 'fp' && eu) {
+    if (this.modo === 'fp' && eu && this.acoes.camera(dt, t)) { /* você levou o golpe: câmera em 3ª pessoa (acoes/vitima.js) */ }
+    else if (this.modo === 'fp' && eu) {
       this.rig.rotation.y = this.olharSuave.y; this.rig.rotation.x = -this.olharSuave.p;
       // balanço leve da cabeça ao caminhar (sobe/desce a cada passo e inclina de lado)
       const an = eu.avatar.andar, ph = eu.avatar.faseAndar;

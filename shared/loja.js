@@ -21,6 +21,16 @@ export const ITENS = [
   { id: 'bocejo', som: 'Long exaggerated human yawn followed by a bored sigh', seg: 3, tipo: 'provocacao', nome: 'Que sono', preco: 60, anim: 'bocejo', emoji: '🥱', frase: 'Que discurso chato…' },
   { id: 'tchau', som: 'Mocking sing-song bye bye whistle with crowd ooh', seg: 2.5, tipo: 'provocacao', nome: 'Tchau, querido', preco: 80, anim: 'aceno', emoji: '👋', frase: 'Tchau, querido(a)!' },
   { id: 'pipoca', som: 'Popcorn popping and crunchy munching sounds', seg: 3, tipo: 'provocacao', nome: 'Pipoca', preco: 70, anim: 'pipoca', emoji: '🍿', frase: 'Isso vai ser bom…' },
+  // ---- ações contra (ou a favor de) outro candidato: animação 3D em public/js/acoes/ ----
+  // golpe: 'longe' = arremessa do próprio púlpito; 'perto' = leva o objeto na mão, caminha até o alvo e volta.
+  // reacao do alvo: 'sujo' (rosto sujo), 'nocaute' (cai zonzo, ZzZ e passarinhos), 'molhado', 'amor' (corações).
+  // anim = pose do atacante (avatar.js) usada também no "▶ Ver" da loja.
+  { id: 'tomate', tipo: 'acao', golpe: 'longe', reacao: 'sujo', nome: 'Tomatada', preco: 0, anim: 'arremessar', emoji: '🍅', descricao: 'Um tomate maduro voando direto na cara do adversário.', som: 'Ripe tomato splatting wetly on a face, squishy juicy splat, crowd ooohs', seg: 2 },
+  { id: 'flores', tipo: 'acao', golpe: 'longe', reacao: 'amor', nome: 'Chuva de flores', preco: 300, anim: 'arremessar', emoji: '💐', descricao: 'Joga um buquê de flores com muito amor e carinho.', som: 'Romantic soft harp glissando with gentle chimes and a sweet audience awww', seg: 3 },
+  { id: 'torta', tipo: 'acao', golpe: 'perto', reacao: 'sujo', nome: 'Torta na cara', preco: 350, anim: 'tortada', emoji: '🥧', descricao: 'Caminha até o adversário e esfrega uma torta de chantilly na cara dele.', som: 'Cream pie smashed into a face, soft wet splat, comedic slide whistle and crowd laughter', seg: 2.5 },
+  { id: 'balde', tipo: 'acao', golpe: 'perto', reacao: 'molhado', nome: 'Balde de água gelada', preco: 400, anim: 'baldeada', emoji: '🪣', descricao: 'Vira um balde de água com gelo na cabeça do adversário.', som: 'Bucket of ice water splashing over a person, big water splash and ice cubes clinking, person gasping', seg: 2.5 },
+  { id: 'paulada', tipo: 'acao', golpe: 'perto', reacao: 'nocaute', nome: 'Paulada', preco: 450, anim: 'golpePau', emoji: '🪵', descricao: 'Um pedaço de pau e uma pancada cômica na cabeça.', som: 'Cartoon wooden stick bonk on a head, hollow wooden thwack with cartoon boing', seg: 2 },
+  { id: 'cadeirada', tipo: 'acao', golpe: 'perto', reacao: 'nocaute', nome: 'Cadeirada', preco: 500, anim: 'golpeCadeira', emoji: '🪑', descricao: 'Pega a cadeira de metal do bar, caminha até o adversário e desfere a cadeirada.', som: 'Metal folding bar chair smashing on a person, loud metallic clang crash, crowd gasps', seg: 2.5 },
   // ---- acessórios e conjuntos: "av" = valores do avatar que o item desbloqueia (e veste); "cores" só é aplicado ao vestir ----
   { id: 'oc_aviador', tipo: 'acessorio', av: { oculos: 'aviador' }, nome: 'Óculos aviador dourado', preco: 120, anim: 'joinha', emoji: '🕶️', descricao: 'Armação dourada de quem já nasceu no poder.' },
   { id: 'oc_pixel', tipo: 'acessorio', av: { oculos: 'pixel' }, nome: 'Óculos pixelado', preco: 150, anim: 'joinha', emoji: '😎', descricao: 'Deal with it. O clássico dos memes.' },
@@ -57,3 +67,5 @@ export const PACOTES_MOEDAS = [
 ];
 export const ITEM = Object.fromEntries(ITENS.map(i => [i.id, i]));
 export const GRATIS = ITENS.filter(i => i.preco === 0).map(i => i.id);
+// Ações: depois de usar uma, espera 5 min para usar outra; cada ação só pode ser usada uma vez por debate.
+export const ACAO_ESPERA_MS = 5 * 60000;

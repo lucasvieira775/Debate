@@ -101,6 +101,11 @@ img.xz-av{object-fit:cover;background:#1d2a4a}
 .painel-emotes button{background:#24176b;border:2px solid var(--borda);border-radius:12px;color:#fff;padding:6px 2px;font-size:22px;cursor:pointer}
 .painel-emotes button small{display:block;font-size:10px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .painel-emotes .bloq{opacity:.35}
+.painel-emotes{max-height:380px}
+.painel-emotes .em-tit{grid-column:1/-1;font-size:12px;font-weight:800;color:#facc15;margin-top:4px}
+.painel-emotes .usada{opacity:.35;filter:grayscale(1)}
+.painel-emotes .em-alvo img{width:40px;height:40px;border-radius:50%;display:block;margin:0 auto 2px;object-fit:cover}
+.painel-emotes [data-ac]{background:#5b1430}
 
 
 /* ---------- apuração ao vivo ---------- */

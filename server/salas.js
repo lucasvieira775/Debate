@@ -9,14 +9,14 @@ const PULPITO_MS = 10000; // a produção leva ~8 s empurrando o púlpito do con
 const CAMINHADA_MS = 5500; // tempo da caminhada automática até o púlpito central (e de volta); o cliente anima em até 5 s
 import { gerarFala, nomeIA } from '../shared/ia.js';
 import { Dublagem, VOZES_IA, DIR_PLATEIA } from './voz.js';
-import { N, trechosFixos, trechosTemas, sortearVariacao } from './narracao.js';
+import { N, trechosFixos, trechosTemas, sortearVariacao, FALAS_ACAO, FALAS_FLORES } from './narracao.js';
 import { moderar, GRITOS, PUNICAO } from '../shared/moderacao.js';
 import { Contas, ECONOMIA } from './contas.js';
 import { XP, XP_PUNICAO, cargo } from '../shared/niveis.js';
 import { Pagamentos } from './pagamentos.js';
 import { PACOTES_MOEDAS } from '../shared/loja.js';
 import { gerarDica } from './dicas.js';
-import { ITEM, AV_ITEM } from '../shared/loja.js';
+import { ITEM, AV_ITEM, ACAO_ESPERA_MS } from '../shared/loja.js';
 import { postsDaFala, postsDe } from '../shared/xzona.js';
 const VOZES_GRITO = ['Fenrir', 'Leda']; // um homem e uma mulher gritando na plateia
 // "coro" da plateia: várias vozes tocadas juntas, com pequenas diferenças, soam como uma multidão
@@ -326,7 +326,7 @@ class Sala {
     if (ativos.some(j => j.id !== this.hostId && !j.pronto)) return 'Todos os candidatos precisam estar prontos.';
     this.jog = this.jog.filter(j => j.conectado);
     this.reset();
-    this.jog.forEach(j => { j.st = novoStats(); j.banido = false; j.motivoBan = null; j.dicasUsadas = 0; j.advertencias = 0; j.saiu = false; j.ausenteAte = null; clearTimeout(j.tAus); });
+    this.jog.forEach(j => { j.st = novoStats(); j.banido = false; j.motivoBan = null; j.dicasUsadas = 0; j.advertencias = 0; j.saiu = false; j.ausenteAte = null; clearTimeout(j.tAus); j.acoes = new Set(); });
     this.abst = .18 + Math.random() * .04;
     const ids = this.jog.slice().sort((a, b) => a.slot - b.slot).map(j => j.id);
     const nome = id => this.porId(id).nome;
@@ -349,6 +349,7 @@ class Sala {
       if (p.tipo === 'escolha') this.antecipar(N.escolha(nome(p.falante)));
       if (p.partes) this.antecipar(p.partes);
     }
+    this.antecipar([...FALAS_ACAO, ...FALAS_FLORES].filter(() => Math.random() < .5)); // falas das ações (cache: aos poucos cobre todas)
   }
   seg(kind) { return Math.round(SEGUNDOS[kind] * DUR_MULT[this.cfg.dur]); }
   auto(ms) { this.autoEm = Date.now() + ms; this.later(ms, () => this.proximo()); }
@@ -806,6 +807,29 @@ class Sala {
     j[k] = Date.now();
     this.io.to(this.code).emit('emote', { id: j.id, item });
   }
+  // ---------- ações (cadeirada, tomate, flores…): itens da loja usados contra outro candidato ----------
+  acao(j, d = {}) {
+    const it = ITEM[d.item], alvo = this.porId(d.alvo);
+    if (!it || it.tipo !== 'acao' || !j) return 'Ação inválida.';
+    if (this.fase !== 'debate') return 'As ações só valem durante o debate.';
+    if (!j.bot && !this.mgr.contas.tem(this.conta(j), it.id)) return `"${it.nome}" está na Loja por 🪙 ${it.preco}.`;
+    if (!alvo || alvo === j || alvo.banido || alvo.saiu) return 'Escolha um adversário.';
+    if (j.banido || j.saiu) return 'Você está fora do debate.';
+    if ((j.acoes ||= new Set()).has(it.id)) return `Você já usou "${it.nome}" neste debate.`;
+    const espera = ACAO_ESPERA_MS - (Date.now() - (j.ultAcao || 0));
+    if (espera > 0) return `Aguarde ${Math.floor(espera / 60000)}:${String(Math.ceil(espera / 1000) % 60).padStart(2, '0')} para usar outra ação.`;
+    if (Date.now() < (this.acaoAte || 0)) return 'Espere a confusão acabar!';
+    if (this.duelo && this.duelo.fase !== 'no') return 'Espere os candidatos chegarem ao púlpito.';
+    j.acoes.add(it.id); j.ultAcao = Date.now();
+    this.acaoAte = Date.now() + (it.golpe === 'perto' ? 13000 : 6000);
+    const n = this.acaoN = (this.acaoN || 0) + 1, t = pick(it.reacao === 'amor' ? FALAS_FLORES : FALAS_ACAO);
+    this.io.to(this.code).emit('acao', { n, id: j.id, alvo: alvo.id, item: it.id, fala: t });
+    // a fala da mediação toca no impacto: o áudio (já em cache, quase sempre) chega antes
+    const dub = this.mgr.dub;
+    if (dub.ativa && this.jorn) Promise.race([dub.sintetizar(t, this.jorn.voz, 'alta'), new Promise(r => setTimeout(r, 4000))])
+      .then(r => this.io.to(this.code).emit('acaoFala', { n, t, url: r?.url || null }));
+    else this.io.to(this.code).emit('acaoFala', { n, t, url: null });
+  }
   // ---------- denúncia ----------
   denunciar(j, d = {}) {
     const alvo = this.porId(d.alvo); if (!j || !alvo || alvo === j || alvo.bot) return 'Jogador inválido.';
@@ -1005,6 +1029,7 @@ export class Salas {
     // ---- partida: dica, emotes, denúncia ----
     socket.on('pedirDica', async (d, cb) => { const s = sala(), j = eu(); if (!s || !j) return resp(cb, { erro: 'Fora de uma partida.' }); resp(cb, await s.pedirDica(j, d || {})); });
     socket.on('emote', (item, cb) => { const s = sala(), j = eu(); const e = s && j ? s.emote(j, item) : 'Fora da partida.'; resp(cb, e ? { erro: e } : { ok: true }); });
+    socket.on('acao', (d, cb) => { const s = sala(), j = eu(); const e = s && j ? s.acao(j, d) : 'Fora da partida.'; resp(cb, e ? { erro: e } : { ok: true }); });
     socket.on('denunciar', (d, cb) => { const s = sala(), j = eu(); resp(cb, { erro: s && j ? s.denunciar(j, d) : 'Fora de uma sala.' }); });
     // ---- voz entre jogadores (WebRTC): o servidor só repassa a sinalização dentro da sala ----
     socket.on('rtc', d => {

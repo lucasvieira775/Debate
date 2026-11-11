@@ -123,7 +123,7 @@ export function janelaDenuncia(jogadores, enviar) {
 }
 
 // ---------------- loja ----------------
-const TIPOS = { moedas: '🪙 Moedas', assessoria: '📝 Assessoria', danca: '💃 Danças', emote: '😀 Emotes', provocacao: '😈 Provocações', acessorio: '👓 Acessórios', conjunto: '🎩 Conjuntos' };
+const TIPOS = { moedas: '🪙 Moedas', assessoria: '📝 Assessoria', danca: '💃 Danças', emote: '😀 Emotes', provocacao: '😈 Provocações', acao: '💥 Ações', acessorio: '👓 Acessórios', conjunto: '🎩 Conjuntos' };
 export const reais = v => 'R$ ' + v.toFixed(2).replace('.', ',');
 export function telaLoja(ui, { conta, info, aba, topo, comprarPacote, comprarItem, comprarMoedas, equipar, mudarAba, testar, avatar, vestir }) {
   const tem = id => conta?.itens?.includes(id);
@@ -157,7 +157,7 @@ export function telaLoja(ui, { conta, info, aba, topo, comprarPacote, comprarIte
     : aba === 'assessoria' ? `<div class="painel loja-como"><h2>Como ganhar moedas</h2><table class="tabela">
       <tr><td>Participar de um debate</td><td>🪙 ${info?.economia?.participacao}</td></tr><tr><td>Desempenho (nota × ${info?.economia?.porPontoDeNota})</td><td>até 🪙 ${info?.economia?.porPontoDeNota * 10}</td></tr>
       <tr><td>Chegar ao 2º turno</td><td>🪙 ${info?.economia?.segundoTurno}</td></tr><tr><td>Ser eleito(a)</td><td>🪙 ${info?.economia?.eleito}</td></tr>
-      <tr><td>Bônus de cargo (sobre participação + desempenho)</td><td>×1 (Candidato) até ×${String(CARGOS.at(-1).bonus).replace('.', ',')} (Presidente)</td></tr></table></div>` : aba === 'acessorio' || aba === 'conjunto' ? '<p class="mut" style="text-align:center">Depois de comprados, os itens também ficam liberados em Personalizar (Roupas e Acessórios). Conjuntos saem mais em conta que as peças separadas.</p>' : `<p class="mut" style="text-align:center">Danças tocam quando você vence. Emotes e provocações ficam no botão 😀 durante a partida.</p>`}
+      <tr><td>Bônus de cargo (sobre participação + desempenho)</td><td>×1 (Candidato) até ×${String(CARGOS.at(-1).bonus).replace('.', ',')} (Presidente)</td></tr></table></div>` : aba === 'acessorio' || aba === 'conjunto' ? '<p class="mut" style="text-align:center">Depois de comprados, os itens também ficam liberados em Personalizar (Roupas e Acessórios). Conjuntos saem mais em conta que as peças separadas.</p>' : aba === 'acao' ? '<p class="mut" style="text-align:center">Use no botão 😀 durante o debate e escolha o adversário. Cada ação vale uma vez por debate, com 5 minutos de espera entre uma ação e outra. A Tomatada é grátis!</p>' : `<p class="mut" style="text-align:center">Danças tocam quando você vence. Emotes e provocações ficam no botão 😀 durante a partida.</p>`}
   </div>`;
   $$('[data-aba]', ui).forEach(b => b.onclick = () => mudarAba(b.dataset.aba));
   $$('[data-pac]', ui).forEach(b => b.onclick = () => comprarPacote(b.dataset.pac));

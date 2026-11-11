@@ -4,10 +4,11 @@ import { Microfone, falar, calar, sfx, somItem, nivelDoAudio, setVolume, testarM
 import { PARTIDOS, PARTIDO, IDEO, AV, TEMA, TEMAS, KIND_NOME, ETAPAS, JORN, DIFICULDADES, avatarAleatorio, textoVitoria } from '/shared/regras.js';
 import { $, $$, esc, fmtN, fmtP, fmtT, lerPerfil, salvarPerfil, lerConfig, salvarConfig, lerSessao, salvarSessao, logoPartido, toast } from './util.js';
 import { Voip } from './voip.js';
+import { SONS_ACAO } from './acoes/sons.js';
 import { termosAceitos, mostrarTermos } from './termos.js';
 import { PUNICAO, REGRAS_DEBATE } from '/shared/moderacao.js';
 import { postXzona, limparXzona, mostrarDica, esconderDica, recolherDica, aoLerDica,janela, janelaDenuncia, telaLoja, avisoGanhos, reais, htmlFanpage, janelaFanpage } from './extras.js';
-import { ITENS, ITEM, PACOTES_MOEDAS, itensDe } from '/shared/loja.js';
+import { ITENS, ITEM, PACOTES_MOEDAS, itensDe, ACAO_ESPERA_MS } from '/shared/loja.js';
 import { CARGOS, XP, XP_PUNICAO, cargo, brasao, htmlBrasao } from '/shared/niveis.js';
 import { animarPromocao } from './promocao.js';
 import { CADASTRO, validarNome, validarUser, validarIdade, formatarNome, formatarUser } from '/shared/cadastro.js';
@@ -43,7 +44,8 @@ aplicarResolucao(E.cfg.resolucao);
 addEventListener('resize', () => aplicarResolucao(E.cfg.resolucao));
 const socket = io();
 const est = new Estudio($('#cena'), E.cfg);
-est.onSom = (tipo, o) => sfx[tipo]?.(o); // passos, rodinhas e trava do púlpito
+// passos, rodinhas e trava do púlpito; sons das ações (acoes/sons.js). Impacto da ação: som do ElevenLabs (se houver) ou o sintetizado
+est.onSom = (tipo, o) => tipo === 'acaoImpacto' ? somItem(o.item, () => SONS_ACAO['impacto_' + o.item]?.(o)) : (sfx[tipo] || SONS_ACAO[tipo])?.(o);
 const voip = new Voip(socket, { onNivel: (id, v) => est.setFalaNivel(id, v), onFalha: () => { if (!E.voipFalhou) { E.voipFalhou = true; toast('Não deu para conectar a voz com outro jogador (rede do celular bloqueia). Tentando de novo…', 'erro'); } } });
 const atualizarConta = c => { if (!c) return; E.conta = c; if (c.cadastro && E.perfil.nome !== c.cadastro.nome) { E.perfil.nome = c.cadastro.nome; salvar(); }
   const a = E.perfil.avatar, tira = a && ['oculos', 'chapeu', 'extra', 'roupa'].filter(k => bloqueio(k, a[k])); // tira itens pagos que a conta não tem
@@ -231,7 +233,19 @@ socket.on('voce', d => { E.eu = d.id; E.jaConectou = true; salvarSessao({ code: 
 socket.on('penalidade', t => t && toast(t, 'erro'));
 socket.on('saiuPartida', d => { if (d.id !== E.eu) toast(d.wo ? `${d.nome} ${d.voluntario ? 'abandonou' : 'não voltou a tempo'}. ${d.wo} vence por W.O.!` : `${d.nome} ${d.voluntario ? 'abandonou a partida' : 'não voltou a tempo e foi retirado(a) da partida'}. O debate segue.`, 'erro'); });
 socket.on('voltouPartida', d => { if (d.id !== E.eu) toast(`${d.nome} voltou ao debate!`); });
-socket.on('estado', s => onEstado(s));
+socket.on('estado', s => { if (s.fase === 'lobby') E.acoesUsadas = null; onEstado(s); });
+// ---------- ações (cadeirada, tomate, flores…): a animação roda em est.acao; no impacto, a mediação comenta ----------
+const acaoFalas = new Map(); // n → { t, url, impacto }
+socket.on('acao', d => { if (!ITEM[d.item]) return; acaoFalas.set(d.n, { t: d.fala }); est.acao(d); if (d.id === E.eu) { E.ultAcao = Date.now(); (E.acoesUsadas ||= new Set()).add(d.item); } });
+socket.on('acaoFala', d => { const f = acaoFalas.get(d.n); if (!f) return; f.url = d.url; f.pronta = true; if (f.impacto) falaAcao(d.n); });
+function falaAcao(n) {
+  const f = acaoFalas.get(n); if (!f || f.dita) return; f.impacto = true; if (!f.pronta) return; // espera o áudio (o servidor manda em até 4 s)
+  f.dita = true; acaoFalas.delete(n);
+  E.legAcao = { t: f.t, ate: Date.now() + Math.max(4000, f.t.length * 70) }; atualizarLegenda(); setTimeout(atualizarLegenda, E.legAcao.ate - Date.now() + 50);
+  if (f.url && E.cfg.voz && !E.micOn) tocarNarracao({ id: 'acao' + n, itens: [{ t: f.t, url: f.url }] }); else falarMediadora(f.t);
+}
+// eventos da coreografia 3D: impacto (som + comentário da mediação 0,7 s depois)
+est.onAcao = (ev, d) => { if (ev === 'impacto') { est.agitarPlateia(1, 2500); setTimeout(() => falaAcao(d.n), 700); } };
 socket.on('texto', d => { E.textoFala = d.t; const f = E.sala?.passo?.falante; if (f) est.setFalaNivel(f, .75); atualizarLegenda(); });
 socket.on('olhar', d => est.setOlharJogador(d.id, d.y, d.p));
 socket.on('nivel', d => est.setFalaNivel(d.id, d.v));
@@ -904,9 +918,20 @@ function renderHUD() {
     // emotes / danças / provocações (itens da loja)
     $('#h-emotes-b').onclick = () => {
       const p = $('#h-emotes'); p.hidden = !p.hidden; if (p.hidden) return;
-      const tem = id => E.conta?.itens?.includes(id);
-      p.innerHTML = ITENS.map(i => `<button data-em="${i.id}" class="${tem(i.id) ? '' : 'bloq'}" title="${esc(i.nome)}${tem(i.id) ? '' : ' (compre na loja)'}">${i.emoji}<small>${esc(i.nome)}</small></button>`).join('');
+      const tem = id => E.conta?.itens?.includes(id), bt = (i, at) => `<button ${at}="${i.id}" class="${tem(i.id) ? '' : 'bloq'}${E.acoesUsadas?.has(i.id) ? ' usada' : ''}" title="${esc(i.nome)}${tem(i.id) ? '' : ' (compre na loja)'}">${i.emoji}<small>${esc(i.nome)}</small></button>`;
+      const espera = Math.max(0, ACAO_ESPERA_MS - (Date.now() - (E.ultAcao || 0))), mmss = `${Math.floor(espera / 60000)}:${String(Math.ceil(espera / 1000) % 60).padStart(2, '0')}`;
+      p.innerHTML = `<div class="em-tit">💥 Ações${espera ? ` <span class="mut">· próxima em ${mmss}</span>` : ''}</div>${ITENS.filter(i => i.tipo === 'acao').map(i => bt(i, 'data-ac')).join('')}
+        <div class="em-tit">😀 Emotes, danças e provocações</div>${ITENS.filter(i => i.tipo !== 'acao').map(i => bt(i, 'data-em')).join('')}`;
       $$('[data-em]', p).forEach(b => b.onclick = () => { if (!tem(b.dataset.em)) return toast(`"${ITEM[b.dataset.em].nome}" está na Loja por 🪙 ${ITEM[b.dataset.em].preco}.`); socket.emit('emote', b.dataset.em, r => r?.erro && toast(r.erro, 'erro')); p.hidden = true; });
+      // ação: escolhe o alvo (outro candidato) na lista
+      $$('[data-ac]', p).forEach(b => b.onclick = () => {
+        const it = ITEM[b.dataset.ac]; if (!tem(it.id)) return toast(`"${it.nome}" está na Loja por 🪙 ${it.preco}.`);
+        if (E.acoesUsadas?.has(it.id)) return toast(`Você já usou "${it.nome}" neste debate.`, 'erro');
+        const alvos = (E.sala?.jogadores || []).filter(j => j.id !== E.eu && !j.banido && !j.saiu);
+        p.innerHTML = `<div class="em-tit">${it.emoji} ${esc(it.nome)}: em quem?</div>${alvos.map(j => `<button data-alvo="${j.id}" class="em-alvo"><img src="${retrato(j.avatar)}"><small>${esc(j.nome)}</small></button>`).join('')}<button data-volta class="em-alvo">↩<small>Voltar</small></button>`;
+        $('[data-volta]', p).onclick = () => { p.hidden = true; $('#h-emotes-b').click(); };
+        $$('[data-alvo]', p).forEach(a => a.onclick = () => { p.hidden = true; socket.emit('acao', { item: it.id, alvo: a.dataset.alvo }, r => { if (r?.erro) return toast(r.erro, 'erro'); E.ultAcao = Date.now(); (E.acoesUsadas ||= new Set()).add(it.id); }); });
+      });
     };
     // painel "Jogadores no debate" (abre acima dos botões; Esc / clique fora / ✕ fecha)
     $('#h-jog-b').onclick = () => { sfx.clique(); abrirJogadores($('#h-jog').hidden); };
@@ -1014,7 +1039,7 @@ function atualizarLegenda() {
   const el = $('#h-legenda'); if (!el || !E.sala) return;
   const s = E.sala, p = s.passo;
   if (s.fase !== 'debate') { el.innerHTML = ''; return; }
-  let quem = s.jorn?.nome || JORN, txt = s.textoJ, gc = '';
+  let quem = s.jorn?.nome || JORN, txt = E.legAcao?.ate > Date.now() ? E.legAcao.t : s.textoJ, gc = '';
   if (p?.tipo === 'fala' && s.fala && s.fala.status !== 'pronto') { quem = jog(p.falante)?.nome || ''; txt = p.falante === E.eu ? E.meuTexto : (E.textoFala || s.fala.texto || ''); if (!txt) txt = '…';
     const pp = PARTIDO[jog(p.falante)?.partido];
     if (pp) gc = `<span class="gc" style="--c:${pp.cor};--c2:${pp.cor2}"><img src="${logoPartido(pp.sigla, 40)}"><span class="gc-num">${pp.numero}</span><b>${pp.sigla}</b> ${esc(pp.nome)} <i>${IDEO[pp.ideo].nome}</i></span>`; }
@@ -1350,6 +1375,16 @@ if (demo) setTimeout(() => {
   est.reacao('bot3', '👏');
   if (demo === 'duelo') { // ?demo=duelo (1ª pessoa no confronto)
     est.setDuelo({ a: 'bot1', b: 'bot2', fase: 'no' }); est.olhar = { y: 0, p: -.1 };
+  }
+  // ?demo=acao&item=cadeirada&de=bot4&alvo=bot2[&eu=bot3][&duelo=1][&tv=1][&espera=0.5] — você é bot2 (o alvo) por padrão.
+  // O print sai depois de --virtual-time-budget; a ação começa "espera" segundos após a cena abrir.
+  if (demo === 'acao') {
+    const q = new URLSearchParams(location.search), eu = q.get('eu') || 'bot2';
+    est.setJogadores(bots(), eu); est.setModo(q.get('tv') ? 'tv' : 'fp'); est.setFalante(null); est.olhar = { y: 0, p: -.1 };
+    if (q.get('duelo')) { est.setPulpito(true, true); est.setDuelo({ a: q.get('alvo') || 'bot2', b: q.get('de') || 'bot4', fase: 'no' }); }
+    est.onAcao = (ev, d) => console.log('[acao]', ev, d?.item);
+    setTimeout(() => est.acao({ n: 1, id: q.get('de') || 'bot4', alvo: q.get('alvo') || 'bot2', item: q.get('item') || 'cadeirada' }), (Number(q.get('espera')) || .5) * 1000);
+    return;
   }
   if (demo === 'pulpito' || demo === 'caminhada') { // ?demo=pulpito&t=3[&sai=1][&tv=1] (produção empurrando) | ?demo=caminhada&t=1.5[&tv=1]
     const q = new URLSearchParams(location.search), adianta = Number(q.get('t')) || 0;
