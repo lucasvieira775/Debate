@@ -10,14 +10,14 @@ const TEMPO_EXTRA_MS = 15000; // vítima de agressão durante a própria fala ga
 const VAIA_AGRESSOR = .4; // nota a menos na próxima fala de quem agrediu (a plateia vaia)
 const GRITOS_AGRESSOR = {
   tomate: ['Tomate não é proposta!', 'Respeita o adversário!'], torta: ['Torta não é proposta!', 'Isso é debate, não circo!'],
-  balde: ['Balde não é argumento!', 'Isso é debate, não circo!'], paulada: ['Pancada não é argumento!', 'Violento!'],
-  cadeirada: ['Cadeirada não é proposta!', 'Violento!'],
+  balde: ['Balde não é argumento!', 'Isso é debate, não circo!'], paulada: ['Pancada não é argumento!', 'Violento!|Violenta!|Violência não!', 'Vagabundo!|Vagabunda!|Sem vergonha!'],
+  cadeirada: ['Cadeirada não é proposta!', 'Violento!|Violenta!|Violência não!', 'Vagabundo!|Vagabunda!|Sem vergonha!', 'Bandido!|Bandida!|Bandidagem!'],
 };
 const CAMINHADA_MS = 5500; // tempo da caminhada automática até o púlpito central (e de volta); o cliente anima em até 5 s
 import { gerarFala, nomeIA } from '../shared/ia.js';
 import { Dublagem, VOZES_IA, DIR_PLATEIA } from './voz.js';
 import { N, trechosFixos, trechosTemas, sortearVariacao, FALAS_ACAO, FALAS_LEVE, FALAS_FLORES } from './narracao.js';
-import { moderar, GRITOS, PUNICAO } from '../shared/moderacao.js';
+import { moderar, GRITOS, PUNICAO, flexGrito, formasGrito } from '../shared/moderacao.js';
 import { Contas, ECONOMIA, SEGUIDORES } from './contas.js';
 import { XP, XP_PUNICAO, cargo } from '../shared/niveis.js';
 import { Pagamentos } from './pagamentos.js';
@@ -28,7 +28,7 @@ import { postsDaFala, postsDe } from '../shared/xzona.js';
 import * as xz from '../shared/xzona.js'; // xz.postsDaAcao (repercussão das ações), se existir
 const VOZES_GRITO = ['Fenrir', 'Leda']; // um homem e uma mulher gritando na plateia
 // "coro" da plateia: várias vozes tocadas juntas, com pequenas diferenças, soam como uma multidão
-const CORO = { vaia: ['Buuuuuuuuu!', 'Uuuuuuuuuh!', 'Fooora!'], vibra: ['Uhuuuuuuu!', 'Éééééééé!', 'Isso aíííí!'], duelo: ['Isso é fake news!', 'Vagabundo!', 'Mentiroso!'] }; // duelo: torcida rival no fim de cada resposta do 1x1
+const CORO = { vaia: ['Buuuuuuuuu!', 'Uuuuuuuuuh!', 'Fooora!'], vibra: ['Uhuuuuuuu!', 'Éééééééé!', 'Isso aíííí!'], duelo: ['Isso é fake news!', 'Vagabundo!|Vagabunda!|Sem vergonha!', 'Mentiroso!|Mentirosa!|Mentira!'] }; // duelo: torcida rival no fim de cada resposta do 1x1
 const VOZES_CORO = ['Fenrir', 'Leda', 'Charon', 'Kore', 'Puck', 'Aoede'];
 const OPC_PLATEIA = { conferir: false, dir: DIR_PLATEIA };
 
@@ -476,7 +476,7 @@ class Sala {
     f.status = 'ativo'; f.mic = !!mic; f.fimEm = Date.now() + p.segundos * 1000;
     this.tEsg = this.later(p.segundos * 1000, () => this.esgotar()); // guardado: +15 s de quem é agredido(a) falando reprograma
     const j = this.porId(id), ag = j?.vaiaPend?.shift(); // agrediu alguém: a plateia vaia o início da próxima fala (e a nota sofre um pouco)
-    if (ag) { f.vaiado = ag; this.plateia('vaia', [], [], [pick(GRITOS_AGRESSOR[ag] || GRITOS_AGRESSOR.cadeirada), 'Agressor!']); }
+    if (ag) { f.vaiado = ag; this.plateia('vaia', [], [], [pick(GRITOS_AGRESSOR[ag] || GRITOS_AGRESSOR.cadeirada), 'Agressor!|Agressora!|Agressão não!'], generoDe(j?.avatar)); }
     this.emit();
   }
   esgotar() {
@@ -516,7 +516,7 @@ class Sala {
     if (!daVez) {
       this.fila = this.fila.filter((q, k) => k <= this.i || (q.falante !== j.id && q.alvo !== j.id));
       this.io.to(this.code).emit('banido', { id: j.id, nome: j.nome, motivo });
-      this.postarXzona(postsDe('banido', this.dadosPost(j), 3)); this.plateia('confusao');
+      this.postarXzona(postsDe('banido', this.dadosPost(j), 3)); this.plateia('confusao', [], [], [], generoDe(j.avatar));
       if (this.disputando().length < 2) { this.limpar(); this.later(2500, () => this.finalizarDebate()); }
       return this.emit();
     }
@@ -528,7 +528,7 @@ class Sala {
     this.fila = this.fila.filter((q, k) => k <= this.i || (q.falante !== j.id && q.alvo !== j.id));
     this.io.to(this.code).emit('banido', { id: j.id, nome: j.nome, motivo });
     this.postarXzona(postsDe('banido', this.dadosPost(j), 3));
-    this.plateia('confusao');
+    this.plateia('confusao', [], [], [], generoDe(j.avatar));
     this.emit();
     this.narrar(N.banido(j.nome), ms => {
       if (this.disputando().length < 2) this.later(ms + 1500, () => this.finalizarDebate());
@@ -537,8 +537,10 @@ class Sala {
     this.emit();
   }
   /** Reação da plateia: tipo 'vaia' | 'vibra' | 'ih' | 'confusao' | 'aplauso'. Gritos com voz real se já estiverem gerados. */
-  plateia(tipo, extras = [], duelo = [], fixos = []) {
-    const lista = [...fixos, ...shuffle([...(GRITOS[tipo] || []), ...extras])].slice(0, tipo === 'aplauso' ? 0 : duelo.length ? 2 : 3);
+  plateia(tipo, extras = [], duelo = [], fixos = [], genero = 'masculino') {
+    const fx = t => flexGrito(t, genero); // "Vagabundo!" / "Vagabunda!" conforme quem é vaiado(a)
+    const lista = [...fixos, ...shuffle([...(GRITOS[tipo] || []), ...extras])].slice(0, tipo === 'aplauso' ? 0 : duelo.length ? 2 : 3).map(fx);
+    const duelo0 = duelo; duelo = duelo.map(fx);
     const gritos = [...duelo.map(t => [t, 1]), ...lista.map(t => [t, 0])].map(([t, d], k) => {
       const pr = this.mgr.dub.pronto(t, VOZES_GRITO[k % 2]);
       if (!pr && (k === 0 || d)) this.mgr.dub.sintetizar(t, VOZES_GRITO[k % 2], 'baixa', false, OPC_PLATEIA); // gera aos poucos para as próximas vezes
@@ -547,19 +549,19 @@ class Sala {
     // multidão: até 8 vozes do coro tocando ao mesmo tempo
     const chaveCoro = tipo === 'confusao' ? 'vaia' : tipo === 'ih' ? null : tipo;
     const urls = ts => shuffle(ts.flatMap(t => VOZES_CORO.map(v => this.mgr.dub.pronto(t, v)?.url)).filter(Boolean));
-    const coro = [...(chaveCoro && CORO[chaveCoro] ? urls(CORO[chaveCoro]).slice(0, duelo.length ? 5 : 8) : []),
-      ...(duelo.length ? urls(duelo.filter(t => CORO.duelo.includes(t))).slice(0, 4) : [])]; // no 1x1: várias vozes repetindo as acusações
+    const coro = [...(chaveCoro && CORO[chaveCoro] ? urls(CORO[chaveCoro].map(fx)).slice(0, duelo.length ? 5 : 8) : []),
+      ...(duelo.length ? urls(duelo0.filter(t => CORO.duelo.includes(t)).map(fx)).slice(0, 4) : [])]; // no 1x1: várias vozes repetindo as acusações
     this.io.to(this.code).emit('plateia', { tipo, gritos, coro });
   }
   // duelo = falante no púlpito central do confronto 1x1 (bloco 2): a torcida rival grita 1-2 acusações
-  reagirPlateia(res, xingou, duelo = false) {
+  reagirPlateia(res, xingou, duelo = false, g = 'masculino') {
     // sempre 1-2 das acusações principais + às vezes outra do repertório
     const dg = duelo ? [...shuffle([...CORO.duelo]).slice(0, 1 + (Math.random() < .6)), ...(Math.random() < .4 ? shuffle(GRITOS.duelo.filter(t => !CORO.duelo.includes(t))).slice(0, 1) : [])] : [];
-    if (xingou) return this.plateia('confusao', [], dg);
-    if (res.nota < 4.5) return this.plateia('vaia', res.fugiu ? ['Responde a pergunta!'] : [], dg);
-    if (res.nota >= 7) return this.plateia('vibra', [], dg);
-    if (res.ataque) return this.plateia('ih', [], dg);
-    this.plateia('aplauso', [], dg);
+    if (xingou) return this.plateia('confusao', [], dg, [], g);
+    if (res.nota < 4.5) return this.plateia('vaia', res.fugiu ? ['Responde a pergunta!'] : [], dg, [], g);
+    if (res.nota >= 7) return this.plateia('vibra', [], dg, [], g);
+    if (res.ataque) return this.plateia('ih', [], dg, [], g);
+    this.plateia('aplauso', [], dg, [], g);
   }
   confirmar(id, t) {
     const f = this.fala, p = this.passo;
@@ -589,7 +591,7 @@ class Sala {
     f.texto = texto; f.status = 'avaliado'; f.res = res;
     if ((p.kind === 'pergunta' || p.kind === 'replica') && p.alvo) this.registrarPergunta({ de: this.porId(p.falante)?.nome || '', deId: p.falante, para: p.alvo, kind: p.kind, tema: p.tema, texto });
     const d = this.duelo, noDuelo = p.etapa === 2 && p.kind !== 'pergunta' && d?.fase === 'no' && (p.falante === d.a || p.falante === d.b);
-    this.reagirPlateia(res, ofensa || nAdv > 0, noDuelo);
+    this.reagirPlateia(res, ofensa || nAdv > 0, noDuelo, generoDe(this.porId(p.falante)?.avatar));
     this.postarXzona(postsDaFala(this.dadosPost(this.porId(p.falante), p), res));
     if (nAdv || mod.brandas.length) { this.emit(); this.narrar(nAdv ? N.advertencia(quem.nome) : N.ordem(), ms => this.auto(ms + 4000)); }
     else this.auto(8000);
@@ -757,7 +759,7 @@ class Sala {
   /** Revelação no cliente (close 0 ms → telão 3500 ms, ver REVELACAO em main.js): suspense já, o nome quando o telão acende. */
   revelarNome(partesNome) {
     this.narrar(N.suspense());
-    this.later(REVELA_TELAO_MS, () => { if (this.fase !== 'resultado') return; this.narrar(partesNome); this.plateia('vibra'); });
+    this.later(REVELA_TELAO_MS, () => { if (this.fase !== 'resultado') return; this.narrar(partesNome); this.plateia('vibra', [], [], [], generoDe(this.porId(this.resultado?.vencedor)?.avatar)); });
   }
   /** Fim: moedas dos candidatos e ranking. */
   encerrarPartida() {
@@ -907,8 +909,8 @@ export class Salas {
     // os 54 temas (com e sem a pergunta) nas duas vozes: depois de gerados, as falas de tema não dependem mais da API
     // (no ElevenLabs os temas não são pré-gerados, para poupar a cota de caracteres: saem na hora e ficam guardados)
     for (const t of trechosTemas()) for (const jn of JORNALISTAS) if (!this.dub.eleven(jn.voz)) this.dub.sintetizar(t, jn.voz, 'baixa');
-    for (const [t, v] of Object.values(CORO).flat().flatMap(t => VOZES_CORO.map(v => [t, v]))) this.dub.sintetizar(t, v, 'media', false, OPC_PLATEIA);
-    for (const t of GRITOS.duelo) for (const v of VOZES_GRITO) this.dub.sintetizar(t, v, 'media', false, OPC_PLATEIA); // gritos do confronto 1x1
+    for (const [t, v] of Object.values(CORO).flat().flatMap(formasGrito).flatMap(t => VOZES_CORO.map(v => [t, v]))) this.dub.sintetizar(t, v, 'media', false, OPC_PLATEIA);
+    for (const t of GRITOS.duelo.flatMap(formasGrito)) for (const v of VOZES_GRITO) this.dub.sintetizar(t, v, 'media', false, OPC_PLATEIA); // gritos do confronto 1x1
     // (gritos individuais não são mais pré-gerados: aparecem em balões e ganham voz aos poucos, um por reação)
     this.arqRanking = path.join(raiz, 'dados', 'ranking.json');
     try { this.ranking = JSON.parse(fs.readFileSync(this.arqRanking, 'utf8')); } catch { this.ranking = {}; }

@@ -169,8 +169,8 @@ export class Acoes {
     return r;
   }
   rota(a) {
-    if (a.demo) { // vitrine: reto até o lado do alvo (um pouco atrás dele, para a câmera ver o rosto dos dois)
-      const A = a.casa, Bp = a.alvo.ator.position.clone().setY(0), dir = A.pos.clone().sub(Bp).setY(0).normalize().add(V(0, 0, -.75)).normalize();
+    if (a.demo) { // vitrine: reto até o lado do alvo (um pouco à frente: a câmera vê o rosto de quem leva)
+      const A = a.casa, Bp = a.alvo.ator.position.clone().setY(0), dir = A.pos.clone().sub(Bp).setY(0).normalize().add(V(0, 0, .5)).normalize();
       a.alvoPos = Bp; return [A.pos.clone(), Bp.clone().addScaledVector(dir, DIST[a.it.id] || 1)];
     }
     const A = this.ponta(a.atk, a.orig), Bp = this.ponta(a.alvo, a.alvo.lugar === 'duelo' ? 'duelo' : 'podio');
