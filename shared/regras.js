@@ -212,7 +212,7 @@ const VICIOS = ['=ne', 'tipo assim', '=ahn', '=hum', '=eh', 'sei la', '=hmm'];
 const ATAQUE_KW = ['mentir', 'mentiroso', 'fracass', 'corrupt', 'incompeten', 'vergonh', 'escandalo', 'hipocri', 'falso', 'farsa', 'enganar', 'irresponsav', 'desastre', 'roubo', '=ladrao', 'demagog', 'populis', 'extremis', 'covard', 'omiss'];
 const MENCAO_GENERICA = ['adversari', 'oponente', '=candidato', '=candidata', 'o senhor', 'a senhora'];
 
-export const SEGUNDOS = { proposta: 60, pergunta: 30, resposta: 60, replica: 45, treplica: 45, final: 60 };
+export const SEGUNDOS = { cumprimento: 15, proposta: 60, pergunta: 30, resposta: 60, replica: 45, treplica: 45, final: 60 };
 export const DUR_MULT = { curto: .5, normal: 1, longo: 1.5 };
 export const KIND_NOME = { proposta: 'Apresentação de proposta', pergunta: 'Pergunta', resposta: 'Resposta', replica: 'Réplica', treplica: 'Tréplica', final: 'Considerações finais' };
 export const ETAPAS = ['Propostas', 'Confronto', 'Considerações finais'];
@@ -262,7 +262,7 @@ export function analisar(texto, passo, cands) {
   const t = norm(texto);
   const wc = (t.match(/[a-z0-9]+/g) || []).length;
   const extensao = Math.min(wc / Math.max(15, passo.segundos * 1.3), 1);
-  const relevancia = passo.kind === 'final' ? Math.min(hits(t, TODAS_KW) / 5, 1) : Math.min(hits(t, temaKw(passo.tema)) / 3, 1);
+  const relevancia = passo.kind === 'final' || !passo.tema ?Math.min(hits(t, TODAS_KW) / 5, 1) : Math.min(hits(t, temaKw(passo.tema)) / 3, 1);
   const propHits = hits(t, PROPOSTA_KW) + (t.match(/\d+/g) || []).length * .5 + (t.split('%').length - 1) * .5;
   const concretude = Math.min(propHits / 4, 1);
   const apelo = Math.min(hits(t, APELO_KW) / 3, 1);
@@ -289,7 +289,7 @@ export const novoStats = () => ({ somaNotas: 0, somaPesos: 0, nFalas: 0, leanSum
 /** Aplica o resultado de uma fala às estatísticas. porId: id -> {st, ideo} */
 export function aplicar(passo, texto, r, porId) {
   const c = porId[passo.falante]; const st = c.st;
-  const peso = passo.etapa === 3 ? 1.4 : 1;
+  const peso = passo.t2 ? 2.5 : passo.etapa === 3 ? 1.4 : 1; // 2º turno pesa mais: o 2º colocado pode virar no duelo
   st.somaNotas += r.nota * peso; st.somaPesos += peso; st.nFalas++;
   if (r.lean !== null) { st.leanSum += r.lean * r.forca; st.leanW += r.forca; }
   if (r.fugiu) st.fugas++;

@@ -21,7 +21,10 @@
     "valor": 113,
     "motivo": "Partida de debate"
    }
-  ]
+  ],
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "teste-B-0000000000000000": {
   "uid": "teste-B-0000000000000000",
@@ -37,7 +40,10 @@
     "valor": 31,
     "motivo": "Partida de debate"
    }
-  ]
+  ],
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "teste-J-0000000000000000": {
   "uid": "teste-J-0000000000000000",
@@ -53,7 +59,10 @@
     "valor": 100,
     "motivo": "Jornalista do debate"
    }
-  ]
+  ],
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "aaaabbbbccccdddd1111": {
   "uid": "aaaabbbbccccdddd1111",
@@ -69,7 +78,10 @@
     "valor": 20,
     "motivo": "Partida de debate"
    }
-  ]
+  ],
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "aaaabbbbccccdddd2222": {
   "uid": "aaaabbbbccccdddd2222",
@@ -78,7 +90,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794248267451
+  "criadaEm": 1794248267451,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "aaaabbbbccccdddd3333": {
   "uid": "aaaabbbbccccdddd3333",
@@ -94,7 +109,10 @@
     "valor": 34,
     "motivo": "Partida de debate"
    }
-  ]
+  ],
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "817b36ea-41c6-4694-be61-bf12aeb3893c": {
   "uid": "817b36ea-41c6-4694-be61-bf12aeb3893c",
@@ -120,7 +138,10 @@
     "valor": 42,
     "motivo": "Partida de debate"
    }
-  ]
+  ],
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "c5a4435f-4a42-4e57-87b5-e20cb95bbb80": {
   "uid": "c5a4435f-4a42-4e57-87b5-e20cb95bbb80",
@@ -141,7 +162,10 @@
     "valor": 30,
     "motivo": "Partida de debate"
    }
-  ]
+  ],
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "4457b1a1-086f-4663-ab43-d7a8fc3b1aeb": {
   "uid": "4457b1a1-086f-4663-ab43-d7a8fc3b1aeb",
@@ -187,7 +211,10 @@
     "valor": -40,
     "motivo": "Loja: Anotação avulsa"
    }
-  ]
+  ],
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "65189b21-418b-4202-a320-ee101b3fcc24": {
   "uid": "65189b21-418b-4202-a320-ee101b3fcc24",
@@ -195,7 +222,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794253677495
+  "criadaEm": 1794253677495,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "f21a0283-e174-454d-b3ad-22950d2d2ac3": {
   "uid": "f21a0283-e174-454d-b3ad-22950d2d2ac3",
@@ -204,7 +234,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794255115748
+  "criadaEm": 1794255115748,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "c1c2b8fc-97bb-4fb8-a900-f00ad6144a9b": {
   "uid": "c1c2b8fc-97bb-4fb8-a900-f00ad6144a9b",
@@ -213,7 +246,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794255253842
+  "criadaEm": 1794255253842,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "0269749b-5dc9-4165-ab4d-532f3f2b7d56": {
   "uid": "0269749b-5dc9-4165-ab4d-532f3f2b7d56",
@@ -222,7 +258,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794255301772
+  "criadaEm": 1794255301772,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "fb061406-b85a-440e-ad19-0fe363fe5423": {
   "uid": "fb061406-b85a-440e-ad19-0fe363fe5423",
@@ -231,7 +270,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794255359998
+  "criadaEm": 1794255359998,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "df196b4b-71f1-486b-96f4-c5cc64a54eac": {
   "uid": "df196b4b-71f1-486b-96f4-c5cc64a54eac",
@@ -240,7 +282,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794255421243
+  "criadaEm": 1794255421243,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "bf9e93e7-4698-4e74-b7a1-b3bb8ef343af": {
   "uid": "bf9e93e7-4698-4e74-b7a1-b3bb8ef343af",
@@ -249,7 +294,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794255473600
+  "criadaEm": 1794255473600,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "8629dfb7-d1c5-4dd5-8011-91c91a5e9a95": {
   "uid": "8629dfb7-d1c5-4dd5-8011-91c91a5e9a95",
@@ -258,7 +306,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794255494708
+  "criadaEm": 1794255494708,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "0a8ec04c-5969-4a79-9b25-161da4d40796": {
   "uid": "0a8ec04c-5969-4a79-9b25-161da4d40796",
@@ -267,7 +318,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794255531195
+  "criadaEm": 1794255531195,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "a616db9b-d887-4116-a74d-92518d0b5c44": {
   "uid": "a616db9b-d887-4116-a74d-92518d0b5c44",
@@ -276,7 +330,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794255970171
+  "criadaEm": 1794255970171,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "facfca1a-13a3-4603-872e-0e497b65c0b9": {
   "uid": "facfca1a-13a3-4603-872e-0e497b65c0b9",
@@ -284,7 +341,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794255986922
+  "criadaEm": 1794255986922,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "30f57e3c-69cd-481a-8785-4bbc532b3775": {
   "uid": "30f57e3c-69cd-481a-8785-4bbc532b3775",
@@ -292,7 +352,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794256277186
+  "criadaEm": 1794256277186,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "cf3ad1ec-b026-48de-aa56-44be98eb9996": {
   "uid": "cf3ad1ec-b026-48de-aa56-44be98eb9996",
@@ -301,7 +364,10 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794256428178,
-  "nome": "Demo"
+  "nome": "Demo",
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "ebeb4685-c8ea-48b9-a798-1977fa6c3383": {
   "uid": "ebeb4685-c8ea-48b9-a798-1977fa6c3383",
@@ -310,7 +376,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794256814021
+  "criadaEm": 1794256814021,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "6426eda5-4079-496d-aba8-21ec29f75272": {
   "uid": "6426eda5-4079-496d-aba8-21ec29f75272",
@@ -319,7 +388,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794256942838
+  "criadaEm": 1794256942838,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "ce817046-a71d-4d5d-94ef-112e20d3177f": {
   "uid": "ce817046-a71d-4d5d-94ef-112e20d3177f",
@@ -327,7 +399,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794257228320
+  "criadaEm": 1794257228320,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "985c8f00-195d-4f97-a856-57d3b0fd67d8": {
   "uid": "985c8f00-195d-4f97-a856-57d3b0fd67d8",
@@ -335,7 +410,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794257297228
+  "criadaEm": 1794257297228,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "f9684e35-89e6-4e26-be8e-0cb2d551da85": {
   "uid": "f9684e35-89e6-4e26-be8e-0cb2d551da85",
@@ -343,7 +421,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794257355366
+  "criadaEm": 1794257355366,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "cb3334cf-8c1d-4676-9809-63a9bce83652": {
   "uid": "cb3334cf-8c1d-4676-9809-63a9bce83652",
@@ -351,7 +432,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794257388977
+  "criadaEm": 1794257388977,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "e23f552f-0363-4c9f-8e5c-cc0201b796ac": {
   "uid": "e23f552f-0363-4c9f-8e5c-cc0201b796ac",
@@ -359,7 +443,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794257799553
+  "criadaEm": 1794257799553,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "40f71966-4ede-41f9-8735-ebd5794225d2": {
   "uid": "40f71966-4ede-41f9-8735-ebd5794225d2",
@@ -367,7 +454,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794257933004
+  "criadaEm": 1794257933004,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "4aaa694d-4de1-4681-b1f9-f8619acafa0c": {
   "uid": "4aaa694d-4de1-4681-b1f9-f8619acafa0c",
@@ -375,7 +465,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794258504539
+  "criadaEm": 1794258504539,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "0be802ba-b885-4e4b-a20f-1101299e0016": {
   "uid": "0be802ba-b885-4e4b-a20f-1101299e0016",
@@ -383,7 +476,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794258688134
+  "criadaEm": 1794258688134,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "ecdc51ca-ccf8-42c7-9045-3e65df5a0264": {
   "uid": "ecdc51ca-ccf8-42c7-9045-3e65df5a0264",
@@ -406,7 +502,10 @@
    "seguidores": 0,
    "criadaEm": 1794258822449,
    "posts": []
-  }
+  },
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "70f05878-9f87-4b2c-8170-4a21534671ed": {
   "uid": "70f05878-9f87-4b2c-8170-4a21534671ed",
@@ -414,7 +513,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794311977207
+  "criadaEm": 1794311977207,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "4a52817f-48f1-4e79-926d-ede0189fe8e2": {
   "uid": "4a52817f-48f1-4e79-926d-ede0189fe8e2",
@@ -422,7 +524,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794312012839
+  "criadaEm": 1794312012839,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "65c182d4-d0f7-456d-9373-6ff6b6500211": {
   "uid": "65c182d4-d0f7-456d-9373-6ff6b6500211",
@@ -430,7 +535,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794312049969
+  "criadaEm": 1794312049969,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "a836a825-fe7d-4e03-a164-807ab7d3379b": {
   "uid": "a836a825-fe7d-4e03-a164-807ab7d3379b",
@@ -438,7 +546,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794312081739
+  "criadaEm": 1794312081739,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "ccf64acc-94af-4c5d-807d-0c6dc2e28e35": {
   "uid": "ccf64acc-94af-4c5d-807d-0c6dc2e28e35",
@@ -479,7 +590,10 @@
     "valor": 130,
     "motivo": "Partida de debate"
    }
-  ]
+  ],
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "ba039258-420c-4c7b-a273-4e1f42440cc3": {
   "uid": "ba039258-420c-4c7b-a273-4e1f42440cc3",
@@ -487,7 +601,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794314068608
+  "criadaEm": 1794314068608,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "4d11bdaa-1edc-4f20-97b1-0a39a6cef233": {
   "uid": "4d11bdaa-1edc-4f20-97b1-0a39a6cef233",
@@ -495,7 +612,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794315780980
+  "criadaEm": 1794315780980,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "5f38da89-16c6-47ed-adbc-f61411888f4b": {
   "uid": "5f38da89-16c6-47ed-adbc-f61411888f4b",
@@ -503,7 +623,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794315815264
+  "criadaEm": 1794315815264,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "52fb323f-24e7-4952-8389-c2824e6fd186": {
   "uid": "52fb323f-24e7-4952-8389-c2824e6fd186",
@@ -511,7 +634,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794316216845
+  "criadaEm": 1794316216845,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "a6b59558-8576-4f1b-9adf-db4dfdd2793d": {
   "uid": "a6b59558-8576-4f1b-9adf-db4dfdd2793d",
@@ -519,7 +645,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794316356792
+  "criadaEm": 1794316356792,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "b4cb9cfc-62aa-41f6-8185-d3e11cb4308f": {
   "uid": "b4cb9cfc-62aa-41f6-8185-d3e11cb4308f",
@@ -527,7 +656,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794317050845
+  "criadaEm": 1794317050845,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "80f68cc1-337b-487e-af9d-60f802a81688": {
   "uid": "80f68cc1-337b-487e-af9d-60f802a81688",
@@ -535,7 +667,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794320367202
+  "criadaEm": 1794320367202,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "4443e5ae-cf54-48c5-85c0-5d4b7520a4d9": {
   "uid": "4443e5ae-cf54-48c5-85c0-5d4b7520a4d9",
@@ -543,7 +678,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794320603675
+  "criadaEm": 1794320603675,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "41433e73-b987-4e70-8cd9-262a4a78d640": {
   "uid": "41433e73-b987-4e70-8cd9-262a4a78d640",
@@ -551,7 +689,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794321148640
+  "criadaEm": 1794321148640,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "6be5a094-4dc7-4917-87fd-8f8da8cf6c81": {
   "uid": "6be5a094-4dc7-4917-87fd-8f8da8cf6c81",
@@ -559,7 +700,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794321182191
+  "criadaEm": 1794321182191,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "033eb357-e285-4628-a432-3cecc71de0fb": {
   "uid": "033eb357-e285-4628-a432-3cecc71de0fb",
@@ -567,7 +711,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794321213541
+  "criadaEm": 1794321213541,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "57e57262-c17a-45a3-84a1-bc3148d97e36": {
   "uid": "57e57262-c17a-45a3-84a1-bc3148d97e36",
@@ -575,7 +722,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794321246227
+  "criadaEm": 1794321246227,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "6bc21c73-5829-4ae5-903b-ada31014356d": {
   "uid": "6bc21c73-5829-4ae5-903b-ada31014356d",
@@ -583,7 +733,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794321275471
+  "criadaEm": 1794321275471,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "d450491a-8f6b-46a8-b13c-a2add4c66f81": {
   "uid": "d450491a-8f6b-46a8-b13c-a2add4c66f81",
@@ -591,7 +744,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794321310435
+  "criadaEm": 1794321310435,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "c3705b79-aa38-44cc-870a-09d33050646b": {
   "uid": "c3705b79-aa38-44cc-870a-09d33050646b",
@@ -599,7 +755,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794321353150
+  "criadaEm": 1794321353150,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "12cf7c80-0650-42e8-bf13-7f74fc80e201": {
   "uid": "12cf7c80-0650-42e8-bf13-7f74fc80e201",
@@ -607,7 +766,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794321554275
+  "criadaEm": 1794321554275,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "6afb6ebb-792a-440c-a2ba-6f11455a74fe": {
   "uid": "6afb6ebb-792a-440c-a2ba-6f11455a74fe",
@@ -615,7 +777,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794321677981
+  "criadaEm": 1794321677981,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "24bba9ce-b5bb-4dc1-aacc-c0b960eb7254": {
   "uid": "24bba9ce-b5bb-4dc1-aacc-c0b960eb7254",
@@ -623,7 +788,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794321762607
+  "criadaEm": 1794321762607,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "c460f214-2a4d-49b1-b4e8-ba35e4edc7a8": {
   "uid": "c460f214-2a4d-49b1-b4e8-ba35e4edc7a8",
@@ -631,7 +799,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794322274695
+  "criadaEm": 1794322274695,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "b0435ab6-85b5-4889-a7d6-8cbb900ffcf4": {
   "uid": "b0435ab6-85b5-4889-a7d6-8cbb900ffcf4",
@@ -639,7 +810,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794322344828
+  "criadaEm": 1794322344828,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "47a097e9-fba3-47bc-9c11-8194f016b4c7": {
   "uid": "47a097e9-fba3-47bc-9c11-8194f016b4c7",
@@ -662,7 +836,10 @@
    "seguidores": 0,
    "criadaEm": 1794322904694,
    "posts": []
-  }
+  },
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "10705984-df66-4987-ac7a-38bb64b33284": {
   "uid": "10705984-df66-4987-ac7a-38bb64b33284",
@@ -670,7 +847,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794323313537
+  "criadaEm": 1794323313537,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "b61cc847-7b9c-405f-8d0b-20f2d69c5e8f": {
   "uid": "b61cc847-7b9c-405f-8d0b-20f2d69c5e8f",
@@ -678,7 +858,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794323399273
+  "criadaEm": 1794323399273,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "d18e702b-ea89-48e7-b29a-b11957b534c5": {
   "uid": "d18e702b-ea89-48e7-b29a-b11957b534c5",
@@ -686,7 +869,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794325879449
+  "criadaEm": 1794325879449,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "46a0522a-b3ea-463b-9a66-d0b1e2598b93": {
   "uid": "46a0522a-b3ea-463b-9a66-d0b1e2598b93",
@@ -694,7 +880,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794326043832
+  "criadaEm": 1794326043832,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "8be8474b-d4ef-40fb-8893-78a7ab541fb4": {
   "uid": "8be8474b-d4ef-40fb-8893-78a7ab541fb4",
@@ -702,7 +891,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794326174541
+  "criadaEm": 1794326174541,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "3d93be9a-2ef5-48ed-a78e-c9462560e095": {
   "uid": "3d93be9a-2ef5-48ed-a78e-c9462560e095",
@@ -710,7 +902,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794326559682
+  "criadaEm": 1794326559682,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "ef9766cd-e6d8-4057-9e5e-152df24830a4": {
   "uid": "ef9766cd-e6d8-4057-9e5e-152df24830a4",
@@ -718,7 +913,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794326563477
+  "criadaEm": 1794326563477,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "1ce86eec-d632-443b-9df4-fc675d5f6d51": {
   "uid": "1ce86eec-d632-443b-9df4-fc675d5f6d51",
@@ -726,7 +924,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794326564577
+  "criadaEm": 1794326564577,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "7384a37e-25b1-449d-b212-8a9e31b735da": {
   "uid": "7384a37e-25b1-449d-b212-8a9e31b735da",
@@ -734,7 +935,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794326619511
+  "criadaEm": 1794326619511,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "3d3b3da4-c643-4043-a631-79b17d7979a1": {
   "uid": "3d3b3da4-c643-4043-a631-79b17d7979a1",
@@ -742,7 +946,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794326624547
+  "criadaEm": 1794326624547,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "e545d71b-39c4-4e75-a050-79e2ee0d1278": {
   "uid": "e545d71b-39c4-4e75-a050-79e2ee0d1278",
@@ -750,7 +957,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794327240615
+  "criadaEm": 1794327240615,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "dc3d240b-793b-40b0-868d-0972ae81d8e4": {
   "uid": "dc3d240b-793b-40b0-868d-0972ae81d8e4",
@@ -758,7 +968,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794327283161
+  "criadaEm": 1794327283161,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "d9034dbe-d6b6-4256-86ef-45c6fb90795a": {
   "uid": "d9034dbe-d6b6-4256-86ef-45c6fb90795a",
@@ -766,7 +979,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794327322132
+  "criadaEm": 1794327322132,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "cf0d4c13-3997-44de-8501-972022288573": {
   "uid": "cf0d4c13-3997-44de-8501-972022288573",
@@ -774,7 +990,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794327413662
+  "criadaEm": 1794327413662,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "f1998965-9a26-4537-b3a9-d3d28d691139": {
   "uid": "f1998965-9a26-4537-b3a9-d3d28d691139",
@@ -801,7 +1020,10 @@
     "valor": 123,
     "motivo": "Partida de debate"
    }
-  ]
+  ],
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "2f77e40f-eaec-4b34-89e9-c120afeecfab": {
   "uid": "2f77e40f-eaec-4b34-89e9-c120afeecfab",
@@ -809,7 +1031,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794332505052
+  "criadaEm": 1794332505052,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "bd626c37-3431-410d-b189-918da147b13e": {
   "uid": "bd626c37-3431-410d-b189-918da147b13e",
@@ -817,7 +1042,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794332704163
+  "criadaEm": 1794332704163,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "0aafa1c5-ef8a-4fc4-95ca-edea61408c69": {
   "uid": "0aafa1c5-ef8a-4fc4-95ca-edea61408c69",
@@ -825,7 +1053,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794333027368
+  "criadaEm": 1794333027368,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "c7eb1f0c-5ce5-4520-bb37-01d2c1812e07": {
   "uid": "c7eb1f0c-5ce5-4520-bb37-01d2c1812e07",
@@ -833,7 +1064,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794333141845
+  "criadaEm": 1794333141845,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "bda44ab3-295d-4289-814b-e0668a1c87d6": {
   "uid": "bda44ab3-295d-4289-814b-e0668a1c87d6",
@@ -841,7 +1075,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794333999380
+  "criadaEm": 1794333999380,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "d43b73cd-f683-42ad-a651-61ea6a61a10a": {
   "uid": "d43b73cd-f683-42ad-a651-61ea6a61a10a",
@@ -849,7 +1086,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794334014351
+  "criadaEm": 1794334014351,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "57b1c9c1-6010-48ab-8f0b-bae1d62c52d6": {
   "uid": "57b1c9c1-6010-48ab-8f0b-bae1d62c52d6",
@@ -857,7 +1097,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794334028858
+  "criadaEm": 1794334028858,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "b13a85fe-3ba3-4370-a63a-0ef5dbd72554": {
   "uid": "b13a85fe-3ba3-4370-a63a-0ef5dbd72554",
@@ -865,7 +1108,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794334063628
+  "criadaEm": 1794334063628,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "2fbc2a69-1b83-492e-8e6a-d91e72fe5364": {
   "uid": "2fbc2a69-1b83-492e-8e6a-d91e72fe5364",
@@ -873,7 +1119,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794334092404
+  "criadaEm": 1794334092404,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "d7fe27a2-0614-484e-a817-7b957e8f6f87": {
   "uid": "d7fe27a2-0614-484e-a817-7b957e8f6f87",
@@ -881,7 +1130,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794334399428
+  "criadaEm": 1794334399428,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "f8e93281-4c2f-44c3-a3b7-49bb771abe6b": {
   "uid": "f8e93281-4c2f-44c3-a3b7-49bb771abe6b",
@@ -889,7 +1141,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794334552042
+  "criadaEm": 1794334552042,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "b20084c2-2e89-44b2-a35d-29d2f1209204": {
   "uid": "b20084c2-2e89-44b2-a35d-29d2f1209204",
@@ -897,7 +1152,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794334640689
+  "criadaEm": 1794334640689,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "72608249-d6eb-45a2-a4e0-c4a1f643b306": {
   "uid": "72608249-d6eb-45a2-a4e0-c4a1f643b306",
@@ -905,7 +1163,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794335169397
+  "criadaEm": 1794335169397,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "576cfb22-02fb-45ec-8b7f-789f4366c53a": {
   "uid": "576cfb22-02fb-45ec-8b7f-789f4366c53a",
@@ -913,7 +1174,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794335185160
+  "criadaEm": 1794335185160,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "906e56cd-3ad9-4060-8066-a48e7d7b7b30": {
   "uid": "906e56cd-3ad9-4060-8066-a48e7d7b7b30",
@@ -921,7 +1185,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794335326592
+  "criadaEm": 1794335326592,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "9a7f9f87-d548-4457-8613-31ac8981a423": {
   "uid": "9a7f9f87-d548-4457-8613-31ac8981a423",
@@ -929,7 +1196,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794336314016
+  "criadaEm": 1794336314016,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "ad4b0ea8-f741-4d09-af03-b4181e38b7b4": {
   "uid": "ad4b0ea8-f741-4d09-af03-b4181e38b7b4",
@@ -937,7 +1207,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794336339599
+  "criadaEm": 1794336339599,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "0d3b8e92-4012-4600-b1ca-183dcc742c43": {
   "uid": "0d3b8e92-4012-4600-b1ca-183dcc742c43",
@@ -945,7 +1218,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794336362436
+  "criadaEm": 1794336362436,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "9792e537-bfb7-4d41-b24f-fb93acbea10e": {
   "uid": "9792e537-bfb7-4d41-b24f-fb93acbea10e",
@@ -953,7 +1229,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794336388602
+  "criadaEm": 1794336388602,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "76d41bb4-5f4c-429f-ac23-eed1bc7a3255": {
   "uid": "76d41bb4-5f4c-429f-ac23-eed1bc7a3255",
@@ -961,7 +1240,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794336426704
+  "criadaEm": 1794336426704,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "02e9ec51-8a16-486b-8701-bf579509c912": {
   "uid": "02e9ec51-8a16-486b-8701-bf579509c912",
@@ -969,7 +1251,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794336453926
+  "criadaEm": 1794336453926,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "5ea4e21b-4bb4-4374-ae8e-1271083f4469": {
   "uid": "5ea4e21b-4bb4-4374-ae8e-1271083f4469",
@@ -977,7 +1262,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794336477582
+  "criadaEm": 1794336477582,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "b8ad31c1-894f-47c3-b9f7-a976332571c2": {
   "uid": "b8ad31c1-894f-47c3-b9f7-a976332571c2",
@@ -985,7 +1273,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794336516179
+  "criadaEm": 1794336516179,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "aa6bf3b4-771d-4853-8a52-0f659d35345d": {
   "uid": "aa6bf3b4-771d-4853-8a52-0f659d35345d",
@@ -993,7 +1284,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794336546400
+  "criadaEm": 1794336546400,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "a390e5bd-cbea-495d-bd1e-f04fd188e119": {
   "uid": "a390e5bd-cbea-495d-bd1e-f04fd188e119",
@@ -1001,7 +1295,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794336583925
+  "criadaEm": 1794336583925,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "b492868e-f856-4ff8-b2b5-3c9f2b13ce8e": {
   "uid": "b492868e-f856-4ff8-b2b5-3c9f2b13ce8e",
@@ -1009,7 +1306,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794336638791
+  "criadaEm": 1794336638791,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "1fa61a7a-0493-45ad-a8bf-8a290769f1ab": {
   "uid": "1fa61a7a-0493-45ad-a8bf-8a290769f1ab",
@@ -1017,7 +1317,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794336639980
+  "criadaEm": 1794336639980,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "80110ad4-a09e-4381-a30a-1286e6912c2c": {
   "uid": "80110ad4-a09e-4381-a30a-1286e6912c2c",
@@ -1025,7 +1328,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794336717960
+  "criadaEm": 1794336717960,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "b184781a-1a08-4570-a268-05ae91bf8982": {
   "uid": "b184781a-1a08-4570-a268-05ae91bf8982",
@@ -1033,7 +1339,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794336796384
+  "criadaEm": 1794336796384,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "4ee46ed0-02e9-4894-bc6b-0a8ed3c427bc": {
   "uid": "4ee46ed0-02e9-4894-bc6b-0a8ed3c427bc",
@@ -1041,7 +1350,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794336963067
+  "criadaEm": 1794336963067,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "6108ea80-f42f-473c-992a-9f163c627a3f": {
   "uid": "6108ea80-f42f-473c-992a-9f163c627a3f",
@@ -1049,7 +1361,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794337088983
+  "criadaEm": 1794337088983,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "b43af7a9-44e4-437a-9c44-0498cb796af4": {
   "uid": "b43af7a9-44e4-437a-9c44-0498cb796af4",
@@ -1057,7 +1372,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794337186899
+  "criadaEm": 1794337186899,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "ceee19ed-d70a-490c-92d4-f791a65525f4": {
   "uid": "ceee19ed-d70a-490c-92d4-f791a65525f4",
@@ -1065,7 +1383,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794337290451
+  "criadaEm": 1794337290451,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "11fe47f7-a421-4ed4-84b5-fc5fee96dcb9": {
   "uid": "11fe47f7-a421-4ed4-84b5-fc5fee96dcb9",
@@ -1073,7 +1394,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794337526796
+  "criadaEm": 1794337526796,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "52ae38fc-c478-4102-9122-8378f50116f3": {
   "uid": "52ae38fc-c478-4102-9122-8378f50116f3",
@@ -1081,7 +1405,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794337662482
+  "criadaEm": 1794337662482,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "3a9dfdeb-ca77-4d9e-8fe3-7308fcc945b8": {
   "uid": "3a9dfdeb-ca77-4d9e-8fe3-7308fcc945b8",
@@ -1089,7 +1416,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794338840585
+  "criadaEm": 1794338840585,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "ce3ccf48-d4cf-4dae-814f-daca89d27f3c": {
   "uid": "ce3ccf48-d4cf-4dae-814f-daca89d27f3c",
@@ -1097,7 +1427,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794338884214
+  "criadaEm": 1794338884214,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "25f20176-0891-4819-a2dd-c5da6bdda105": {
   "uid": "25f20176-0891-4819-a2dd-c5da6bdda105",
@@ -1105,7 +1438,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794338911564
+  "criadaEm": 1794338911564,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "819788a5-07e5-41e2-9485-6eac52d8a370": {
   "uid": "819788a5-07e5-41e2-9485-6eac52d8a370",
@@ -1113,7 +1449,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794338949491
+  "criadaEm": 1794338949491,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "0e9cfb86-b1fd-45de-9fe6-4e0e2aad49ba": {
   "uid": "0e9cfb86-b1fd-45de-9fe6-4e0e2aad49ba",
@@ -1121,7 +1460,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794338994188
+  "criadaEm": 1794338994188,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "9ead4924-fd9c-40fa-b68c-4c54ab06b59d": {
   "uid": "9ead4924-fd9c-40fa-b68c-4c54ab06b59d",
@@ -1129,7 +1471,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794339042320
+  "criadaEm": 1794339042320,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "d53b18b8-1eb4-4e3d-a5cb-d031708f4410": {
   "uid": "d53b18b8-1eb4-4e3d-a5cb-d031708f4410",
@@ -1137,7 +1482,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794339066659
+  "criadaEm": 1794339066659,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "7f9a386e-4998-4d94-af75-753cda8c34f9": {
   "uid": "7f9a386e-4998-4d94-af75-753cda8c34f9",
@@ -1145,7 +1493,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794339105383
+  "criadaEm": 1794339105383,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "19864bcf-de74-4832-abf1-dcac5644ea36": {
   "uid": "19864bcf-de74-4832-abf1-dcac5644ea36",
@@ -1153,7 +1504,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794339147681
+  "criadaEm": 1794339147681,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "d792148e-4ffb-4b78-9b0d-ff16a0676151": {
   "uid": "d792148e-4ffb-4b78-9b0d-ff16a0676151",
@@ -1161,7 +1515,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794339179603
+  "criadaEm": 1794339179603,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "138578b8-83ef-4c2f-b7dd-4ee4661cc74f": {
   "uid": "138578b8-83ef-4c2f-b7dd-4ee4661cc74f",
@@ -1169,7 +1526,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794339205600
+  "criadaEm": 1794339205600,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "e6a7743e-67aa-4d56-a915-743bb7320c5e": {
   "uid": "e6a7743e-67aa-4d56-a915-743bb7320c5e",
@@ -1177,7 +1537,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794339262998
+  "criadaEm": 1794339262998,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "d58ec474-6791-4fd2-ab8c-53c207044a66": {
   "uid": "d58ec474-6791-4fd2-ab8c-53c207044a66",
@@ -1185,7 +1548,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794339287660
+  "criadaEm": 1794339287660,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "ad3df6fe-9fb9-47b1-93aa-383b0dcf1fb2": {
   "uid": "ad3df6fe-9fb9-47b1-93aa-383b0dcf1fb2",
@@ -1193,7 +1559,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794341188509
+  "criadaEm": 1794341188509,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "bb5038b4-b816-44df-aede-e21121b5e1d1": {
   "uid": "bb5038b4-b816-44df-aede-e21121b5e1d1",
@@ -1201,7 +1570,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794341264089
+  "criadaEm": 1794341264089,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "5902fd87-a8be-44a9-9c85-c5502615b38c": {
   "uid": "5902fd87-a8be-44a9-9c85-c5502615b38c",
@@ -1209,7 +1581,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794341844614
+  "criadaEm": 1794341844614,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "a73bace7-f386-403f-ba41-f4bf1ed53cd7": {
   "uid": "a73bace7-f386-403f-ba41-f4bf1ed53cd7",
@@ -1217,7 +1592,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794341927035
+  "criadaEm": 1794341927035,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "531e2d0d-01ad-4db2-9615-7972ccafb021": {
   "uid": "531e2d0d-01ad-4db2-9615-7972ccafb021",
@@ -1225,7 +1603,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794341979604
+  "criadaEm": 1794341979604,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "555b1700-afe3-44fe-89cb-d66588016fed": {
   "uid": "555b1700-afe3-44fe-89cb-d66588016fed",
@@ -1233,7 +1614,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794342528962
+  "criadaEm": 1794342528962,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "14635ef0-249e-4efd-a9f1-48955763ba0d": {
   "uid": "14635ef0-249e-4efd-a9f1-48955763ba0d",
@@ -1241,7 +1625,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794343097583
+  "criadaEm": 1794343097583,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "d6abdf4c-8e0c-4339-a307-541b26d4c9ad": {
   "uid": "d6abdf4c-8e0c-4339-a307-541b26d4c9ad",
@@ -1249,7 +1636,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794343605444
+  "criadaEm": 1794343605444,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "79cc5eb0-26db-4ca8-8346-a9ec88e1ba41": {
   "uid": "79cc5eb0-26db-4ca8-8346-a9ec88e1ba41",
@@ -1257,7 +1647,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794343941894
+  "criadaEm": 1794343941894,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "1e84b049-e608-46ca-b227-b77ed6083ad6": {
   "uid": "1e84b049-e608-46ca-b227-b77ed6083ad6",
@@ -1265,7 +1658,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794344177316
+  "criadaEm": 1794344177316,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "bdc2d0b2-d2df-4da4-9a14-e7d10a1b41b2": {
   "uid": "bdc2d0b2-d2df-4da4-9a14-e7d10a1b41b2",
@@ -1273,7 +1669,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794344455053
+  "criadaEm": 1794344455053,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "b2aa6836-d912-4444-b8dc-cd950e604b61": {
   "uid": "b2aa6836-d912-4444-b8dc-cd950e604b61",
@@ -1281,7 +1680,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794344593747
+  "criadaEm": 1794344593747,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "1f484831-2b53-4cbd-ade9-f8c80eb15c8b": {
   "uid": "1f484831-2b53-4cbd-ade9-f8c80eb15c8b",
@@ -1289,7 +1691,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794344608276
+  "criadaEm": 1794344608276,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "167752ef-cce0-4660-ad65-5e4b9306a8fc": {
   "uid": "167752ef-cce0-4660-ad65-5e4b9306a8fc",
@@ -1297,7 +1702,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794344718270
+  "criadaEm": 1794344718270,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "450a8773-d580-4ec8-a865-82676c7b8cdd": {
   "uid": "450a8773-d580-4ec8-a865-82676c7b8cdd",
@@ -1305,7 +1713,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794344735302
+  "criadaEm": 1794344735302,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "3e4fdb25-524f-4037-9d8b-8e4f401a237a": {
   "uid": "3e4fdb25-524f-4037-9d8b-8e4f401a237a",
@@ -1313,7 +1724,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794344751958
+  "criadaEm": 1794344751958,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "05816945-9868-44ca-b44d-c6174668960b": {
   "uid": "05816945-9868-44ca-b44d-c6174668960b",
@@ -1321,7 +1735,10 @@
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
-  "criadaEm": 1794344768495
+  "criadaEm": 1794344768495,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  },
  "9e276dfa-05ea-4e14-a42d-adcd2e9fde92": {
   "uid": "9e276dfa-05ea-4e14-a42d-adcd2e9fde92",
@@ -1343,6 +1760,274 @@
     "valor": 20,
     "motivo": "Partida de debate"
    }
-  ]
+  ],
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
+ },
+ "37bb194a-00db-40c1-b6be-6a9672470622": {
+  "uid": "37bb194a-00db-40c1-b6be-6a9672470622",
+  "nome": "Lucas Vieira",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794352824370,
+  "cadastro": {
+   "idade": 32,
+   "nome": "Lucas Vieira",
+   "user": "lucasvieira775",
+   "criadoEm": 1794352855463
+  },
+  "fanpage": {
+   "nome": "Lucas Vieira Presidente",
+   "user": "lucasvieira775",
+   "bio": "Esse fez, esse faz!",
+   "seguidores": 0,
+   "criadaEm": 1794352873812,
+   "posts": []
+  },
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
+ },
+ "d1314a01-e75e-48d9-8ade-7f5ddc358614": {
+  "uid": "d1314a01-e75e-48d9-8ade-7f5ddc358614",
+  "nome": "Lucas Candido",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794354660322,
+  "cadastro": {
+   "idade": 32,
+   "nome": "Lucas Candido",
+   "user": "lucasvieira7751",
+   "criadoEm": 1794354690457
+  },
+  "fanpage": {
+   "nome": "Lucas Candido",
+   "user": "lucasvieira7751",
+   "bio": "Eae",
+   "seguidores": 0,
+   "criadaEm": 1794354726649,
+   "posts": []
+  },
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
+ },
+ "ee2659ef-514d-4b04-8aff-81fbd09939d4": {
+  "uid": "ee2659ef-514d-4b04-8aff-81fbd09939d4",
+  "nome": "Bozonauro Lulatron",
+  "moedas": 265,
+  "dicasExtra": 0,
+  "partidas": 2,
+  "vitorias": 1,
+  "criadaEm": 1794354889278,
+  "cadastro": {
+   "idade": 32,
+   "nome": "Bozonauro Lulatron",
+   "user": "lulatron2089",
+   "criadoEm": 1794354963698
+  },
+  "fanpage": {
+   "nome": "Bozonauro Lulatron",
+   "user": "lulatron2089",
+   "bio": "",
+   "seguidores": 163,
+   "criadaEm": 1794354969367,
+   "posts": [
+    {
+     "t": 1794365613145,
+     "texto": "Primeiramente boa noite a todos os produtores Gaúchos alternam secas e enchentes sofrem muito o povo acha que somente o nordestino sofre com seca mas às vezes o povo rio-grandense também e o problema maior é as enchentes eu vou criar um seguro Rural para esses agricultores vão melhorar a irrigação no estado e vou dar crédito emergencial a todo cidadões trabalhadores neste ramo para o povo do Rio G",
+     "tema": "Estiagens e seguro rural",
+     "nota": 8.8,
+     "delta": 672,
+     "curtidas": 474,
+     "reposts": 25,
+     "respostas": 141
+    }
+   ]
+  },
+  "abandonos": [],
+  "extrato": [
+   {
+    "t": 1794365613144,
+    "valor": 165,
+    "motivo": "Partida de debate"
+   },
+   {
+    "t": 1794376289131,
+    "valor": 0,
+    "motivo": "Partida de debate"
+   }
+  ],
+  "banidoAte": 0,
+  "xp": 0,
+  "banPerm": false,
+  "puni": {
+   "salas": [
+    1794376246214
+   ],
+   "sem": [],
+   "mes": 0,
+   "hist": [
+    {
+     "t": 1794376246214,
+     "motivo": "misoginia"
+    }
+   ]
+  }
+ },
+ "2bc03949-eb74-47b5-91eb-29d25f486eb6": {
+  "uid": "2bc03949-eb74-47b5-91eb-29d25f486eb6",
+  "nome": "Teste Fois",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794358473399,
+  "cadastro": {
+   "idade": 32,
+   "nome": "Teste Fois",
+   "user": "luks775",
+   "criadoEm": 1794358498023
+  },
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
+ },
+ "bc2ca313-0c92-429f-b118-33087c9e7b13": {
+  "uid": "bc2ca313-0c92-429f-b118-33087c9e7b13",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794363212282,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
+ },
+ "e8ba092d-ba67-437d-a922-b54c47d91202": {
+  "uid": "e8ba092d-ba67-437d-a922-b54c47d91202",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794363222528,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
+ },
+ "ec9f5700-6466-4ba3-b7dc-48993f31d108": {
+  "uid": "ec9f5700-6466-4ba3-b7dc-48993f31d108",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794367678416,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
+ },
+ "a1ae3b7d-f6a9-46e5-96a9-9da2b7c42b15": {
+  "uid": "a1ae3b7d-f6a9-46e5-96a9-9da2b7c42b15",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794373959004,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
+ },
+ "5cd19fc5-ab07-4d7e-9f1e-bca93033c3a3": {
+  "uid": "5cd19fc5-ab07-4d7e-9f1e-bca93033c3a3",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794374115856,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
+ },
+ "50e6d169-d385-4814-b951-c414a957d4ce": {
+  "uid": "50e6d169-d385-4814-b951-c414a957d4ce",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794374163731,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
+ },
+ "844b3cb5-3f9e-4e6c-936c-4be3e8f8f38f": {
+  "uid": "844b3cb5-3f9e-4e6c-936c-4be3e8f8f38f",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794374949262,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
+ },
+ "9152136b-bfa6-4c89-8ddb-208d2431568a": {
+  "uid": "9152136b-bfa6-4c89-8ddb-208d2431568a",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794374985122,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
+ },
+ "ac915559-6f2c-4718-a801-7f092922de14": {
+  "uid": "ac915559-6f2c-4718-a801-7f092922de14",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794375015062,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
+ },
+ "08922e75-2e3b-4d54-8cdf-150196ec8623": {
+  "uid": "08922e75-2e3b-4d54-8cdf-150196ec8623",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794375548522,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
+ },
+ "218e6ae8-3575-4f87-8ce6-5ecac3b18304": {
+  "uid": "218e6ae8-3575-4f87-8ce6-5ecac3b18304",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794375731130,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
+ },
+ "575ac93b-8bf0-4b9a-a5a0-17844af6922b": {
+  "uid": "575ac93b-8bf0-4b9a-a5a0-17844af6922b",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794375874659,
+  "banidoAte": 0,
+  "banPerm": false,
+  "abandonos": []
  }
 }

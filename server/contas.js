@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ITEM, GRATIS } from '../shared/loja.js';
 import { moderar, nomeImproprio, PUNICAO } from '../shared/moderacao.js';
+import { cargo, CARGOS, XP_PUNICAO } from '../shared/niveis.js';
 import { CADASTRO, validarNome, validarUser, validarIdade, formatarNome, formatarUser, chaveNome } from '../shared/cadastro.js';
 
 // Fanpage na Xzona: seguidores sobem quando o candidato vai bem e caem quando vai mal.
@@ -11,7 +12,8 @@ export const SEGUIDORES = {
   porNota: [[8, 250], [6.5, 100], [5, 30], [4, -20], [3, -60], [0, -120]], // nota de desempenho (0–10)
   segundoTurno: 60, eleito: 300, banido: -300, ataque: 5, fuga: -15,
 };
-const limparTxt = (t, n) => String(t || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
+export const ABANDONO = { limite: 2, janelaMs: 24 * 3600000, banMs: 3600000, seguidores: 200 };
+const limparTxt =(t, n) => String(t || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
 
 export const ECONOMIA = {
   inicial: 100,
@@ -71,13 +73,22 @@ export class Contas {
   }
   publico(c) {
     if (!c) return null;
-    return { cadastro: c.cadastro ? { nome: c.cadastro.nome, user: c.cadastro.user, idade: c.cadastro.idade } : null, moedas: c.moedas, dicasExtra: c.dicasExtra, banidoAte: c.banidoAte || 0, banPerm: !!c.banPerm, partidas: c.partidas, vitorias: c.vitorias,
+    return { cadastro: c.cadastro ? { nome: c.cadastro.nome, user: c.cadastro.user, idade: c.cadastro.idade } : null, moedas: c.moedas, dicasExtra: c.dicasExtra, banidoAte: c.banidoAte || 0, banPerm: !!c.banPerm, partidas: c.partidas, vitorias: c.vitorias, xp: c.xp || 0, cargo: cargo(c.xp || 0), cargoMax: Math.max(c.cargoMax || 1, cargo(c.xp || 0).n),
       itens: [...new Set([...GRATIS, ...(c.itens || [])])], danca: c.danca || 'comemorar', fanpage: this.fanpage(c) };
   }
   // ---------- fanpage (Xzona) ----------
-  fanpage(c) { const f = c?.fanpage; return f ? { nome: f.nome, user: f.user, bio: f.bio, seguidores: f.seguidores, criadaEm: f.criadaEm, posts: f.posts, autor: c.nome, partidas: c.partidas || 0, vitorias: c.vitorias || 0, titulos: c.titulos || null } : null; }
+  fanpage(c) { const f = c?.fanpage; return f ? { nome: f.nome, user: f.user, bio: f.bio, seguidores: f.seguidores, criadaEm: f.criadaEm, posts: f.posts, autor: c.nome, partidas: c.partidas || 0, vitorias: c.vitorias || 0, titulos: c.titulos || null, nivel: this.nivel(c) } : null; }
+  nivel(c) { return c ? cargo(c.xp || 0).n : 0; }
+  /** Soma/tira XP (nunca abaixo de 0). Retorna { antes, depois } (cargos) para avisar subida/queda. */
+  mudarXp(c, valor) {
+    if (!c) return null; const antes = cargo(c.xp || 0).n; c.xp = Math.max(0, (c.xp || 0) + Math.round(valor)); const depois = cargo(c.xp).n;
+    // recompensa única por cargo: só na 1ª vez (cair por punição e voltar não paga de novo)
+    const max = c.cargoMax || antes; let premio = 0; for (let n = max + 1; n <= depois; n++) premio += CARGOS[n - 1].recompensa || 0;
+    if (depois > max) c.cargoMax = depois; if (premio) this.creditar(c, premio, 'Promoção a ' + CARGOS[depois - 1].nome);
+    return { antes, depois, xp: c.xp, premio };
+  }
   topSeguidores(n = 5) { return Object.values(this.contas).filter(c => c.fanpage && !this.banido(c)).sort((a, b) => b.fanpage.seguidores - a.fanpage.seguidores).slice(0, n).map(c => this.resumoFanpage(c)); }
-  resumoFanpage(c) { const f = c?.fanpage; return f ? { nome: f.nome, user: f.user, seguidores: f.seguidores } : null; }
+  resumoFanpage(c) { const f = c?.fanpage; return f ? { nome: f.nome, user: f.user, seguidores: f.seguidores, nivel: this.nivel(c) } : null; }
   criarFanpage(c, d) {
     if (!c) return 'Conta inválida.';
     if (!c.cadastro) return 'Faça o cadastro primeiro.';
@@ -148,7 +159,20 @@ export class Contas {
         if (p.mes >= P.susp30Perm) { c.banPerm = true; susp = 'perm'; } else { c.banidoAte = Math.max(c.banidoAte || 0, agora + P.diasMes * DIA); susp = P.diasMes; }
       } else { c.banidoAte = Math.max(c.banidoAte || 0, agora + P.diasSemana * DIA); susp = P.diasSemana; }
     }
-    this.salvar(); return { salas: p.salas.length, semanais: p.sem.length, mensais: p.mes, susp };
+    const xp = this.mudarXp(c, -(XP_PUNICAO.banSala + (susp === 'perm' ? 0 : susp === P.diasMes ? XP_PUNICAO.suspensao30 : susp ? XP_PUNICAO.suspensao7 : 0)));
+    this.salvar(); return { salas: p.salas.length, semanais: p.sem.length, mensais: p.mes, susp, xp };
+  }
+  /** Abandonou uma partida (saiu, caiu ou fechou o jogo e não voltou). 2 abandonos em 24 h → 1 h de suspensão + perde seguidores na Xzona. */
+  registrarAbandono(c) {
+    if (!c) return null;
+    const agora = Date.now(), A = ABANDONO; c.abandonos = (c.abandonos || []).filter(t => agora - t < A.janelaMs); c.abandonos.push(agora);
+    let ban = false, perda = 0;
+    if (c.abandonos.length >= A.limite) {
+      ban = true; c.abandonos = []; c.banidoAte = Math.max(c.banidoAte || 0, agora + A.banMs); c.banAbandono = c.banidoAte;
+      if (c.fanpage) { perda = Math.min(c.fanpage.seguidores, A.seguidores); c.fanpage.seguidores -= perda; }
+    }
+    const xp = this.mudarXp(c, -(XP_PUNICAO.abandono + (ban ? XP_PUNICAO.suspensaoAbandono : 0)));
+    this.salvar(); return { n: c.abandonos.length, ban, perda, ate: ban ? c.banidoAte : 0, xp };
   }
   denunciar(d) { this.denuncias.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), data: Date.now(), status: 'aberta', ...d }); this.salvarDen(); }
 }

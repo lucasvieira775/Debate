@@ -79,6 +79,32 @@
     },
     "partido": "PUN",
     "uid": "9e276dfa-05ea-4e14-a42d-adcd2e9fde92"
+   },
+   "bozonauro lulatron": {
+    "nome": "Bozonauro Lulatron",
+    "pts": 903,
+    "partidas": 1,
+    "vitorias": 1,
+    "avatar": {
+     "genero": "nao_binario",
+     "pele": "#4f2f1c",
+     "cabelo": "calvo",
+     "corCabelo": "#8a8a8a",
+     "barba": "nenhuma",
+     "oculos": "nenhum",
+     "chapeu": "nenhum",
+     "roupa": "terno_aberto",
+     "corRoupa": "#6b7280",
+     "corCamisa": "#fce7f3",
+     "corGravata": "#0f766e",
+     "brinco": false,
+     "broche": false,
+     "extra": "nenhum",
+     "corpo": "magro",
+     "expressao": "simpatico"
+    },
+    "partido": "MVB",
+    "uid": "ee2659ef-514d-4b04-8aff-81fbd09939d4"
    }
   }
  },
@@ -162,6 +188,32 @@
     },
     "partido": "PUN",
     "uid": "9e276dfa-05ea-4e14-a42d-adcd2e9fde92"
+   },
+   "bozonauro lulatron": {
+    "nome": "Bozonauro Lulatron",
+    "pts": 903,
+    "partidas": 1,
+    "vitorias": 1,
+    "avatar": {
+     "genero": "nao_binario",
+     "pele": "#4f2f1c",
+     "cabelo": "calvo",
+     "corCabelo": "#8a8a8a",
+     "barba": "nenhuma",
+     "oculos": "nenhum",
+     "chapeu": "nenhum",
+     "roupa": "terno_aberto",
+     "corRoupa": "#6b7280",
+     "corCamisa": "#fce7f3",
+     "corGravata": "#0f766e",
+     "brinco": false,
+     "broche": false,
+     "extra": "nenhum",
+     "corpo": "magro",
+     "expressao": "simpatico"
+    },
+    "partido": "MVB",
+    "uid": "ee2659ef-514d-4b04-8aff-81fbd09939d4"
    }
   }
  }

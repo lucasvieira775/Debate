@@ -4,8 +4,9 @@
 const ICE = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }];
 
 export class Voip {
-  constructor(socket, { onNivel } = {}) {
-    this.socket = socket; this.onNivel = onNivel;
+  constructor(socket, { onNivel, onFalha } = {}) {
+    this.socket = socket; this.onNivel = onNivel; this.onFalha = onFalha;
+    this.ice = ICE; fetch('/api/ice').then(r => r.json()).then(l => { if (Array.isArray(l) && l.length) this.ice = l; }).catch(() => {});
     this.peers = new Map(); this.stream = null; this.eu = null; this.liberado = false; this.mudo = false; this.ativo = false;
     socket.on('rtc', d => this.sinal(d.de, d.dados));
     // autoplay bloqueado: tenta tocar de novo no próximo clique/tecla
@@ -17,7 +18,7 @@ export class Voip {
     this.pedindo = true;
     try { this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
     catch { this.stream = null; }
-    this.pedindo = false; this.aplicar();
+    this.pedindo = false; this.aplicar(); this.medir();
     for (const p of this.peers.values()) this.anexar(p); // conexões já abertas passam a transmitir
     return !!this.stream;
   }
@@ -28,6 +29,16 @@ export class Voip {
     for (const id of [...this.peers.keys()]) if (!ids.includes(id)) this.fechar(id);
   }
   setMudo(v) { this.mudo = v; this.aplicar(); }
+  /** Medidor do próprio microfone (cópia sempre ligada da faixa): detecta quem tenta falar com o microfone bloqueado. */
+  medir() {
+    try { const f = this.stream?.getAudioTracks()[0]; if (!f || this.medidor?.fonte === f) return; this.medidor?.copia.stop();
+      const ctx = this.ctx ||= new AudioContext(), copia = f.clone(); copia.enabled = true; const an = ctx.createAnalyser(); an.fftSize = 512;
+      ctx.createMediaStreamSource(new MediaStream([copia])).connect(an); this.medidor = { fonte: f, copia, an, buf: new Uint8Array(512) }; } catch { this.medidor = null; }
+  }
+  nivelLocal() {
+    const m = this.medidor; if (!m || !this.stream || m.fonte.readyState !== 'live') return 0;
+    m.an.getByteTimeDomainData(m.buf); let s = 0; for (const v of m.buf) { const x = (v - 128) / 128; s += x * x; } return Math.sqrt(s / m.buf.length) * 6;
+  }
   /** Volume de RECEPÇÃO das vozes remotas (0..1); não mexe no microfone nem nas conexões. */
   setVolumeRecepcao(v) { this.volRec = v; for (const p of this.peers.values()) if (p.audio) p.audio.volume = v; }
   get transmitindo() { return !!this.stream && this.liberado && !this.mudo; }
@@ -39,10 +50,10 @@ export class Voip {
     if (tr.sender.track !== faixa) tr.sender.replaceTrack(faixa).catch(() => {});
   }
   criar(id) {
-    const pc = new RTCPeerConnection({ iceServers: ICE });
+    const pc = new RTCPeerConnection({ iceServers: this.ice });
     pc.onicecandidate = e => e.candidate && this.socket.emit('rtc', { para: id, dados: { ice: e.candidate } });
     pc.ontrack = e => this.ouvir(id, e.streams[0] || new MediaStream([e.track]));
-    pc.onconnectionstatechange = () => { if (['failed', 'closed'].includes(pc.connectionState)) this.fechar(id); };
+    pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed') this.onFalha?.(id); if (['failed', 'closed'].includes(pc.connectionState)) this.fechar(id); };
     const p = { pc, audio: null, fila: [] }; this.peers.set(id, p); return p;
   }
   async conectar(id) {
@@ -69,7 +80,9 @@ export class Voip {
   }
   ouvir(id, stream) {
     const p = this.peers.get(id); if (!p || p.audio) return;
-    p.audio = new Audio(); p.audio.srcObject = stream; p.audio.autoplay = true; p.audio.volume = this.volRec ?? 1; p.audio.play().catch(() => {});
+    // iOS/Android: o <audio> precisa estar no documento e com playsinline para tocar áudio remoto
+    p.audio = document.createElement('audio'); p.audio.setAttribute('playsinline', ''); p.audio.style.display = 'none'; document.body.appendChild(p.audio);
+    p.audio.srcObject = stream; p.audio.autoplay = true; p.audio.volume = this.volRec ?? 1; p.audio.play().catch(() => {});
     // nível da voz recebida -> boca do avatar se mexe
     try {
       const ctx = this.ctx ||= new AudioContext(); ctx.resume?.().catch(() => {}); const an = ctx.createAnalyser(); an.fftSize = 256;
@@ -78,11 +91,11 @@ export class Voip {
       loop();
     } catch { /* sem análise */ }
   }
-  fechar(id) { const p = this.peers.get(id); if (!p) return; try { p.pc.close(); } catch { /* */ } if (p.audio) { p.audio.pause(); p.audio.srcObject = null; } this.peers.delete(id); }
+  fechar(id) { const p = this.peers.get(id); if (!p) return; try { p.pc.close(); } catch { /* */ } if (p.audio) { p.audio.pause(); p.audio.srcObject = null; p.audio.remove(); } this.peers.delete(id); }
   /** Celular: solta o microfone para o reconhecimento de voz (true) e pega de volta depois (false). */
   async pausar(v) {
     if (v) { if (!this.stream) return; this.pausado = true; this.stream.getTracks().forEach(t => t.stop()); this.stream = null; for (const p of this.peers.values()) this.anexar(p); await new Promise(r => setTimeout(r, 250)); }
     else if (this.pausado) { this.pausado = false; await this.iniciar(); }
   }
-  sair() { for (const id of [...this.peers.keys()]) this.fechar(id); this.stream?.getTracks().forEach(t => t.stop()); this.stream = null; }
+  sair() { this.medidor?.copia.stop(); this.medidor = null; for (const id of [...this.peers.keys()]) this.fechar(id); this.stream?.getTracks().forEach(t => t.stop()); this.stream = null; }
 }

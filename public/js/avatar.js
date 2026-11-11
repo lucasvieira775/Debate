@@ -487,6 +487,7 @@ export class Avatar {
       let [rx, rz, cot, ry, gm, mao, om = 0] = REP;
       if (this.empurra && !pose) { rx = -.95; rz = .1; cot = -.3; ry = 0; gm = 0; mao = 'aberta'; } // empurrando algo (equipe de produção)
       else if (an > .05 && !pose) { rx = -.15 - Math.sin(ph) * .45 * s * an; rz = .06; cot = -.35; ry = 0; gm = 0; }
+      else if (this.cruza && !pose) [rx, rz, cot, ry, gm, mao, om] = s > 0 ? Q.cruzaE : Q.cruzaD; // parada de braços cruzados
       else if (pose) { const p = s > 0 ? pose.esq : pose.dir; if (p) [rx, rz, cot = -.25, ry = 0, gm = 0, mao = 'relax', om = 0] = p; }
       else if (this.gesticula && this.fala > .05) [rx, rz, cot, ry, gm, mao, om] = lerpQ(REP, lerpQ(Q.falaB, Q.falaA, (1 + Math.sin(t * 3.1 + s * 1.7)) / 2), Math.min(1, this.fala * 1.5));
       const bs = b.userData.base, ko = kb;
@@ -561,6 +562,7 @@ const MAOS = {
 // [rot x, abertura z, cotovelo, giro do braço, giro da mão, mão, avanço do ombro 0..1]
 const Q = {
   rep: [-.9, .12, -.27, -.42, -1.12, 'apoio'],
+  cruzaE: [-.18, .24, -1.62, -1.3, 0, 'relax', .1], cruzaD: [-.26, .24, -1.85, -1.4, 0, 'relax', .1],
   falaB: [-.34, .12, -1.31, -.19, 1.22, 'fala', .09], falaA: [-.48, .11, -1.73, .11, 1.06, 'fala', .13],
   joinha: [-.54, .69, -1.03, -.58, .84, 'joinha', .1],
   coracao: [-1.12, -.21, -1.46, -.61, -2, 'coracao', 1],

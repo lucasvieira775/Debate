@@ -12,6 +12,7 @@ import { Dublagem, VOZES_IA, DIR_PLATEIA } from './voz.js';
 import { N, trechosFixos, trechosTemas, sortearVariacao } from './narracao.js';
 import { moderar, GRITOS, PUNICAO } from '../shared/moderacao.js';
 import { Contas, ECONOMIA } from './contas.js';
+import { XP, XP_PUNICAO, cargo } from '../shared/niveis.js';
 import { Pagamentos } from './pagamentos.js';
 import { PACOTES_MOEDAS } from '../shared/loja.js';
 import { gerarDica } from './dicas.js';
@@ -24,6 +25,7 @@ const VOZES_CORO = ['Fenrir', 'Leda', 'Charon', 'Kore', 'Puck', 'Aoede'];
 const OPC_PLATEIA = { conferir: false, dir: DIR_PLATEIA };
 
 const MAX = 5, MIN = 2;
+const AUSENCIA_MS = Number(process.env.AUSENCIA_MS) || 60000; // quem cai/fecha o jogo no meio da partida tem 1 min para voltar
 const BOAS_VINDAS = 'Bem-vindo ao Debate Presidencial!';
 const REACOES = ['aplauso', 'vaia', 'risada', 'pensativo', 'mao'];
 const dur = txt => Math.round(txt.length * 62 + 900); // estimativa do tempo de fala da mediadora
@@ -85,7 +87,7 @@ class Sala {
   }
   reset() {
     this.limpar();
-    Object.assign(this, { fila: [], i: -1, passo: null, fala: null, temaAtual: null, roleta: null, usados: new Set(), resultado: null, autoEm: null, textoJ: '', narr: null, perguntas: [], duelo: null });
+    Object.assign(this, { fila: [], i: -1, passo: null, fala: null, temaAtual: null, roleta: null, usados: new Set(), resultado: null, autoEm: null, textoJ: '', narr: null, narrandoAte: 0, perguntas: [], duelo: null, pausa: null, turno2: false });
   }
   // ---------- jornalista e dublagem ----------
   /** Faz o(a) jornalista falar. Os trechos viram áudio do Gemini (ou voz do navegador se não der tempo).
@@ -96,7 +98,8 @@ class Sala {
     // legenda: "Nome," seguido de frase com maiúscula vira "Nome."
     const texto = partes.map((p, i) => (p.endsWith(',') && /^[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/.test(partes[i + 1] || '.') ? p.slice(0, -1) + '.' : p)).join(' ');
     this.textoJ = texto;
-    const fim = ms => { if (this.narr?.id === id && depois) depois(ms); };
+    this.narrandoAte = Date.now() + 60000; // microfones fechados enquanto a(o) jornalista fala (até saber a duração real)
+    const fim = ms => { if (this.narr?.id !== id) return; this.narrandoAte = Date.now() + ms; this.later(ms + 50, () => this.narr?.id === id && this.emit()); depois?.(ms); };
     if (!dub.ativa || !this.jorn) { this.narr = { id, status: 'off' }; setImmediate(() => fim(dur(texto))); return; }
     // Narração progressiva: começa a tocar logo (no máximo ~1,5 s de espera) com os trechos que já estão prontos;
     // os que ainda estão sendo gerados chegam depois, cada um com sua atualização. O navegador só usa a voz
@@ -142,9 +145,12 @@ class Sala {
   porId(id) { return this.jog.find(j => j.id === id) || null; }
   conectados() { return this.jog.filter(j => j.conectado); }
   humanos() { return this.jog.filter(j => j.conectado && !j.bot); }
-  /** Quem pode transmitir voz agora: antes/depois do debate todos; durante, só o candidato da vez. */
+  /** Quem pode transmitir voz agora: antes/depois do debate e no cumprimento todos; durante, só o candidato da vez — e ninguém enquanto a(o) jornalista fala. */
+  narrando() { return this.fase !== 'lobby' && Date.now() < this.narrandoAte; }
   microfones() {
-    if (this.fase !== 'debate') return 'todos';
+    if (this.fase === 'resultado') return 'todos'; // votação ao vivo / resultado: todos conversam
+    if (this.narrando()) return [];
+    if (this.fase !== 'debate' || this.passo?.tipo === 'cumprimento') return 'todos';
     const ids = [];
     if (this.passo && (this.passo.tipo === 'fala' || this.passo.tipo === 'escolha') && !this.porId(this.passo.falante)?.banido) ids.push(this.passo.falante);
     return ids;
@@ -158,27 +164,30 @@ class Sala {
     return {
       code: this.code, publica: this.publica, hostId: this.hostId, fase: this.fase, cfg: this.cfg, agora: Date.now(),
       jogadores: this.jog.map(j => ({ id: j.id, nome: j.nome, avatar: j.avatar, partido: j.partido, pronto: j.pronto, conectado: j.conectado, slot: j.slot, bot: !!j.bot, dif: j.dif,
-        banido: !!j.banido, adv: j.advertencias || 0, nota: this.fase !== 'lobby' && j.st.nFalas ? perf(j.st) : null, fanpage: j.bot ? null : this.mgr.contas.resumoFanpage(this.conta(j)) })),
+        banido: !!j.banido, saiu: !!j.saiu, ausenteAte: j.ausenteAte || null, adv: j.advertencias || 0, nota: this.fase !== 'lobby' && j.st.nFalas ? perf(j.st) : null, fanpage: j.bot ? null : this.mgr.contas.resumoFanpage(this.conta(j)), nivel: j.bot ? 0 : this.mgr.contas.nivel(this.conta(j)) })),
       i: this.i, total: this.fila.length,
-      passo: p && { tipo: p.tipo, etapa: p.etapa, kind: p.kind, falante: p.falante, alvo: p.alvo, tema: p.tema, segundos: p.segundos, titulo: p.titulo, poll: p.poll, escolhido: p.escolhido,
+      passo: p && { tipo: p.tipo, etapa: p.etapa, t2: p.t2, kind: p.kind, falante: p.falante, alvo: p.alvo, tema: p.tema, segundos: p.segundos, titulo: p.titulo, poll: p.poll, escolhido: p.escolhido,
         elegiveis: p.tipo === 'escolha' && !p.escolhido ? this.elegiveis(p) : undefined },
       duelo: this.duelo && { a: this.duelo.a, b: this.duelo.b, fase: this.duelo.fase },
       fala: this.fala, temaAtual: this.temaAtual, roleta: this.roleta, autoEm: this.autoEm, textoJ: this.textoJ, narr: this.narr, perguntas: this.perguntas,
       jorn: this.jorn && { nome: this.jorn.nome, genero: this.jorn.genero, avatar: this.jorn.avatar },
-      microfones: this.microfones(),
-      resultado: this.resultado,
+      microfones: this.microfones(), narrando: this.narrando(),
+      resultado: this.resultado, pausa: !!this.pausa,
     };
   }
   emit() { this.io.to(this.code).emit('estado', this.snapshot()); }
 
   // ---------- jogadores ----------
   adicionar(socket, perfil) {
+    // caiu no meio da partida e entrou de novo pelo código: reassume o próprio candidato
+    const volta = this.fase !== 'lobby' && perfil?.uid && this.jog.find(j => !j.bot && j.uid === perfil.uid && !j.conectado && !j.saiu);
+    if (volta) { this.vincular(socket, volta); this.emit(); this.enviarConta(volta); return volta; }
     if (this.fase !== 'lobby') return 'A partida já começou nesta sala.';
     if (this.jog.length >= MAX) return 'A sala está cheia (máximo 5 candidatos).';
     const conta = this.mgr.contas.conta(perfil?.uid);
     if (!conta?.cadastro) return 'Faça seu cadastro antes de jogar.';
     if (conta.banPerm) return 'Sua conta foi banida permanentemente (3 suspensões de 30 dias por desrespeito às regras do debate).';
-    if (this.mgr.contas.banido(conta)) return `Sua conta está suspensa pela moderação até ${new Date(conta.banidoAte).toLocaleString('pt-BR')}.`;
+    if (this.mgr.contas.banido(conta)) return conta.banAbandono === conta.banidoAte ? `Você abandonou 2 partidas em 24 horas e está suspenso(a) até ${new Date(conta.banidoAte).toLocaleString('pt-BR')}.` : `Sua conta está suspensa pela moderação até ${new Date(conta.banidoAte).toLocaleString('pt-BR')}.`;
     let nome = limparNome(conta.cadastro.nome); const base = nome; let n = 2;
     while (this.jog.some(j => j.nome.toLowerCase() === nome.toLowerCase())) nome = `${base} ${n++}`;
     let partido = PARTIDO[perfil?.partido] ? perfil.partido : null;
@@ -220,11 +229,17 @@ class Sala {
     socket.data.code = this.code; socket.data.pid = j.id;
     socket.join(this.code);
     socket.emit('voce', { id: j.id, token: j.token, code: this.code });
+    if (!this.porId(this.hostId)?.conectado) this.hostId = j.id;
+    if (j.ausenteAte) { clearTimeout(j.tAus); j.ausenteAte = null; this.io.to(this.code).emit('voltouPartida', { id: j.id, nome: j.nome }); this.retomar(); }
   }
   remover(id) {
     const j = this.porId(id); if (!j) return;
+    clearTimeout(j.tAus); j.ausenteAte = null;
     if (this.fase === 'lobby') this.jog = this.jog.filter(x => x.id !== id);
-    else { j.conectado = false; j.socketId = null; this.aoDesconectarEmJogo(j); }
+    else {
+      const sk = this.socketDe(id); j.conectado = false; j.socketId = null;
+      if (this.fase === 'debate' && !j.banido && !j.saiu) { this.expirar(j, true); if (j.abandono) sk?.emit('penalidade', textoAbandono(j.abandono)); return; } // saiu por vontade própria: desistiu
+    }
     if (this.hostId === id || !this.porId(this.hostId)?.conectado) this.hostId = this.humanos()[0]?.id || null;
     if (!this.humanos().length) this.vazioDesde = Date.now();
     this.emit();
@@ -238,8 +253,52 @@ class Sala {
       if (this.hostId === j.id) this.hostId = this.humanos()[0]?.id || this.hostId;
       if (!this.humanos().length) this.vazioDesde = Date.now();
       this.emit();
-    } else this.remover(j.id);
+    } else this.ausentar(j);
   }
+  // ---------- ausência no meio da partida (caiu / fechou o jogo) ----------
+  trocarHost() { if (!this.porId(this.hostId)?.conectado) this.hostId = this.humanos()[0]?.id || this.hostId; if (!this.humanos().length) this.vazioDesde ||= Date.now(); }
+  ausente(id) { const j = this.porId(id); return !!j && !j.bot && !j.conectado && !j.banido; }
+  /** Sem ninguém para debater (sobrou 1 presente) ou sem nenhum humano assistindo: o debate para e espera. */
+  precisaPausa() { const at = this.emAtivo(); return at.some(j => !j.conectado) && (at.filter(j => j.conectado).length < 2 || !this.humanos().length); }
+  /** Não é removido na hora: tem AUSENCIA_MS para voltar (o socket novo reassume o candidato em vincular). */
+  ausentar(j) {
+    this.trocarHost();
+    if (this.fase !== 'debate' || j.banido || j.saiu) return this.emit();
+    clearTimeout(j.tAus); j.ausenteAte = Date.now() + AUSENCIA_MS;
+    j.tAus = setTimeout(() => this.expirar(j), AUSENCIA_MS);
+    if (this.precisaPausa()) this.pausar(); else this.aoDesconectarEmJogo(j); // 3+ candidatos: a vez dele é pulada
+    this.emit();
+  }
+  pausar() {
+    if (this.pausa) return;
+    const p = this.passo; // se era a vez do ausente, congela já (e a etapa recomeça quando ele voltar); senão para ao fim da etapa atual
+    const imediata = !!p && this.ausente(p.falante) && ((p.tipo === 'fala' && this.fala?.status !== 'avaliado') || (p.tipo === 'escolha' && !p.escolhido));
+    this.pausa = { imediata, pendente: false };
+    if (imediata) { this.limpar(); this.fala = null; this.roleta = null; this.autoEm = null; }
+  }
+  retomar() {
+    const pz = this.pausa; if (!pz || this.fase !== 'debate' || this.precisaPausa()) return;
+    this.pausa = null;
+    if (pz.imediata) { if (this.porId(this.passo?.falante)?.conectado) this.irPara(this.i); else this.auto(1500); }
+    else if (pz.pendente) this.auto(1500);
+    this.emit();
+  }
+  /** Prazo acabou (ou desistiu): sai da partida. Sobrou 1 candidato → vence por W.O.; nenhum humano na sala → partida cancelada. */
+  expirar(j, voluntario = false) {
+    clearTimeout(j.tAus); j.ausenteAte = null;
+    if (this.fase !== 'debate' || j.conectado || j.saiu || j.banido || !this.jog.includes(j)) return this.emit();
+    j.saiu = true;
+    if (!j.bot) j.abandono = this.mgr.contas.registrarAbandono(this.conta(j)); // 2 abandonos em 24 h → 1 h de suspensão + perde seguidores
+    this.fila = this.fila.filter((q, k) => k <= this.i || (q.falante !== j.id && q.alvo !== j.id));
+    this.io.to(this.code).emit('saiuPartida', { id: j.id, nome: j.nome, voluntario, wo: this.emAtivo().length === 1 ? this.emAtivo()[0].nome : null });
+    this.trocarHost();
+    if (!this.humanos().length) { this.pausa = null; return this.voltarLobby(); }
+    if (this.disputando().length < 2) { this.pausa = null; return this.finalizarDebate(); }
+    if (this.pausa) this.retomar(); else if (voluntario) this.aoDesconectarEmJogo(j);
+    this.emit();
+  }
+  /** Etapa de quem está ausente (ou réplica para quem está ausente) é pulada. */
+  pulavel(q) { return !!q && (q.tipo === 'fala' || q.tipo === 'escolha') && (this.ausente(q.falante) || (q.kind === 'replica' && this.ausente(q.alvo))); }
   aoDesconectarEmJogo(j) {
     const p = this.passo; if (!p || p.falante !== j.id) return;
     if (p.tipo === 'fala' && this.fala && this.fala.status !== 'avaliado') this.later(1500, () => this.finalizar(this.fala?.texto || ''));
@@ -267,13 +326,13 @@ class Sala {
     if (ativos.some(j => j.id !== this.hostId && !j.pronto)) return 'Todos os candidatos precisam estar prontos.';
     this.jog = this.jog.filter(j => j.conectado);
     this.reset();
-    this.jog.forEach(j => { j.st = novoStats(); j.banido = false; j.motivoBan = null; j.dicasUsadas = 0; j.advertencias = 0; });
+    this.jog.forEach(j => { j.st = novoStats(); j.banido = false; j.motivoBan = null; j.dicasUsadas = 0; j.advertencias = 0; j.saiu = false; j.ausenteAte = null; clearTimeout(j.tAus); });
     this.abst = .18 + Math.random() * .04;
     const ids = this.jog.slice().sort((a, b) => a.slot - b.slot).map(j => j.id);
     const nome = id => this.porId(id).nome;
     // mediação: um(a) jornalista da IA sorteado(a)
     this.jorn = pick(JORNALISTAS);
-    const f = [];
+    const f = [{ tipo: 'cumprimento', etapa: 1 }]; // os candidatos se conhecem e se cumprimentam antes de o debate começar
     f.push({ tipo: 'intro', etapa: 1, partes: N.intro(this.jorn, ids.map(nome)) });
     ids.forEach(id => f.push({ tipo: 'fala', etapa: 1, kind: 'proposta', falante: id, tema: sortearTema(this.usados), var: sortearVariacao() }));
     // (sem pesquisas entre os blocos: a intenção de voto só aparece na apuração ao vivo, no fim)
@@ -298,7 +357,8 @@ class Sala {
     this.i = i; const p = this.passo = this.fila[i];
     this.fala = null; this.roleta = null; this.autoEm = null;
     const nome = id => this.porId(id)?.nome || '';
-    if (p.tipo === 'intro') { this.temaAtual = null; this.narrar(p.partes, ms => this.auto(Math.max(ms + 1200, p.etapa === 2 ? PULPITO_MS : 0))); } // bloco 2: dá tempo da produção trazer o púlpito
+    if (p.tipo === 'cumprimento') { this.temaAtual = null; this.textoJ = ''; this.narrandoAte = 0; this.auto(SEGUNDOS.cumprimento * 1000); }
+    else if (p.tipo === 'intro') { this.temaAtual = null; this.narrar(p.partes, ms => this.auto(Math.max(ms + 1200, p.etapa === 2 ? PULPITO_MS : 0))); } // bloco 2: dá tempo da produção trazer o púlpito
     else if (p.tipo === 'pesquisa') {
       this.temaAtual = null; p.poll = apurar(this.emAtivo(), .25, false, this.abst).res;
       this.narrar(N.pesquisa(), ms => this.auto(Math.max(10000, ms + 5000)));
@@ -361,6 +421,7 @@ class Sala {
     const texto = prep?.texto || gerarFala({ passo: p, eu: j, alvo: p.alvo ? this.porId(p.alvo) : null, dificuldade: j.dif });
     // espera a voz realista ficar pronta (no máximo ~15 s desde que a fala foi escrita)
     const audio = prep ? await Promise.race([prep.voz, new Promise(r => setTimeout(() => r(null), Math.max(2000, 15000 - (Date.now() - prep.t0))))]) : null;
+    while (this.narrando() && this.passo === p) await new Promise(r => setTimeout(r, 300)); // não fala por cima da mediação
     if (!this.fala || this.fala.status !== 'pronto' || this.passo !== p) return;
     // o áudio vai junto já no primeiro aviso de "começou a falar"
     this.fala.falaBot = texto; this.fala.vozBot = j.avatar.genero; this.fala.audioBot = audio?.url || null;
@@ -401,6 +462,7 @@ class Sala {
   comecar(id, mic) {
     const f = this.fala, p = this.passo;
     if (!f || f.status !== 'pronto' || p.falante !== id) return;
+    if (this.narrando()) return void this.later(Math.min(1000, this.narrandoAte - Date.now()) + 50, () => this.comecar(id, mic)); // a vez só é liberada depois que a(o) jornalista termina (tenta de novo; não trava o início automático)
     this.limpar();
     f.status = 'ativo'; f.mic = !!mic; f.fimEm = Date.now() + p.segundos * 1000;
     this.later(p.segundos * 1000, () => this.esgotar());
@@ -422,7 +484,10 @@ class Sala {
     if (mod.expulsa) this.banir(this.porId(id), mod.grave);
   }
   // ---------- moderação e plateia ----------
-  emAtivo() { return this.jog.filter(j => !j.banido); }
+  emAtivo() { return this.jog.filter(j => !j.banido && !j.saiu); }
+  /** Quem ainda disputa: no 2º turno, só os dois finalistas que seguem no páreo. */
+  disputando() { const f = this.turno2 && this.finalistas(); return f ? this.emAtivo().filter(j => f.includes(j.id)) : this.emAtivo(); }
+  finalistas() { const r = this.resultado?.r1; return r ? [r.res[0].id, r.res[1].id] : []; }
   /** Advertência (n = quantas). Na 3ª o candidato é banido da sala. Retorna true se baniu. */
   advertir(j, motivo, n = 1, por = 'moderação') {
     if (!j || j.banido || this.fase !== 'debate') return false;
@@ -441,7 +506,7 @@ class Sala {
       this.fila = this.fila.filter((q, k) => k <= this.i || (q.falante !== j.id && q.alvo !== j.id));
       this.io.to(this.code).emit('banido', { id: j.id, nome: j.nome, motivo });
       this.postarXzona(postsDe('banido', this.dadosPost(j), 3)); this.plateia('confusao');
-      if (this.emAtivo().length < 2) { this.limpar(); this.later(2500, () => this.finalizarDebate()); }
+      if (this.disputando().length < 2) { this.limpar(); this.later(2500, () => this.finalizarDebate()); }
       return this.emit();
     }
     if (p?.tipo === 'fala' && this.fala) { // encerra a fala com nota zero
@@ -455,7 +520,7 @@ class Sala {
     this.plateia('confusao');
     this.emit();
     this.narrar(N.banido(j.nome), ms => {
-      if (this.emAtivo().length < 2) this.later(ms + 1500, () => this.finalizarDebate());
+      if (this.disputando().length < 2) this.later(ms + 1500, () => this.finalizarDebate());
       else this.later(ms + 1500, () => this.proximo());
     });
     this.emit();
@@ -564,7 +629,8 @@ class Sala {
   elegiveis(p) {
     const rod = this.fila.filter(q => q.tipo === 'escolha' && q.etapa === p.etapa);
     const k = rod.indexOf(p);
-    return alvosValidos(p.falante, this.emAtivo().map(j => j.id), rod.filter(q => q.escolhido).map(q => q.escolhido.alvo), rod.slice(k + 1).map(q => q.falante));
+    const ok = alvosValidos(p.falante, this.emAtivo().map(j => j.id), rod.filter(q => q.escolhido).map(q => q.escolhido.alvo), rod.slice(k + 1).map(q => q.falante));
+    const on = ok.filter(id => !this.ausente(id)); return on.length ? on : ok; // evita escolher quem está ausente
   }
   /** Fim do confronto: a mediação encerra, os dois voltam aos seus púlpitos e só então o debate segue. */
   encerrarDuelo(depois) {
@@ -585,36 +651,45 @@ class Sala {
   avancar() {
     if (this.fase !== 'debate') return;
     const p = this.passo;
-    if (p.tipo === 'intro' || p.tipo === 'pesquisa' || (p.tipo === 'fala' && this.fala?.status === 'avaliado')) this.proximo();
+    if (p.tipo === 'cumprimento' || p.tipo === 'intro' || p.tipo === 'pesquisa' || (p.tipo === 'fala' && this.fala?.status === 'avaliado')) this.proximo();
   }
   proximo() {
+    if (this.pausa) { this.pausa.pendente = true; this.autoEm = null; return this.emit(); } // aguardando o ausente voltar
+    let k = this.i + 1; while (this.pulavel(this.fila[k])) k++;
+    if (k > this.i + 1) this.i = k - 1; // pula a vez de quem está ausente
     const seg = this.fila[this.i + 1], d = this.duelo;
     // ainda faz parte do confronto? (pergunta/resposta/réplica/tréplica entre os dois)
     const doDuelo = d && seg?.tipo === 'fala' && seg.etapa === 2 && [d.a, d.b].includes(seg.falante) && [d.a, d.b].includes(seg.alvo)
       // só 2 jogadores: ficam no centro até o outro também perguntar (aí sim voltam)
       || d && d.fase === 'no' && !d.n && seg?.tipo === 'escolha' && seg.etapa === 2 && seg.falante === d.b && this.emAtivo().length === 2;
     if (d && !doDuelo) return this.encerrarDuelo(() => this.proximo());
+    // 2º turno: os dois finalistas caminham juntos até o púlpito central antes da primeira pergunta
+    if (!d && seg?.tipo === 'fala' && seg.t2 && seg.etapa === 2) {
+      this.duelo = { a: seg.falante, b: seg.alvo, fase: 'indo' }; this.autoEm = null; this.emit();
+      return this.later(CAMINHADA_MS, () => { if (this.duelo) this.duelo.fase = 'no'; this.irPara(this.i + 1); });
+    }
     if (seg) this.irPara(this.i + 1); else this.finalizarDebate();
   }
 
+  desempenho() { return this.jog.map(j => ({ id: j.id, banido: j.banido ? j.motivoBan : null, saiu: !!j.saiu || undefined, nota: perf(j.st), percebida: rotuloPos(percebida(j)), ataques: j.st.ataques, fugas: j.st.fugas, melhor: j.st.melhor })); }
+  ata() { return this.fila.filter(p => p.tipo === 'fala' && p.res).map(p => ({ falante: p.falante, kind: p.kind, etapa: p.etapa, t2: p.t2, tema: p.tema, texto: p.texto, nota: p.res.nota })); }
   finalizarDebate() {
+    if (this.turno2) return this.finalizarTurno2();
     this.limpar(); this.duelo = null;
     const candidatos = this.emAtivo(); // banidos não entram na apuração
     const r1 = apurar(candidatos, .45, false, this.abst);
     const eleito1 = r1.res[0].pct > 50 || candidatos.length <= 2;
-    const r2 = eleito1 ? null : apurar([this.porId(r1.res[0].id), this.porId(r1.res[1].id)], .35, true, this.abst);
-    const vencedor = eleito1 ? r1.res[0].id : r2.res[0].id;
     this.fase = 'resultado'; this.passo = null; this.fala = null; this.temaAtual = null; this.autoEm = null;
     this.resultado = {
-      r1, r2, eleito1, vencedor, mostrar2: false, anunciado1: false,
+      r1, r2: null, eleito1, vencedor: eleito1 ? r1.res[0].id : null, mostrar2: false, anunciado1: false,
       // apuração ao vivo: 30 s de votos chegando (com viradas) antes de anunciar
       contagem: { turno: 1, ini: Date.now() + 4000, dur: APURACAO_MS, quadros: quadrosApuracao(r1.res) },
       dancas: Object.fromEntries(candidatos.map(j => [j.id, this.conta(j)?.danca || (j.bot ? pick(['samba', 'robo', 'passinho', 'disco', 'carnaval', 'comemorar']) : 'comemorar')])),
-      desempenho: this.jog.map(j => ({ id: j.id, banido: j.banido ? j.motivoBan : null, nota: perf(j.st), percebida: rotuloPos(percebida(j)), ataques: j.st.ataques, fugas: j.st.fugas, melhor: j.st.melhor })),
-      ata: this.fila.filter(p => p.tipo === 'fala' && p.res).map(p => ({ falante: p.falante, kind: p.kind, etapa: p.etapa, tema: p.tema, texto: p.texto, nota: p.res.nota })),
+      wo: candidatos.length === 1 && this.jog.some(j => j.saiu) || undefined, // venceu porque o(s) adversário(s) abandonaram
+      desempenho: this.desempenho(), ata: this.ata(),
     };
     const nome = id => this.porId(id).nome;
-    this.antecipar([...N.suspense(), ...(eleito1 ? N.vence1(nome(vencedor)) : [...N.segundoTurno(nome(r1.res[0].id), nome(r1.res[1].id)), ...N.vence2(nome(vencedor))])]);
+    this.antecipar([...N.suspense(), ...(eleito1 ? N.vence1(nome(r1.res[0].id)) : [...N.segundoTurno(nome(r1.res[0].id), nome(r1.res[1].id)), ...N.turno2(nome(r1.res[0].id), nome(r1.res[1].id)), ...N.final2()])]);
     this.narrar(N.apuracao());
     this.later(4000 + APURACAO_MS, () => this.anunciar1());
     this.emit();
@@ -624,16 +699,47 @@ class Sala {
     r.anunciado1 = true;
     const nome = id => this.porId(id).nome;
     if (r.eleito1) { this.revelarNome(N.vence1(nome(r.vencedor))); this.encerrarPartida(); }
-    else { this.narrar(N.segundoTurno(nome(r.r1.res[0].id), nome(r.r1.res[1].id))); this.later(14000, () => this.revelar2()); }
+    else { this.narrar(N.segundoTurno(nome(r.r1.res[0].id), nome(r.r1.res[1].id))); this.later(14000, () => this.iniciarTurno2()); }
     this.emit();
   }
-  /** 2º turno: mais 30 s de apuração ao vivo e o anúncio do vencedor. */
+  /** Botão do anfitrião: pula a espera e começa logo o debate do 2º turno. */
   revelar2() {
-    const r = this.resultado; if (!r || r.eleito1 || r.mostrar2 || r.contagem?.turno === 2) return;
+    const r = this.resultado; if (!r || this.fase !== 'resultado' || r.eleito1 || r.r2) return;
     if (!r.anunciado1) return this.anunciar1();
+    this.iniciarTurno2();
+  }
+  /** Debate do 2º turno: confronto direto de tema livre entre os finalistas (pergunta e resposta, sem réplica/tréplica)
+   *  e considerações finais. As notas somam às do 1º turno, mas as falas daqui pesam mais (ver aplicar em regras.js). */
+  iniciarTurno2() {
+    const r = this.resultado; if (this.fase !== 'resultado' || !r || r.eleito1 || r.r2 || this.turno2) return;
+    this.limpar(); this.turno2 = true;
+    const [a, b] = this.finalistas(), nome = id => this.porId(id)?.nome || '';
+    const base = { tipo: 'fala', etapa: 2, t2: true, tema: null };
+    const f = [{ tipo: 'intro', etapa: 2, t2: true, partes: N.turno2(nome(a), nome(b)) },
+      { ...base, kind: 'pergunta', falante: a, alvo: b, var: sortearVariacao() }, { ...base, kind: 'resposta', falante: b, alvo: a, var: sortearVariacao() },
+      { ...base, kind: 'pergunta', falante: b, alvo: a, var: sortearVariacao() }, { ...base, kind: 'resposta', falante: a, alvo: b, var: sortearVariacao() },
+      { tipo: 'intro', etapa: 3, t2: true, partes: N.final2() },
+      ...shuffle([a, b]).map(id => ({ tipo: 'fala', etapa: 3, t2: true, kind: 'final', falante: id, var: sortearVariacao() }))];
+    f.forEach(p => { if (p.tipo === 'fala') { p.segundos = this.seg(p.kind); this.antecipar(this.partesFala(p)); this.escreverFalaBot(p); } });
+    const ini = this.fila.length; this.fila.push(...f);
+    this.fase = 'debate'; this.duelo = null; this.pausa = null;
+    this.irPara(ini);
+  }
+  /** Fim do debate do 2º turno: apuração ao vivo (30 s) e o anúncio do vencedor. */
+  finalizarTurno2() {
+    this.limpar(); this.duelo = null; this.turno2 = false;
+    const r = this.resultado, fin = this.finalistas().map(id => this.porId(id));
+    const vivos = fin.filter(j => j && !j.banido && !j.saiu);
+    r.r2 = apurar(vivos.length ? vivos : fin.slice(0, 1), .35, true, this.abst);
+    r.vencedor = r.r2.res[0].id;
+    if (vivos.length === 1 && this.jog.some(j => j.saiu && fin.includes(j))) r.wo = true;
+    r.desempenho = this.desempenho(); r.ata = this.ata();
+    this.fase = 'resultado'; this.passo = null; this.fala = null; this.temaAtual = null; this.autoEm = null;
     r.contagem = { turno: 2, ini: Date.now() + 3000, dur: APURACAO_MS, quadros: quadrosApuracao(r.r2.res) };
+    const nomeV = this.porId(r.vencedor).nome;
+    this.antecipar([...N.suspense(), ...N.vence2(nomeV)]);
     this.narrar(N.apuracao2());
-    this.later(4000 + APURACAO_MS, () => { r.mostrar2 = true; this.revelarNome(N.vence2(this.porId(r.r2.res[0].id).nome)); this.encerrarPartida(); this.emit(); });
+    this.later(4000 + APURACAO_MS, () => { r.mostrar2 = true; this.revelarNome(N.vence2(nomeV)); this.encerrarPartida(); this.emit(); });
     this.emit();
   }
   /** Revelação no cliente (close 0 ms → telão 3500 ms, ver REVELACAO em main.js): suspense já, o nome quando o telão acende. */
@@ -648,7 +754,7 @@ class Sala {
     const candidatos = this.emAtivo();
     const finalistas = r.eleito1 ? [] : [r.r1.res[0].id, r.r1.res[1].id];
     for (const j of this.jog) {
-      if (j.bot) continue; const c = this.conta(j); if (!c) continue;
+      if (j.bot || j.saiu) continue; const c = this.conta(j); if (!c) continue; // quem abandonou a partida não recebe nada
       const itens = [];
       if (j.banido) itens.push(['Banido pela moderação', 0]);
       else {
@@ -657,11 +763,16 @@ class Sala {
         if (finalistas.includes(j.id)) itens.push(['Foi ao 2º turno', ECONOMIA.segundoTurno]);
         if (r.vencedor === j.id) itens.push(['Eleito(a)!', ECONOMIA.eleito]);
       }
-      const total = itens.reduce((a, [, v]) => a + v, 0);
+      const cg = cargo(c.xp || 0), base = itens.reduce((a, [, v]) => a + v, 0), extra = Math.round((itens[0]?.[1] + (itens[1]?.[1] || 0)) * (cg.bonus - 1)) || 0; // bônus só sobre participação + desempenho
+      if (extra > 0) itens.push([`Bônus de cargo: ${cg.nome} (×${String(cg.bonus).replace('.', ',')})`, extra]);
+      const total = base + extra;
+      // XP da carreira política (banido não ganha)
+      const xpGanho = j.banido ? 0 : XP.participacao + Math.round(perf(j.st) * XP.porPontoDeNota) + (finalistas.includes(j.id) ? XP.segundoTurno : 0) + (r.vencedor === j.id ? XP.eleito : 0);
+      const xp = this.mgr.contas.mudarXp(c, xpGanho);
       this.mgr.contas.creditar(c, total, 'Partida de debate'); c.partidas = (c.partidas || 0) + 1; if (r.vencedor === j.id) c.vitorias = (c.vitorias || 0) + 1; this.mgr.contas.salvar();
       const m = j.st.melhor, seguidores = this.mgr.contas.registrarDebate(c, { nota: perf(j.st), eleito: r.vencedor === j.id, segundoTurno: finalistas.includes(j.id), banido: !!j.banido,
         ataques: j.st.ataques, fugas: j.st.fugas, fala: j.banido ? null : m?.texto, tema: TEMA[m?.tema]?.titulo });
-      this.socketDe(j.id)?.emit('ganhos', { total, itens, seguidores }); this.enviarConta(j);
+      this.socketDe(j.id)?.emit('ganhos', { total, itens, seguidores, xp: { ganho: xpGanho, ...xp } }); this.enviarConta(j);
     }
     this.mgr.registrarRanking(candidatos, r.r1, r.vencedor);
   }
@@ -687,9 +798,12 @@ class Sala {
   }
   // ---------- emotes, danças e provocações (itens da loja) ----------
   emote(j, item) {
-    const it = ITEM[item]; if (!it || !j) return;
-    if (!j.bot && !this.mgr.contas.tem(this.conta(j), item)) return;
-    if (Date.now() - (j.ultEmote || 0) < 2500) return; j.ultEmote = Date.now();
+    const it = ITEM[item]; if (!it || !j) return 'Item inválido.';
+    if (!j.bot && !this.mgr.contas.tem(this.conta(j), item)) return 'Você não tem esse item.';
+    // limite: emotes/provocações a cada 15 s, danças a cada 1 min
+    const k = it.tipo === 'danca' ? 'ultDanca' : 'ultEmote', espera = (it.tipo === 'danca' ? 60000 : 15000) - (Date.now() - (j[k] || 0));
+    if (espera > 0) return `Aguarde ${Math.ceil(espera / 1000)} s para ${it.tipo === 'danca' ? 'dançar' : 'usar um emote'} de novo.`;
+    j[k] = Date.now();
     this.io.to(this.code).emit('emote', { id: j.id, item });
   }
   // ---------- denúncia ----------
@@ -712,6 +826,8 @@ class Sala {
     this.emit();
   }
 }
+
+export const textoAbandono = a => !a ? '' : a.ban ? `Você abandonou 2 partidas em 24 horas: suspenso(a) por 1 hora, perdeu ${XP_PUNICAO.abandono + XP_PUNICAO.suspensaoAbandono} XP${a.perda ? ` e ${a.perda} seguidores na Xzona` : ''}.${a.xp?.depois < a.xp?.antes ? ` Você caiu para ${cargo(a.xp.xp).nome}.` : ''}` : `Abandono registrado (1 de 2 em 24 h): -${XP_PUNICAO.abandono} XP. Mais um e você fica suspenso(a) por 1 hora, perde mais XP e seguidores na Xzona.`;
 
 export class Salas {
   constructor(io, raiz) {
@@ -789,7 +905,7 @@ export class Salas {
   }
   rankingDe(periodo) {
     const sem = Salas.top(periodo === 'semana' ? this.per.semana?.ranking : periodo === 'mes' ? this.per.mes?.ranking : this.ranking);
-    return sem.map(({ uid, ...r }) => r); // uid não sai do servidor
+    return sem.map(({ uid, ...r }) => ({ ...r, nivel: uid ? this.contas.nivel(this.contas.contas[uid]) : 0 })); // uid não sai do servidor
   }
   novaSala(publica) { let code; do code = gerarCodigo(); while (this.salas.has(code)); const s = new Sala(this, code, publica); this.salas.set(code, s); return s; }
 
@@ -828,6 +944,8 @@ export class Salas {
     socket.on('reentrar', (d, cb) => {
       const s = this.salas.get(d?.code); const j = s && s.jog.find(x => x.token === d?.token);
       if (!s || !j) return resp(cb, { erro: 'sessão expirada' });
+      if (j.saiu) return resp(cb, { erro: 'Você ficou fora por mais de 1 minuto e foi retirado(a) da partida. ' + textoAbandono(j.abandono), aviso: true });
+      if (d?.abrindo && s.fase === 'resultado') return resp(cb, { erro: 'sessão expirada' }); // reabriu o jogo depois que a partida acabou: volta ao menu
       s.vincular(socket, j); s.emit(); resp(cb, { ok: true, code: s.code });
     });
     socket.on('salasPublicas', (_, cb) => resp(cb, [...this.salas.values()].filter(s => s.publica && s.fase === 'lobby' && s.humanos().length)
@@ -864,6 +982,8 @@ export class Salas {
       j.olhar = { y, p }; socket.to(s.code).volatile.emit('olhar', { id: j.id, y, p });
     });
     socket.on('nivel', v => { const s = sala(); if (s && s.passo?.falante === socket.data.pid) socket.to(s.code).volatile.emit('nivel', { id: socket.data.pid, v: Math.max(0, Math.min(1, Number(v) || 0)) }); });
+    // celular que soltou o chat de voz para transcrever: a frase vira voz sintetizada nos outros (só na própria vez, fala ativa e sem conteúdo moderado)
+    socket.on('frase', d => { const s = sala(), t = String(d?.t || '').slice(0, 500).trim(); if (s && t && s.passo?.falante === socket.data.pid && ['ativo', 'encerrando'].includes(s.fala?.status) && !moderar(t).expulsa) socket.to(s.code).emit('frase', { id: socket.data.pid, t }); });
     socket.on('reacao', tipo => {
       const s = sala(), j = eu(); if (!s || !j || !s.cfg.reacoes || !REACOES.includes(tipo)) return;
       if (Date.now() - (j.ultReacao || 0) < 900) return; j.ultReacao = Date.now();
@@ -884,7 +1004,7 @@ export class Salas {
     socket.on('equiparDanca', (d, cb) => { const c = contaDe(d); const e = this.contas.equiparDanca(c, d?.item); resp(cb, e ? { erro: e } : { ok: true, conta: this.contas.publico(c) }); });
     // ---- partida: dica, emotes, denúncia ----
     socket.on('pedirDica', async (d, cb) => { const s = sala(), j = eu(); if (!s || !j) return resp(cb, { erro: 'Fora de uma partida.' }); resp(cb, await s.pedirDica(j, d || {})); });
-    socket.on('emote', item => { const s = sala(), j = eu(); if (s && j) s.emote(j, item); });
+    socket.on('emote', (item, cb) => { const s = sala(), j = eu(); const e = s && j ? s.emote(j, item) : 'Fora da partida.'; resp(cb, e ? { erro: e } : { ok: true }); });
     socket.on('denunciar', (d, cb) => { const s = sala(), j = eu(); resp(cb, { erro: s && j ? s.denunciar(j, d) : 'Fora de uma sala.' }); });
     // ---- voz entre jogadores (WebRTC): o servidor só repassa a sinalização dentro da sala ----
     socket.on('rtc', d => {

@@ -26,6 +26,24 @@ app.get('/api/som/:id', async (req, res) => {
   arq ? res.set('Cache-Control', 'public, max-age=86400').sendFile(arq) : res.sendStatus(404);
 });
 
+// ---------- servidores ICE do chat de voz (TURN é necessário em 4G/redes de celular) ----------
+// .env: CF_TURN_ID + CF_TURN_TOKEN (Cloudflare Realtime TURN, grátis até 1TB/mês) ou TURN_URL + TURN_USER + TURN_PASS
+const env = k => { if (process.env[k]) return process.env[k]; try { for (const l of fs.readFileSync(path.join(raiz, '.env'), 'utf8').replace(/^﻿/, '').split(/\r?\n/)) { const i = l.indexOf('='); if (i > 0 && l.slice(0, i).trim() === k) return l.slice(i + 1).trim().replace(/^["']|["']$/g, ''); } } catch { /* */ } return ''; };
+const STUN = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] }];
+let iceCache = null;
+app.get('/api/ice', async (req, res) => {
+  if (iceCache && iceCache.ate > Date.now()) return res.json(iceCache.dados);
+  let ice = [...STUN];
+  const id = env('CF_TURN_ID'), tok = env('CF_TURN_TOKEN');
+  if (id && tok) try {
+    const r = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${id}/credentials/generate-ice-servers`, { method: 'POST', headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ ttl: 86400 }) });
+    const j = await r.json(); if (r.ok && j.iceServers) ice = [...STUN, ...[].concat(j.iceServers)]; else console.error('[voip] Cloudflare TURN:', r.status, JSON.stringify(j).slice(0, 160));
+  } catch (e) { console.error('[voip] Cloudflare TURN:', e.message); }
+  else if (env('TURN_URL')) ice.push({ urls: env('TURN_URL').split(','), username: env('TURN_USER'), credential: env('TURN_PASS') });
+  iceCache = { ate: Date.now() + 3600000, dados: ice };
+  res.json(ice);
+});
+
 // ---------- painel dos administradores (denúncias e suspensões) ----------
 // senha: variável ADMIN_SENHA no .env (ex.: ADMIN_SENHA=minhasenha); sem ela, uma senha é sorteada e mostrada aqui
 function senhaAdmin() {

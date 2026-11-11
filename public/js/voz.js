@@ -16,23 +16,46 @@ export function msgErroVoz(code) {
 // No celular o microfone é exclusivo: se outro getUserMedia (chat de voz, medidor) estiver aberto, o reconhecimento não ouve nada.
 // Lá também o modo contínuo duplica/perde texto, então cada frase é uma sessão curta que reinicia sozinha.
 export const celular = /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+// Navegadores novos aceitam rec.start(faixa): o reconhecimento ouve a MESMA faixa do chat de voz, sem soltar o microfone.
+// Detecção: com suporte, start({}) lança TypeError (parâmetro não é MediaStreamTrack); sem suporte o argumento é ignorado.
+let faixaOk; // undefined = não testado, true/false
 
 export class Microfone {
-  constructor({ onTexto, onNivel, onErro, onStatus, onExclusivo } = {}) {
-    Object.assign(this, { onTexto, onNivel, onErro, onStatus, onExclusivo });
-    this.ativo = false; this.final = ''; this.interim = ''; this.rec = null; this.vu = null;
+  constructor({ onTexto, onNivel, onErro, onStatus, onExclusivo, faixa, onFrase } = {}) {
+    Object.assign(this, { onTexto, onNivel, onErro, onStatus, onExclusivo, faixa, onFrase });
+    this.ativo = false; this.final = ''; this.interim = ''; this.rec = null; this.vu = null; this.trilha = null;
   }
   get texto() { return (this.final + this.interim).trim(); }
+  /** Inicia o reconhecimento: na faixa compartilhada do chat de voz (se houver) ou no microfone direto. */
+  partir(rec) { if (this.trilha) rec.start(this.trilha); else rec.start(); }
+  largarTrilha() { this.trilha?.stop(); this.trilha = null; }
+  /** Celular sem rec.start(faixa): solta o microfone do chat de voz (os outros deixam de ouvir a voz real; o texto vira voz sintetizada neles). */
+  async exclusivoMic() { this.largarTrilha(); this.exclusivo = true; try { await this.onExclusivo?.(true); } catch { /* */ } return this.ativo; }
   async ligar(textoInicial = '') {
     if (this.ativo) return true;
     if (!SR) { this.onErro?.('Este navegador não transcreve voz. Use o Google Chrome ou o Edge, ou digite sua fala.'); return false; }
     this.final = textoInicial ? textoInicial.trim() + ' ' : ''; this.interim = '';
     this.ativo = true;
-    if (celular) { this.exclusivo = true; try { await this.onExclusivo?.(true); } catch { /* */ } if (!this.ativo) return false; }
+    if (celular) {
+      const f = faixaOk !== false && this.faixa?.();
+      if (f && f.readyState === 'live') { this.trilha = f.clone(); this.trilha.enabled = true; } // clone: o "mudo" do chat não silencia a transcrição
+      else if (!await this.exclusivoMic()) return false;
+    }
+    let rec = this.criar();
+    if (this.trilha && faixaOk === undefined) {
+      try { rec.start({}); faixaOk = false; } catch (e) { faixaOk = e instanceof TypeError; }
+      if (!faixaOk) { this.rec = null; try { rec.abort(); } catch { /* */ } if (!await this.exclusivoMic()) return false; rec = this.criar(); }
+    }
+    try { this.partir(rec); } catch (e) { this.ativo = false; this.largarTrilha(); this.soltar(); this.onErro?.(msgErroVoz(e.name)); return false; }
+    if (!celular) this.ligarVU();
+    return true;
+  }
+  criar() {
     const rec = this.rec = new SR(); rec.lang = 'pt-BR'; rec.continuous = !celular; rec.interimResults = true; rec.maxAlternatives = 1;
-    rec.onstart = () => this.onStatus?.('Microfone ligado: pode falar.');
-    rec.onspeechstart = () => this.onStatus?.('Ouvindo e transcrevendo…');
+    rec.onstart = () => this.rec === rec && this.onStatus?.('Microfone ligado: pode falar.');
+    rec.onspeechstart = () => this.rec === rec && this.onStatus?.('Ouvindo e transcrevendo…');
     rec.onresult = e => {
+      if (this.rec !== rec) return;
       if (celular) { // sessão curta: reconstrói a frase inteira a cada evento (evita duplicação do Android)
         let fin = '', inte = '';
         for (let i = 0; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) fin += r[0].transcript.trim() + ' '; else inte += r[0].transcript; }
@@ -47,29 +70,33 @@ export class Microfone {
       this.onTexto?.(this.texto);
     };
     rec.onerror = e => {
-      if (e.error === 'no-speech' || e.error === 'aborted') return;
-      this.ativo = false; this.pararVU(); this.soltar(); this.onErro?.(msgErroVoz(e.error));
+      if (this.rec !== rec || e.error === 'no-speech' || e.error === 'aborted') return;
+      if (this.trilha && this.ativo) { // a faixa compartilhada não funcionou neste aparelho: volta ao microfone exclusivo
+        faixaOk = false; this.rec = null; try { rec.abort(); } catch { /* */ }
+        this.exclusivoMic().then(ok => { if (!ok) return; const r = this.criar(); try { this.partir(r); } catch (er) { this.ativo = false; this.soltar(); this.onErro?.(msgErroVoz(er.name)); } });
+        return;
+      }
+      this.ativo = false; this.pararVU(); this.largarTrilha(); this.soltar(); this.onErro?.(msgErroVoz(e.error));
     };
     rec.onend = () => {
-      if (celular && this.interim) { this.final += this.interim.trim() + ' '; this.interim = ''; this.sessao = ''; this.onNivel?.(0); }
-      if (this.ativo) setTimeout(() => { if (this.ativo && this.rec === rec) { try { rec.start(); } catch { /* reinício */ } } }, celular ? 120 : 0);
-      else { this.soltar(); this._fim?.(); }
+      if (this.rec !== rec) return;
+      if (celular && this.interim) { const frase = this.interim.trim(); this.final += frase + ' '; this.interim = ''; this.sessao = ''; this.onNivel?.(0); if (this.exclusivo) this.onFrase?.(frase); }
+      if (this.ativo) setTimeout(() => { if (this.ativo && this.rec === rec) { try { this.partir(rec); } catch { /* reinício */ } } }, celular ? 120 : 0);
+      else { this.largarTrilha(); this.soltar(); this._fim?.(); }
     };
-    try { rec.start(); } catch (e) { this.ativo = false; this.soltar(); this.onErro?.(msgErroVoz(e.name)); return false; }
-    if (!celular) this.ligarVU();
-    return true;
+    return rec;
   }
   soltar() { if (this.exclusivo) { this.exclusivo = false; this.onExclusivo?.(false); } }
   desligar() {
     return new Promise(res => {
-      if (!this.ativo || !this.rec) { this.ativo = false; this.pararVU(); this.soltar(); return res(this.texto); }
+      if (!this.ativo || !this.rec) { this.ativo = false; this.pararVU(); this.largarTrilha(); this.soltar(); return res(this.texto); }
       this.ativo = false; this.pararVU();
-      let feito = false; const fim = () => { if (feito) return; feito = true; this.interim = this.interim.trim(); this.soltar(); res(this.texto); };
+      let feito = false; const fim = () => { if (feito) return; feito = true; this.interim = this.interim.trim(); this.largarTrilha(); this.soltar(); res(this.texto); };
       this._fim = fim; try { this.rec.stop(); } catch { fim(); }
       setTimeout(fim, 1400);
     });
   }
-  abortar() { this.ativo = false; this.pararVU(); try { this.rec?.abort(); } catch { /* */ } this.soltar(); }
+  abortar() { this.ativo = false; this.pararVU(); try { this.rec?.abort(); } catch { /* */ } this.largarTrilha(); this.soltar(); }
   async ligarVU() {
     const token = this.vuToken = Math.random();
     try {
@@ -118,15 +145,22 @@ function vozDoGenero(genero) {
   if (genero === 'feminino') return { voz: fem || voz, pitch: 1.12 };
   return { voz: voz, pitch: .88 };
 }
-export function falar(texto, { onInicio, onFim, genero } = {}) {
+export function falar(texto, { onInicio, onFim, genero, fila } = {}) {
   if (!('speechSynthesis' in window)) { onFim?.(); return; }
-  speechSynthesis.cancel();
+  if (!fila) speechSynthesis.cancel(); // fila: entra depois da frase que já está sendo lida
   const u = new SpeechSynthesisUtterance(texto); u.lang = 'pt-BR'; if (voz) u.voice = voz; u.rate = 1.07; u.pitch = 1.02;
   if (genero) { const g = vozDoGenero(genero); if (g.voz) u.voice = g.voz; u.pitch = g.pitch; u.rate = 1.1; }
   u.onstart = () => onInicio?.(); u.onend = u.onerror = () => onFim?.();
   speechSynthesis.speak(u);
 }
 export function calar() { if ('speechSynthesis' in window) speechSynthesis.cancel(); }
+// Celular (iOS principalmente): áudio/voz sintetizada só tocam depois de serem "destravados" num toque do usuário.
+const destravarAudio = () => {
+  removeEventListener('pointerdown', destravarAudio, true); removeEventListener('touchend', destravarAudio, true); removeEventListener('keydown', destravarAudio, true);
+  try { ctx(); } catch { /* */ }
+  try { if ('speechSynthesis' in window && !speechSynthesis.speaking) { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } } catch { /* */ }
+};
+addEventListener('pointerdown', destravarAudio, true); addEventListener('touchend', destravarAudio, true); addEventListener('keydown', destravarAudio, true);
 
 // ---------- efeitos sonoros sintetizados ----------
 let ac = null, volume = .7, volAmb = .7, volMusica = .8;

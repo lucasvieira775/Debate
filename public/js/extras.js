@@ -1,6 +1,7 @@
 // Peças de interface: feed da Xzona, anotação da assessoria (papel), janelas (denúncia) e loja.
 import { $, $$, esc, fmtN, toast } from './util.js';
 import { ITENS, PACOTES_MOEDAS } from '/shared/loja.js';
+import { CARGOS, htmlBrasao } from '/shared/niveis.js';
 
 // ---------------- Xzona ----------------
 const coresPerfil = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
@@ -36,12 +37,12 @@ export function htmlFanpage(fp, { img = '', partido = '' } = {}) {
   return `<div class="fp">
     <div class="fp-capa"><span class="xz-logo">Xzona</span></div>
     <div class="fp-cab">${av.replace('xz-av', 'xz-av fp-foto')}
-      <div><b class="fp-nome">${esc(fp.nome)}</b><span class="xz-verif">✔</span><div class="xz-user">@${esc(fp.user)}${partido ? ' · ' + esc(partido) : ''}</div></div></div>
+      <div><b class="fp-nome">${htmlBrasao(fp.nivel, 30)}${esc(fp.nome)}</b><span class="xz-verif">✔</span><div class="xz-user">@${esc(fp.user)}${partido ? ' · ' + esc(partido) : ''}${fp.nivel ? ' · ' + CARGOS[fp.nivel - 1].nome : ''}</div></div></div>
     ${fp.bio ? `<p class="fp-bio">${esc(fp.bio)}</p>` : ''}
     ${fp.titulos?.mensal?.length || fp.titulos?.semanal?.length ? `<div class="fp-titulos">${fp.titulos.mensal?.length ? `<span class="fp-titulo ouro">🏆 Melhor candidato do mês${fp.titulos.mensal.length > 1 ? ` ×${fp.titulos.mensal.length}` : ''}</span>` : ''}${fp.titulos.semanal?.length ? `<span class="fp-titulo">🥇 Melhor candidato da semana${fp.titulos.semanal.length > 1 ? ` ×${fp.titulos.semanal.length}` : ''}</span>` : ''}</div>` : ''}
     <div class="fp-stats"><span><b>${fmtN(fp.seguidores)}</b> seguidores</span><span><b>${fp.partidas}</b> debates</span><span><b>${fp.vitorias}</b> vitórias</span></div>
     <div class="fp-posts">${fp.posts.length ? fp.posts.map(p => `<div class="xz-post">${av}<div class="xz-corpo">
-      <div class="xz-cab"><b>${esc(fp.nome)}</b><span class="xz-verif">✔</span> <span class="xz-user">@${esc(fp.user)} · ${quando(p.t)}</span></div>
+      <div class="xz-cab">${htmlBrasao(fp.nivel, 18)}<b>${esc(fp.nome)}</b><span class="xz-verif">✔</span> <span class="xz-user">@${esc(fp.user)} · ${quando(p.t)}</span></div>
       <div class="xz-txt">“${esc(p.texto)}”${p.tema ? ` <span class="xz-tags">#${esc(p.tema.replace(/\s+/g, ''))}</span>` : ''} <span class="xz-tags">#DebateNaXzona</span></div>
       <div class="xz-acoes"><span>💬 ${fmtN(p.respostas)}</span><span>🔁 ${fmtN(p.reposts)}</span><span class="xz-like">♥ ${fmtN(p.curtidas)}</span><span class="${p.delta < 0 ? 'fp-neg' : 'fp-pos'}">${p.delta < 0 ? '' : '+'}${fmtN(p.delta)} seguidores</span></div></div></div>`).join('')
       : '<p class="mut" style="padding:14px">Nenhum post ainda. Sua melhor fala de cada debate será publicada aqui automaticamente.</p>'}</div></div>`;
@@ -154,7 +155,8 @@ export function telaLoja(ui, { conta, info, aba, topo, comprarPacote, comprarIte
     ${aba === 'moedas' ? `<p class="mut" style="text-align:center">Pagamento via PIX · as moedas caem na hora após a confirmação.${info?.pixAtivo ? '' : ' <b>(pagamentos ainda não configurados neste servidor)</b>'} Itens da loja não dão vantagem no debate.</p>`
     : aba === 'assessoria' ? `<div class="painel loja-como"><h2>Como ganhar moedas</h2><table class="tabela">
       <tr><td>Participar de um debate</td><td>🪙 ${info?.economia?.participacao}</td></tr><tr><td>Desempenho (nota × ${info?.economia?.porPontoDeNota})</td><td>até 🪙 ${info?.economia?.porPontoDeNota * 10}</td></tr>
-      <tr><td>Chegar ao 2º turno</td><td>🪙 ${info?.economia?.segundoTurno}</td></tr><tr><td>Ser eleito(a)</td><td>🪙 ${info?.economia?.eleito}</td></tr></table></div>` : aba === 'roupa' ? '<p class="mut" style="text-align:center">Trajes exclusivos aparecem em Personalizar → Roupas depois de comprados.</p>' : `<p class="mut" style="text-align:center">Danças tocam quando você vence. Emotes e provocações ficam no botão 😀 durante a partida.</p>`}
+      <tr><td>Chegar ao 2º turno</td><td>🪙 ${info?.economia?.segundoTurno}</td></tr><tr><td>Ser eleito(a)</td><td>🪙 ${info?.economia?.eleito}</td></tr>
+      <tr><td>Bônus de cargo (sobre participação + desempenho)</td><td>×1 (Candidato) até ×${String(CARGOS.at(-1).bonus).replace('.', ',')} (Presidente)</td></tr></table></div>` : aba === 'roupa' ? '<p class="mut" style="text-align:center">Trajes exclusivos aparecem em Personalizar → Roupas depois de comprados.</p>' : `<p class="mut" style="text-align:center">Danças tocam quando você vence. Emotes e provocações ficam no botão 😀 durante a partida.</p>`}
   </div>`;
   $$('[data-aba]', ui).forEach(b => b.onclick = () => mudarAba(b.dataset.aba));
   $$('[data-pac]', ui).forEach(b => b.onclick = () => comprarPacote(b.dataset.pac));
@@ -168,6 +170,7 @@ export function telaLoja(ui, { conta, info, aba, topo, comprarPacote, comprarIte
 export function avisoGanhos(g) {
   const el = document.createElement('div'); el.className = 'ganhos p';
   el.innerHTML = `<h3>🪙 +${fmtN(g.total)} moedas</h3>${g.itens.map(([t, v]) => `<div class="g-linha"><span>${esc(t)}</span><b>${v ? '+' + v : '0'}</b></div>`).join('')}
+    ${g.xp ? `<h3 style="margin-top:10px">⭐ +${fmtN(g.xp.ganho)} XP</h3><div class="g-linha"><span>${htmlBrasao(g.xp.depois, 18)} ${esc(CARGOS[g.xp.depois - 1].nome)}</span><b>${fmtN(g.xp.xp)} XP</b></div>${g.xp.premio ? `<div class="g-linha"><span>🎖 Promoção a ${esc(CARGOS[g.xp.depois - 1].nome)}</span><b>+${fmtN(g.xp.premio)} 🪙</b></div>` : ''}` : ''}
     ${g.seguidores ? `<h3 style="margin-top:10px">📱 ${g.seguidores.delta < 0 ? '' : '+'}${fmtN(g.seguidores.delta)} seguidores na Xzona</h3><div class="g-linha"><span>Total na fanpage</span><b>${fmtN(g.seguidores.total)}</b></div>` : ''}`;
   document.body.appendChild(el); setTimeout(() => el.classList.add('sai'), 7000); setTimeout(() => el.remove(), 7600);
 }

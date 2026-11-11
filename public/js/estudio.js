@@ -9,6 +9,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { Avatar, mat } from './avatar.js';
 import { PARTIDO, TEMAS, TEMA, AV_MEDIADORA, ETAPAS } from '/shared/regras.js';
 import { desenharSimbolo, escurecer, fmtT, clamp } from './util.js';
+import { brasao } from '/shared/niveis.js';
 
 const CENTRO = new THREE.Vector3(0, 0, -3.2);   // mesa da mediadora
 const RAIO = 6.4;                                // raio do arco de púlpitos
@@ -46,6 +47,33 @@ function quebrar(ctx, texto, maxW) {
   if (l) linhas.push(l); return linhas;
 }
 function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+// ---------- BRASÕES (cache de Image; redesenha quem esperava quando carrega) ----------
+const BRASOES = {};
+function imgBrasao(n, aoCarregar) {
+  if (!(n >= 1 && n <= 8)) return null;
+  let b = BRASOES[n];
+  if (!b) { b = BRASOES[n] = { img: new Image(), ok: false, fila: [] }; b.img.onload = () => { b.ok = true; b.fila.splice(0).forEach(f => f()); }; b.img.src = brasao(n); }
+  if (b.ok) return b.img;
+  if (aoCarregar) b.fila.push(aoCarregar); return null;
+}
+/** Etiqueta 512x128: [brasão] nome / sigla·número, bloco centralizado; fonte encolhe para caber (sem deformar). */
+function desenharEtiqueta(et, j, p) {
+  const { ctx, tex } = et, W = 512, H = 128, PAD = 26, ICO = 92, GAP = 14;
+  et.j = j; et.p = p; // o callback do brasão redesenha com o estado mais recente (nível pode mudar antes da imagem carregar)
+  const img = imgBrasao(j.nivel, () => { if (et.j === j) desenharEtiqueta(et, j, p); });
+  ctx.clearRect(0, 0, W, H); rr(ctx, 4, 4, W - 8, H - 8, 30); ctx.fillStyle = p.cor; ctx.fill();
+  const nome = j.nome.slice(0, 16), sigla = `${p.sigla} · ${p.numero}`, livre = W - 2 * PAD - (img ? ICO + GAP : 0);
+  let tam = 58; ctx.font = `${tam}px ${FONTE}`;
+  while (tam > 30 && ctx.measureText(nome).width > livre) { tam -= 2; ctx.font = `${tam}px ${FONTE}`; }
+  const wNome = ctx.measureText(nome).width; ctx.font = `bold 30px ${FONTE_TXT}`;
+  const wTxt = Math.min(livre, Math.max(wNome, ctx.measureText(sigla).width));
+  const x0 = (W - (img ? ICO + GAP : 0) - wTxt) / 2, cx = x0 + (img ? ICO + GAP : 0) + wTxt / 2;
+  if (img) { ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 6; ctx.drawImage(img, x0, (H - ICO) / 2, ICO, ICO); ctx.shadowBlur = 0; ctx.shadowColor = 'transparent'; }
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `${tam}px ${FONTE}`; ctx.fillText(nome, cx, 52, livre);
+  ctx.font = `bold 30px ${FONTE_TXT}`; ctx.fillText(sigla, cx, 100, livre);
+  tex.needsUpdate = true;
+}
 
 export class Estudio {
   constructor(canvas, cfg = {}) {
@@ -151,16 +179,120 @@ export class Estudio {
       const lente = new THREE.Mesh(new THREE.CircleGeometry(.2, 16), new THREE.MeshBasicMaterial({ color: i % 3 ? '#fff6dc' : '#7dd3fc' })); lente.position.z = .26; ref.add(lente);
     }
     // câmeras de TV decorativas
-    for (const [x, z, ry] of [[-8.2, -5.8, .9], [8.2, -5.8, -.9]]) this.cameraTV(x, z, ry);
+    this.camerasTV = [[-8.2, -5.8, .9], [8.2, -5.8, -.9]].map(([x, z, ry], i) => this.cameraTV(x, z, ry, i));
   }
-  cameraTV(x, z, ry) {
-    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = ry; this.scene.add(g);
-    const preto = new THREE.MeshStandardMaterial({ color: '#16181f', roughness: .45, metalness: .4 });
-    for (let i = 0; i < 3; i++) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, 1.5, 6), preto); const a = i / 3 * Math.PI * 2; p.position.set(Math.sin(a) * .3, .7, Math.cos(a) * .3); p.rotation.set(Math.cos(a) * .25, 0, -Math.sin(a) * .25); g.add(p); }
-    const corpo = new THREE.Mesh(rb(.45, .45, .9, .06), preto); corpo.position.y = 1.65; g.add(corpo);
-    const lente = new THREE.Mesh(new THREE.CylinderGeometry(.15, .17, .35, 18), preto); lente.rotation.x = Math.PI / 2; lente.position.set(0, 1.65, .6); g.add(lente);
-    const tally = new THREE.Mesh(new THREE.SphereGeometry(.05, 10, 8), new THREE.MeshBasicMaterial({ color: '#ff2222' })); tally.position.set(0, 1.92, .2); g.add(tally);
-    const vis = new THREE.Mesh(new THREE.PlaneGeometry(.4, .26), new THREE.MeshBasicMaterial({ color: '#3b82f6' })); vis.position.set(0, 1.65, -.46); vis.rotation.y = Math.PI; g.add(vis);
+  // ---------- câmeras de estúdio (pedestal com rodízios) + cinegrafistas ----------
+  /** Materiais/geometrias/texturas compartilhados pelas câmeras de TV (criados uma vez). */
+  kitCamera() {
+    if (this.kitCam) return this.kitCam;
+    const tex = (w, h, fn) => { const t = canvasTex(w, h); fn(t.ctx, w, h); t.tex.needsUpdate = true; return t.tex; };
+    const logo = tex(256, 96, (c, w, h) => {
+      c.fillStyle = '#0d1230'; c.fillRect(0, 0, w, h); c.fillStyle = '#facc15'; c.fillRect(0, h - 16, w, 8); c.fillStyle = '#22c55e'; c.fillRect(0, h - 8, w, 8);
+      c.fillStyle = '#fff'; c.font = `46px ${FONTE}`; c.textBaseline = 'middle'; c.fillText('DEBATE', 14, 40); c.fillStyle = '#3b82f6'; c.fillText('TV', 190, 40);
+    });
+    const visor = tex(128, 96, (c, w, h) => { // imagem "ao vivo" no monitor do visor: palco, 3 silhuetas e REC
+      const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#1d3a9a'); gr.addColorStop(1, '#0b1550'); c.fillStyle = gr; c.fillRect(0, 0, w, h);
+      c.fillStyle = '#c9cfe3'; for (const x of [22, 64, 106]) { c.fillRect(x - 10, 62, 20, 22); c.beginPath(); c.arc(x, 48, 8, 0, 7); c.fill(); }
+      c.strokeStyle = 'rgba(255,255,255,.6)'; c.lineWidth = 2; c.strokeRect(8, 8, w - 16, h - 16); c.fillStyle = '#ef4444'; c.beginPath(); c.arc(16, 16, 4, 0, 7); c.fill();
+    });
+    const geo = {
+      pe: new THREE.BoxGeometry(.09, .07, .5), garfo: new THREE.BoxGeometry(.06, .09, .07), roda: new THREE.CylinderGeometry(.055, .055, .04, 14).rotateZ(Math.PI / 2),
+      saia: new THREE.CylinderGeometry(.22, .3, .22, 20), faixa: new THREE.CylinderGeometry(.302, .302, .035, 20, 1, true),
+      col: new THREE.CylinderGeometry(.1, .1, .8, 16), col2: new THREE.CylinderGeometry(.066, .066, .5, 12),
+      volante: new THREE.TorusGeometry(.3, .022, 8, 32).rotateX(Math.PI / 2), raio: new THREE.BoxGeometry(.6, .018, .018),
+      cabeca: rb(.26, .1, .28, .03), corpo: rb(.3, .34, .56, .05), lente: rb(.24, .26, .42, .04), anel: new THREE.BoxGeometry(.25, .27, .035),
+      capuz: new THREE.CylinderGeometry(.25, .18, .2, 4, 1, true).rotateY(Math.PI / 4).rotateX(Math.PI / 2), vidro: new THREE.CircleGeometry(.1, 20),
+      visor: rb(.27, .2, .2, .03), visorCapuz: new THREE.CylinderGeometry(.17, .155, .1, 4, 1, true).rotateY(Math.PI / 4).rotateX(-Math.PI / 2), tela: new THREE.PlaneGeometry(.21, .15),
+      logo: new THREE.PlaneGeometry(.36, .135), tally: new THREE.BoxGeometry(.07, .035, .03), tallyV: new THREE.SphereGeometry(.025, 10, 8), punho: new THREE.CylinderGeometry(.028, .028, .15, 10),
+    };
+    const M = {
+      preto: mat('#17191f', { r: .45, m: .4 }), cinza: mat('#3a4152', { r: .45, m: .6 }), cromo: mat('#b9c2d0', { r: .25, m: .85 }), borracha: mat('#0b0c10', { r: .9 }),
+      vidro: new THREE.MeshStandardMaterial({ color: '#0a1838', roughness: .05, metalness: .9, envMapIntensity: 2 }),
+      capuz: new THREE.MeshStandardMaterial({ color: '#17191f', roughness: .6, metalness: .3, side: THREE.DoubleSide }),
+      amarelo: new THREE.MeshBasicMaterial({ color: '#facc15' }), logo: new THREE.MeshStandardMaterial({ map: logo, roughness: .5 }),
+      tela: new THREE.MeshBasicMaterial({ map: visor, toneMapped: false, color: '#cfcfcf' }),
+    };
+    return this.kitCam = { geo, M };
+  }
+  /** Câmera de estúdio em pedestal (pan/tilt animados) com o(a) cinegrafista nas alças. Devolve as referências para o loop. */
+  cameraTV(x, z, ry, i) {
+    const { geo: G, M } = this.kitCamera();
+    const add = (geo, m, px, py, pz, pai) => { const me = new THREE.Mesh(geo, m); me.position.set(px, py, pz); pai.add(me); return me; };
+    const g = new THREE.Group(); g.position.set(x, -.25, z); g.rotation.y = ry; this.scene.add(g); // fora do palco: no piso do estúdio
+    // pedestal: 3 pés com rodízios (um para a frente, dois para trás, abrindo espaço para quem opera), saia, coluna e volante
+    for (let k = 0; k < 3; k++) {
+      const p = new THREE.Group(); p.rotation.y = k * Math.PI * 2 / 3; g.add(p);
+      add(G.pe, M.cinza, 0, .14, .32, p); add(G.garfo, M.preto, 0, .1, .56, p); add(G.roda, M.borracha, 0, .055, .58, p);
+    }
+    add(G.saia, M.preto, 0, .21, 0, g); add(G.faixa, M.amarelo, 0, .13, 0, g);
+    add(G.col, M.cinza, 0, .72, 0, g); add(G.col2, M.cromo, 0, 1.3, 0, g);
+    add(G.volante, M.borracha, 0, 1.0, 0, g);
+    for (const a of [0, Math.PI / 3, -Math.PI / 3]) add(G.raio, M.cinza, 0, 1.0, 0, g).rotation.y = a;
+    // cabo saindo da cabeça, descendo pela coluna e arrastando no chão
+    const cabo = new THREE.CatmullRomCurve3([[0, 1.5, -.12], [.11, 1.2, -.12], [.13, .5, -.14], [.16, .1, -.3], [.3, .03, -.9], [.9 * (i ? -1 : 1), .03, -1.7], [1.1 * (i ? -1 : 1), .03, -2.8]].map(p => new THREE.Vector3(...p)));
+    add(new THREE.TubeGeometry(cabo, 40, .018, 6), M.borracha, 0, 0, 0, g);
+    // cabeça pan/tilt: pan gira em y; tilt inclina o corpo da câmera
+    const pan = new THREE.Group(); pan.position.y = 1.5; g.add(pan);
+    add(G.cabeca, M.cinza, 0, 0, 0, pan);
+    const tilt = new THREE.Group(); tilt.position.y = .06; pan.add(tilt);
+    add(G.corpo, M.preto, 0, .2, -.04, tilt);
+    for (const s of [-1, 1]) add(G.logo, M.logo, s * .152, .2, -.06, tilt).rotation.y = s * Math.PI / 2;
+    add(G.lente, M.cinza, 0, .19, .42, tilt); add(G.anel, M.amarelo, 0, .19, .28, tilt);
+    add(G.capuz, M.capuz, 0, .19, .73, tilt); add(G.vidro, M.vidro, 0, .19, .635, tilt);
+    // visor (monitor traseiro) com para-sol e imagem ao vivo
+    add(G.visor, M.preto, 0, .47, -.14, tilt); add(G.visorCapuz, M.capuz, 0, .47, -.29, tilt);
+    add(G.tela, M.tela, 0, .47, -.241, tilt).rotation.y = Math.PI;
+    // tally (vermelha quando esta câmera está no ar): na frente da lente e em cima do visor
+    const tallyMat = new THREE.MeshBasicMaterial({ color: '#ff1a1a', toneMapped: false });
+    add(G.tally, tallyMat, 0, .33, .55, tilt); add(G.tallyV, tallyMat, 0, .59, -.12, tilt);
+    // alças de pan: da cabeça para trás e para fora, até as mãos do(a) cinegrafista
+    for (const s of [-1, 1]) {
+      const a = new THREE.Vector3(s * .12, .02, -.12), b = new THREE.Vector3(s * .58, -.32, -.41), d = b.clone().sub(a);
+      const bar = add(new THREE.CylinderGeometry(.016, .016, d.length(), 8), M.cromo, 0, 0, 0, pan); bar.position.copy(a).lerp(b, .5); bar.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+      const pu = add(G.punho, M.borracha, 0, 0, 0, pan); pu.position.copy(b); pu.quaternion.copy(bar.quaternion);
+    }
+    // cinegrafista (equipe técnica: roupa escura, fone com microfone), em pé atrás, girando junto com a cabeça da câmera
+    const op = new Avatar([
+      { genero: 'masculino', pele: '#e0ac69', cabelo: 'curto', corCabelo: '#2b1d14', barba: 'cavanhaque', oculos: 'nenhum', chapeu: 'nenhum', roupa: 'polo', corRoupa: '#15161b', corCamisa: '#0d0e12', corGravata: '#000000', brinco: false, broche: false, corpo: 'medio', expressao: 'serio' },
+      { genero: 'feminino', pele: '#8d5524', cabelo: 'cacheado', corCabelo: '#1a0f0a', barba: 'nenhuma', oculos: 'nenhum', chapeu: 'nenhum', roupa: 'polo', corRoupa: '#15161b', corCamisa: '#0d0e12', corGravata: '#000000', brinco: true, broche: false, corpo: 'medio', expressao: 'serio' },
+    ][i % 2]);
+    op.root.position.set(0, -1.5, -.78); pan.add(op.root); this.fone(op.cabeca);
+    const marinho = mat('#1e2444', { r: .7 }); op.pernas.forEach(pv => pv.traverse(o => { if (o.isMesh && o.material.color.getHexString() !== '141414') o.material = marinho; }));
+    return { g, pan, tilt, tallyMat, op, yaw: 0, pitch: 0, fase: i * 2.1 };
+  }
+  /** Fone de ouvido da equipe técnica (arco, conchas e microfone até a boca) na cabeça H de um Avatar. */
+  fone(H) {
+    const preto = mat('#1c1f26', { r: .45, m: .3 }), prata = mat('#a7b0bf', { r: .3, m: .7 }), amarelo = mat('#facc15', { r: .5 });
+    const add = (geo, m, x, y, z) => { const me = new THREE.Mesh(geo, m); me.position.set(x, y, z); H.add(me); return me; };
+    const arco = add(new THREE.TorusGeometry(.33, .028, 8, 28, Math.PI), preto, 0, .33, 0); arco.scale.y = 1.2;
+    for (const s of [-1, 1]) {
+      add(new THREE.CylinderGeometry(.1, .1, .075, 20), preto, s * .32, .3, 0).rotation.z = Math.PI / 2;
+      add(new THREE.CylinderGeometry(.075, .075, .08, 20), prata, s * .33, .3, 0).rotation.z = Math.PI / 2;
+    }
+    add(new THREE.CircleGeometry(.04, 3), amarelo, .375, .3, 0).rotation.y = Math.PI / 2;
+    const a = new THREE.Vector3(.34, .24, .05), b = new THREE.Vector3(.13, .13, .26);
+    const h = add(new THREE.CylinderGeometry(.012, .012, a.distanceTo(b), 8), preto, 0, 0, 0); h.position.copy(a).lerp(b, .5); h.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    add(new THREE.SphereGeometry(.03, 12, 8), preto, .12, .13, .27);
+  }
+  /** Loop: câmeras fazem pan/tilt suave acompanhando quem fala (ou passeiam devagar); cinegrafistas respiram e seguram as alças. */
+  animarCameras(dt, t) {
+    const k = 1 - Math.exp(-dt * 1.4), alvo = _v;
+    const fal = this.falante && this.podios.get(this.falante);
+    if (this.duelo) alvo.set(DUELO.x, 1.5, DUELO.z); else if (fal) fal.ator.getWorldPosition(alvo).setY(1.6); else alvo.set(0, 1.5, -1);
+    for (const c of this.camerasTV || []) {
+      const p = c.g.position, dx = alvo.x - p.x, dz = alvo.z - p.z;
+      const ocioso = fal || this.duelo ? 0 : Math.sin(t * .23 + c.fase) * .22;
+      let yaw = Math.atan2(dx, dz) - c.g.rotation.y + ocioso; yaw = Math.atan2(Math.sin(yaw), Math.cos(yaw));
+      c.yaw += (clamp(yaw, -.6, .6) + Math.sin(t * .7 + c.fase) * .012 - c.yaw) * k;
+      c.pitch += (-Math.atan2(alvo.y - 1.36, Math.hypot(dx, dz)) + Math.sin(t * .5 + c.fase) * .01 - c.pitch) * k;
+      c.pan.rotation.y = c.yaw; c.tilt.rotation.x = c.pitch;
+      // tally acesa quando a câmera do "ar" (direção de TV) está ao lado desta
+      const noAr = this.modo !== 'fp' && Math.hypot(this.camera.position.x - p.x, this.camera.position.z - p.z) < 4;
+      c.tallyMat.color.setHex(noAr ? 0xff1a1a : 0x3a0606); // setHex: sem parse de string a cada frame
+      const op = c.op; op.setOlhar(Math.sin(t * .31 + c.fase) * .05, -.05); op.update(dt, t);
+      op.torso.rotation.x = .1 + Math.sin(t * 1.9 + c.fase) * .008; // debruçado no visor, respirando
+      for (const b of op.bracos) { const s = b.userData.lado; b.rotation.set(-.35, s * .25, s * .32); b.userData.cot.rotation.x = -1.05; } // mãos nas alças
+    }
   }
   construirTelao() {
     const s = this.scene;
@@ -281,14 +413,22 @@ export class Estudio {
     const sp = new THREE.SpotLight(cor, 11, 16, .32, .55, 1.3);
     sp.position.set(alvo.x * 1.05, 8.6, alvo.z + 1.2); sp.target.position.copy(alvo).setY(1.2);
     this.scene.add(sp, sp.target);
-    const alt = sp.position.distanceTo(sp.target.position);
-    const cone = new THREE.Mesh(new THREE.ConeGeometry(Math.tan(.32) * alt, alt, 32, 1, true),
-      new THREE.MeshBasicMaterial({ color: cor, transparent: true, opacity: .02, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.FrontSide, fog: true }));
-    cone.position.copy(sp.position).lerp(sp.target.position, .5);
-    cone.lookAt(sp.target.position); cone.rotateX(-Math.PI / 2);
-    this.scene.add(cone); sp.userData.cone = cone;
+    // refletor físico de onde a luz sai: haste descendo do teto, garfo e corpo apontado para o alvo; a lente brilha conforme a intensidade
+    const K = this.kitSpot ||= { metal: mat('#23283a', { r: .45, m: .7 }), haste: new THREE.CylinderGeometry(.025, .025, 1, 6).translate(0, .5, 0), garfo: new THREE.BoxGeometry(.5, .05, .05),
+      braco: new THREE.BoxGeometry(.04, .3, .05), corpo: new THREE.CylinderGeometry(.17, .21, .42, 14).rotateX(Math.PI / 2), aba: new THREE.CylinderGeometry(.24, .18, .14, 4, 1, true).rotateY(Math.PI / 4).rotateX(Math.PI / 2), lente: new THREE.CircleGeometry(.16, 18),
+      aberta: new THREE.MeshStandardMaterial({ color: '#23283a', roughness: .5, metalness: .6, side: THREE.DoubleSide }) };
+    const f = new THREE.Group(); f.position.copy(sp.position); f.rotation.y = Math.atan2(sp.target.position.x - sp.position.x, sp.target.position.z - sp.position.z); this.scene.add(f);
+    const haste = new THREE.Mesh(K.haste, K.metal); haste.position.y = .3; haste.scale.y = 3; f.add(haste);
+    const garfo = new THREE.Mesh(K.garfo, K.metal); garfo.position.y = .3; f.add(garfo);
+    for (const s of [-1, 1]) { const b = new THREE.Mesh(K.braco, K.metal); b.position.set(s * .23, .15, 0); f.add(b); }
+    const cab = new THREE.Group(); f.add(cab); cab.lookAt(sp.target.position); // Object3D.lookAt: +z aponta para o alvo
+    cab.add(new THREE.Mesh(K.corpo, K.metal)); const aba = new THREE.Mesh(K.aba, K.aberta); aba.position.z = .27; cab.add(aba);
+    const lente = new THREE.Mesh(K.lente, new THREE.MeshBasicMaterial({ color: cor, toneMapped: false })); lente.position.z = .215; cab.add(lente);
+    sp.userData = { corpo: f, lente, cor }; this.brilhoSpot(sp);
     return sp;
   }
+  /** Brilho da lente do refletor acompanha a intensidade real do SpotLight. */
+  brilhoSpot(sp) { sp.userData.lente.material.color.set(sp.userData.cor).multiplyScalar(.15 + Math.min(1.3, sp.intensity / 22)); }
   construirMediadora() {
     const s = this.scene;
     const mesa = new THREE.Group(); mesa.position.copy(CENTRO); s.add(mesa);
@@ -390,7 +530,7 @@ export class Estudio {
     this.dueloObj = { grupo: g, carro, rodas, matChao, tela: tl, telaKey: '' };
     this.construirProducao();
     this.desenharTelaPodio(this.dueloObj, { titulo: 'Confronto direto', texto: 'DUELO' });
-    this.spotDuelo = this.criarSpot(DUELO.clone(), '#fff3dd'); this.spotDuelo.intensity = 0;
+    this.spotDuelo = this.criarSpot(DUELO.clone(), '#fff3dd'); this.spotDuelo.intensity = 0; this.brilhoSpot(this.spotDuelo);
     this.duelo = null; this.dueloKey = '';
   }
   /** Lugar de cada lado do púlpito central: lado -1 = esquerda (x < 0), 1 = direita. Virados um para o outro. */
@@ -404,20 +544,12 @@ export class Estudio {
   construirProducao() {
     const av = this.producao = new Avatar({ genero: 'feminino', pele: '#c68a5e', cabelo: 'cacheado', corCabelo: '#4a2614', barba: 'nenhuma', oculos: 'nenhum', chapeu: 'nenhum',
       roupa: 'blazer', corRoupa: '#17181d', corCamisa: '#0d0e12', corGravata: '#000000', brinco: true, broche: false, corpo: 'medio', expressao: 'simpatico' });
-    av.empurra = 0;
+    av.empurra = 0; av.cruza = 1;
     const T = av.torso, H = av.cabeca, fr = .195;
     const preto = mat('#1c1f26', { r: .45, m: .3 }), prata = mat('#a7b0bf', { r: .3, m: .7 }), amarelo = mat('#facc15', { r: .5 });
     const add = (geo, m, x, y, z, pai) => { const me = new THREE.Mesh(geo, m); me.position.set(x, y, z); pai.add(me); return me; };
     const barra = (a, b, r, m, pai) => { const me = new THREE.Mesh(new THREE.CylinderGeometry(r, r, a.distanceTo(b), 8), m); me.position.copy(a).lerp(b, .5); me.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()); pai.add(me); return me; };
-    // headset: arco sobre a cabeça, conchas nas orelhas e microfone até a boca
-    const arco = add(new THREE.TorusGeometry(.33, .028, 8, 28, Math.PI), preto, 0, .33, 0, H); arco.scale.y = 1.2;
-    for (const s of [-1, 1]) {
-      add(new THREE.CylinderGeometry(.1, .1, .075, 20), preto, s * .32, .3, 0, H).rotation.z = Math.PI / 2;
-      add(new THREE.CylinderGeometry(.075, .075, .08, 20), prata, s * .33, .3, 0, H).rotation.z = Math.PI / 2;
-    }
-    const tri = add(new THREE.CircleGeometry(.04, 3), amarelo, .375, .3, 0, H); tri.rotation.y = Math.PI / 2;
-    barra(new THREE.Vector3(.34, .24, .05), new THREE.Vector3(.13, .13, .26), .012, preto, H);
-    add(new THREE.SphereGeometry(.03, 12, 8), preto, .12, .13, .27, H);
+    this.fone(H); // headset: arco sobre a cabeça, conchas nas orelhas e microfone até a boca
     // crachá no cordão amarelo
     const pescoco = [new THREE.Vector3(-.075, .76, fr + .02), new THREE.Vector3(.075, .76, fr + .02)], cracha = new THREE.Vector3(0, .43, fr + .025);
     pescoco.forEach(p => barra(p, cracha, .012, amarelo, T));
@@ -543,7 +675,7 @@ export class Estudio {
       this.caminhar(p, quer);
     }
     this.spotDuelo.intensity = d?.fase === 'no' ? 18 : d ? 8 : 0;
-    this.spotDuelo.userData.cone.material.opacity = d?.fase === 'no' ? .035 : 0;
+    this.brilhoSpot(this.spotDuelo);
   }
   /** Onde fica o ator (no mundo) no púlpito dele e no púlpito central. */
   casaAtor(p) { p.grupo.updateMatrixWorld(); return { pos: p.grupo.localToWorld(new THREE.Vector3(0, 0, -.62)), yaw: p.grupo.rotation.y }; }
@@ -623,9 +755,9 @@ export class Estudio {
     const ordenada = lista.slice().sort((a, b) => a.slot - b.slot);
     const n = Math.max(1, Math.min(5, ordenada.length));
     const chave = ordenada.map(j => j.id + JSON.stringify(j.avatar) + j.partido + j.nome + !!j.bot).join('|') + n + meuId;
-    if (chave === this.chaveJog) { this.atualizarConexoes(lista); return; }
+    if (chave === this.chaveJog) { this.atualizarNiveis(lista); this.atualizarConexoes(lista); return; }
     this.chaveJog = chave;
-    for (const p of this.podios.values()) { this.scene.remove(p.grupo, p.ator, p.spot, p.spot.target, p.spot.userData.cone); }
+    for (const p of this.podios.values()) { this.scene.remove(p.grupo, p.ator, p.spot, p.spot.target, p.spot.userData.corpo); }
     this.podios.clear();
     ordenada.forEach((j, i) => this.podios.set(j.id, this.criarPodio(j, i, n)));
     this.jogadores = ordenada;
@@ -634,6 +766,7 @@ export class Estudio {
     this.aplicarFalante();
     this.setModo(this.modo);
   }
+  atualizarNiveis(lista) { for (const j of lista) { const p = this.podios.get(j.id); if (p && p.et && (j.nivel || 0) !== p.nivel) { p.nivel = j.nivel || 0; desenharEtiqueta(p.et, j, p.partido); } } }
   atualizarConexoes(lista) {
     for (const j of lista) {
       const p = this.podios.get(j.id); if (!p) continue;
@@ -705,16 +838,14 @@ export class Estudio {
     av.gesticula = true;
     // etiqueta com nome
     const et = canvasTex(512, 128);
-    rr(et.ctx, 4, 4, 504, 120, 30); et.ctx.fillStyle = p.cor; et.ctx.fill();
-    et.ctx.fillStyle = '#fff'; et.ctx.font = `58px ${FONTE}`; et.ctx.textAlign = 'center'; et.ctx.textBaseline = 'middle';
-    et.ctx.fillText(j.nome.slice(0, 16), 256, 52); et.ctx.font = `bold 30px ${FONTE_TXT}`; et.ctx.fillText(`${p.sigla} · ${p.numero}`, 256, 100);
+    desenharEtiqueta(et, j, p);
     const etiqueta = new THREE.Sprite(new THREE.SpriteMaterial({ map: et.tex, depthTest: true, transparent: true }));
     etiqueta.scale.set(1.1, .275, 1); etiqueta.position.set(0, 2.75, 0); ator.add(etiqueta);
     etiqueta.visible = this.cfg.nomes && j.id !== this.meuId;
     // luz
     const sp = this.criarSpot(pos.clone(), '#fff3dd');
     g.traverse(o => { o.userData.pid ??= j.id; });
-    const podio = { id: j.id, bot: !!j.bot, grupo: g, ator, avatar: av, tela: tl, faixaLuz, bMic, bOk, spot: sp, etiqueta, partido: p, anelMic, telaKey: '', idx: i, n, caminho: null, lugar: 'podio' };
+    const podio = { id: j.id, bot: !!j.bot, grupo: g, ator, avatar: av, tela: tl, faixaLuz, bMic, bOk, spot: sp, etiqueta, et, nivel: j.nivel || 0, partido: p, anelMic, telaKey: '', idx: i, n, caminho: null, lugar: 'podio' };
     if (j.id === this.meuId) av.ocultarCabeca(true);
     this.desenharTelaPodio(podio, { titulo: j.nome, texto: p.sigla + ' ' + p.numero, num: p.numero });
     return podio;
@@ -765,12 +896,12 @@ export class Estudio {
     for (const p of this.podios.values()) {
       const ativo = p.id === this.falante;
       p.spot.intensity = this.falante ? (ativo ? 32 : 5) : 10;
-      p.spot.userData.cone.material.opacity = ativo ? .04 : .008;
+      this.brilhoSpot(p.spot);
       p.anelMic.material.color.set(ativo ? '#ef4444' : '#22d3ee');
       p.avatar.gesticula = ativo;
     }
     this.spotMed.intensity = this.falante ? 5 : 10;
-    this.spotMed.userData.cone.material.opacity = .008;
+    this.brilhoSpot(this.spotMed);
   }
   setFalaNivel(id, v) { const p = this.podios.get(id); if (p) p.avatar.setFala(v); }
   setOlharJogador(id, y, p) {
@@ -1058,7 +1189,7 @@ export class Estudio {
     if (this.excitacaoAte && performance.now() > this.excitacaoAte) { this.excitacao *= .95; if (this.excitacao < .02) { this.excitacao = 0; this.excitacaoAte = 0; } }
     this.atualizarPlateia(t, dt);
     // avatares
-    this.andarAtores(dt); this.animarPulpito(dt);
+    this.andarAtores(dt); this.animarPulpito(dt); this.animarCameras(dt, t);
     const prod = this.producao;
     if (prod.root.visible) { const m = this.pulp.fase === 'saindo' || prod.empurra; prod.setOlhar(m ? 0 : Math.sin(t * .7) * .3, prod.empurra ? -.1 : .02); prod.update(dt, t); this.passos(prod, prod.root.position, false, true); }
     for (const p of this.podios.values()) {

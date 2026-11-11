@@ -135,7 +135,7 @@ button{cursor:pointer}
 /* ---------- ranking ---------- */
 .rank-podio{display:flex;justify-content:center;align-items:flex-end;gap:20px;margin:10px 0 18px}
 .rank-podio .lugar{text-align:center;display:flex;flex-direction:column;align-items:center}
-.rank-podio .lugar img{width:86px;height:86px;border-radius:50%;border:4px solid var(--amarelo);background:radial-gradient(#6d7cf0,#2a1f7a)}
+.rank-podio .lugar>img{width:86px;height:86px;border-radius:50%;border:4px solid var(--amarelo);background:radial-gradient(#6d7cf0,#2a1f7a)}
 .rank-podio .bloco{margin-top:8px;border-radius:14px 14px 0 0;background:linear-gradient(#7c6cf0,#4a3bb8);width:160px;padding:12px 6px;font-family:var(--titulo);font-weight:400}
 .rank-lista .jog{margin-bottom:8px}
 .rank-lista .pos{font-family:var(--titulo);font-weight:400;font-size:22px;width:30px;text-align:center}
@@ -271,3 +271,15 @@ button{cursor:pointer}
 @keyframes girar{0%,25%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
 body.celular{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 body.celular :is(input,textarea){user-select:text;-webkit-user-select:text}
+/* ===== brasões de cargo (carreira política) ===== */
+.brasao{display:inline-block;vertical-align:-5px;margin-right:5px;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+.fp-nome .brasao{vertical-align:-7px}
+.perfil-chip{cursor:pointer}.perfil-chip .brasao-chip{width:40px;height:40px;margin-left:-22px;align-self:flex-end;filter:drop-shadow(0 2px 3px rgba(0,0,0,.7))}
+.carreira{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin:12px 0}
+.cargo-l{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:12px;background:rgba(255,255,255,.05);border:2px solid transparent}
+.cargo-l img{width:52px;height:52px;object-fit:contain}.cargo-l small{display:block;color:var(--mut);font-size:12px}
+.cargo-l.on{border-color:var(--amarelo);background:rgba(255,200,0,.1)}.cargo-l.bloq img{filter:grayscale(.85) brightness(.6)}
+.cargo-img{position:relative;width:60px;height:60px;flex:none}.cargo-img img{width:60px;height:60px}
+.cargo-l{align-items:flex-start}.cargo-l small{line-height:1.45}
+.cargo-l.bloq .cargo-img img{filter:grayscale(1) brightness(.25)}.cargo-l.bloq b{opacity:.75}
+.cadeado{position:absolute;inset:0;display:grid;place-items:center;font-size:26px;filter:drop-shadow(0 2px 3px #000)}
