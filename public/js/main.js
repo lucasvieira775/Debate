@@ -930,7 +930,9 @@ function renderHUD() {
         const it = ITEM[b.dataset.ac]; if (!tem(it.id)) return toast(`"${it.nome}" está na Loja por 🪙 ${it.preco}.`);
         if (E.acoesUsadas?.has(it.id)) return toast(`Você já usou "${it.nome}" neste debate.`, 'erro');
         const alvos = (E.sala?.jogadores || []).filter(j => j.id !== E.eu && !j.banido && !j.saiu);
-        p.innerHTML = `<div class="em-tit">${it.emoji} ${esc(it.nome)}: em quem?</div>${alvos.map(j => `<button data-alvo="${j.id}" class="em-alvo"><img src="${retrato(j.avatar)}"><small>${esc(j.nome)}</small></button>`).join('')}<button data-volta class="em-alvo">↩<small>Voltar</small></button>`;
+        const obs = it.reacao === 'amor' ? '💐 Gesto de carinho: rende simpatia do eleitor e alguns seguidores.'
+          : `⚠ Agressão pesa na votação: afasta eleitores moderados, vira assunto no Xzona e você será vaiado(a) na próxima fala${it.reacao === 'nocaute' ? '. Vale advertência da mediação!' : '.'} Se a vítima estiver falando, ganha +15 s.`;
+        p.innerHTML = `<div class="em-tit">${it.emoji} ${esc(it.nome)}: em quem?</div><div class="em-obs">${obs}</div>${alvos.map(j => `<button data-alvo="${j.id}" class="em-alvo"><img src="${retrato(j.avatar)}"><small>${esc(j.nome)}</small></button>`).join('')}<button data-volta class="em-alvo">↩<small>Voltar</small></button>`;
         $('[data-volta]', p).onclick = () => { p.hidden = true; $('#h-emotes-b').click(); };
         $$('[data-alvo]', p).forEach(a => a.onclick = () => { p.hidden = true; socket.emit('acao', { item: it.id, alvo: a.dataset.alvo }, r => { if (r?.erro) return toast(r.erro, 'erro'); E.ultAcao = Date.now(); (E.acoesUsadas ||= new Set()).add(it.id); }); });
       });

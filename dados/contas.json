@@ -88,8 +88,11 @@
     "motivo": "Partida de debate"
    }
   ],
-  "xp": 810,
-  "cargoMax": 2
+  "xp": 660,
+  "cargoMax": 2,
+  "abandonos": [
+   1794422863230
+  ]
  },
  "11dc14f6-b39c-4ac7-91bb-b14f9beb324f": {
   "uid": "11dc14f6-b39c-4ac7-91bb-b14f9beb324f",
