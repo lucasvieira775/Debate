@@ -121,7 +121,7 @@ export class Vitima {
   impacto() {
     if (this.bateu) return;
     this.bateu = true; this.t = 0; this.treme = 1;
-    const av = this.p.avatar; av.animar(POSE[this.tipo], this.dur); this.olhar(0, 0);
+    const av = this.p.avatar; av.animar(POSE[this.tipo], this.dur); this.olhar(this.tipo === 'sujo' ? av.olhar.y * .5 : 0, 0); // sujo: o rosto fica meio virado para quem jogou
     if (this.tipo === 'nocaute') this.olhosEspiral();
     if (this.tipo === 'amor') this.rubor();
   }

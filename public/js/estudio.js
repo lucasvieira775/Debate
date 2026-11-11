@@ -7,7 +7,6 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { Avatar, mat } from './avatar.js';
-import { criarProp, PEGADA } from './acoes/props.js';
 import { PARTIDO, TEMAS, TEMA, AV_MEDIADORA, ETAPAS } from '/shared/regras.js';
 import { desenharSimbolo, escurecer, fmtT, clamp } from './util.js';
 import { brasao } from '/shared/niveis.js';
@@ -1008,10 +1007,14 @@ export class Estudio {
   testarNaVitrine(it) {
     this.tirarPropVitrine(); this.vitrine?.animar(it.anim, it.tipo === 'danca' ? 5 : 3);
     if (it.tipo !== 'acao' || !this.vitrine) return; // ação: objeto na mão da vitrine enquanto a animação toca
-    const pg = PEGADA[it.id] || { pos: [0, -.09, 0], rot: [0, 0, 0] }, pr = criarProp(it.id), b = this.vitrine.bracos.find(b => b.userData.lado === -1);
-    pr.position.fromArray(pg.pos); pr.rotation.fromArray(pg.rot); b.userData.mao.add(pr); this.propVitrine = pr; this.propVitrineT = setTimeout(() => this.tirarPropVitrine(), 3000);
+    const k = this.propVitrineK = (this.propVitrineK || 0) + 1;
+    import('./acoes/props.js').then(({ criarProp, PEGADA }) => { // dinâmico: um erro em props.js não derruba o estúdio
+      if (k !== this.propVitrineK || !this.vitrine) return;
+      const pg = PEGADA[it.id] || { pos: [0, -.09, 0], rot: [0, 0, 0] }, pr = criarProp(it.id), b = this.vitrine.bracos.find(b => b.userData.lado === -1);
+      pr.position.fromArray(pg.pos); pr.rotation.fromArray(pg.rot); b.userData.mao.add(pr); this.propVitrine = pr; this.propVitrineT = setTimeout(() => this.tirarPropVitrine(), 3000);
+    }).catch(e => console.warn('props.js', e));
   }
-  tirarPropVitrine() { clearTimeout(this.propVitrineT); this.propVitrine?.removeFromParent(); this.propVitrine = null; }
+  tirarPropVitrine() { this.propVitrineK = (this.propVitrineK || 0) + 1; clearTimeout(this.propVitrineT); this.propVitrine?.removeFromParent(); this.propVitrine = null; }
   pararVitrine() { this.tirarPropVitrine(); if (this.vitrine) this.vitrine.anim = null; }
   /** X na tela (px) dos pés do avatar da vitrine, para alinhar botões embaixo dele. */
   xVitrine() { const v = new THREE.Vector3(); if (!this.vitrine) return innerWidth / 2; this.vitrine.root.getWorldPosition(v).project(this.camera); const r = this.canvas.getBoundingClientRect(); return r.left + (v.x + 1) / 2 * r.width; }
@@ -1048,6 +1051,7 @@ export class Estudio {
   // ===================== CÂMERA =====================
   setModo(modo) {
     this.modo = modo; this.camTVok = false;
+    if (modo === 'vitrine' || modo === 'menu') { this.acoes?.limpar(); this.modo = modo; } // (limpar pode chamar setModo('fp')) saiu da partida no meio de uma ação: nada sobra na cena
     if (modo === 'fp') {
       const pd = this.podios.get(this.meuId);
       if (pd) { pd.ator.add(this.rig); this.rig.position.set(0, 2.0, .1); this.camFP.add(this.camera); this.camera.position.set(0, 0, 0); this.camera.rotation.set(0, 0, 0); this.camera.fov = 68; this.camera.updateProjectionMatrix(); }

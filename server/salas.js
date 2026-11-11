@@ -830,7 +830,7 @@ class Sala {
     this.io.to(this.code).emit('acao', { n, id: j.id, alvo: alvo.id, item: it.id, fala: t });
     // a fala da mediação toca no impacto: o áudio (já em cache, quase sempre) chega antes
     const dub = this.mgr.dub;
-    if (dub.ativa && this.jorn) Promise.race([dub.sintetizar(t, this.jorn.voz, 'alta'), new Promise(r => setTimeout(r, 4000))])
+    if (this.jorn) Promise.race([dub.sintetizar(t, this.jorn.voz, 'alta'), new Promise(r => setTimeout(r, 4000))])
       .then(r => this.io.to(this.code).emit('acaoFala', { n, t, url: r?.url || null }));
     else this.io.to(this.code).emit('acaoFala', { n, t, url: null });
   }

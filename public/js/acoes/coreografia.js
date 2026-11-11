@@ -49,7 +49,7 @@ const B = {
   pauLeva: [-.35, .12, -1.25, .5, 0, 'punho'], pauArma: [-2.35, 1.05, -1.55, -.4, 0, 'punho', .2], pauBate: [-1.85, -.4, -.1, -.9, 0, 'punho', .7],
   guarda: [-.7, .25, -1.5, -.6, 0, 'punho', .2],
   // torta: prato na palma da direita
-  tortLeva: [-.5, .02, -1.45, 1.35, 0, 'aberta', .1], tortArma: [-.35, .45, -2.1, 1.35, 0, 'aberta'], tortBate: [-1.5, -.1, -.6, 1.35, 0, 'aberta', .9],
+  tortLeva: [-.5, .02, -1.45, 1.35, 0, 'aberta', .1], tortArma: [-.35, .45, -2.1, 1.35, 0, 'aberta'], tortBate: [-1.95, -.1, -.45, 1.35, 0, 'aberta', .9],
   // balde: alça na direita; para virar, a esquerda segura o fundo
   baldLeva: [-.12, .14, -.12, 0, 0, 'punho'], baldAlto: [-2.6, -.08, -.5, 0, 0, 'punho', .5], baldVira: [-2.5, -.1, -.3, 0, 0, 'punho', .8],
   // arremesso (direita)
