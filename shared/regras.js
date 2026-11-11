@@ -284,7 +284,13 @@ export function analisar(texto, passo, cands) {
   return { nota, wc, extensao, relevancia, concretude, apelo, vicios, lean, forca, ataque, mencionados, fugiu, danoEm: [], rebateu: false };
 }
 
-export const novoStats = () => ({ somaNotas: 0, somaPesos: 0, nFalas: 0, leanSum: 0, leanW: 0, ataques: 0, dano: 0, fugas: 0, melhor: null });
+export const novoStats = () => ({ somaNotas: 0, somaPesos: 0, nFalas: 0, leanSum: 0, leanW: 0, ataques: 0, dano: 0, fugas: 0, melhor: null, agressao: 0, simpatia: 0, solid: 0 });
+/** Ação da loja (cadeirada, tomate, flores…) contra outro candidato: it.agr pesa contra o agressor (sobretudo entre moderados)
+ *  e rende um pequeno voto de solidariedade à vítima; it.simp (flores) é simpatia. Pesos ficam no item (shared/loja.js). */
+export function registrarAcao(stAgr, stAlvo, it) {
+  if (it.agr) { stAgr.agressao = Math.min(2, (stAgr.agressao || 0) + it.agr); if (stAlvo) stAlvo.solid = Math.min(.5, (stAlvo.solid || 0) + it.agr * .25); }
+  if (it.simp) stAgr.simpatia = Math.min(.6, (stAgr.simpatia || 0) + it.simp);
+}
 
 /** Aplica o resultado de uma fala às estatísticas. porId: id -> {st, ideo} */
 export function aplicar(passo, texto, r, porId) {
@@ -316,14 +322,15 @@ function utilidade(c, g) {
   const agr = st.ataques / Math.max(1, st.nFalas);
   const tolerancia = [.15, .7, 1.3, .7, .15][g.pos + 2];
   const mobiliza = Math.abs(g.pos) === 2 ? agr * .25 : 0;
-  return .6 * perf(st) - 1.5 * Math.pow(d, 1.25) - .7 * st.dano - agr * tolerancia + mobiliza;
+  const acoes = -.4 * (st.agressao || 0) * tolerancia + .25 * (st.simpatia || 0) + .3 * (st.solid || 0); // agressão física: centro rejeita, extremos pouco ligam
+  return .6 * perf(st) - 1.5 * Math.pow(d, 1.25) - .7 * st.dano - agr * tolerancia + mobiliza + acoes;
 }
 
 /** Brasil polarizado: o eleitorado é quase meio a meio. Mano a mano, a margem vem sobretudo do desempenho
  *  no debate (nota, dano, fugas) — empate técnico quando estão parecidos, 10–20 pts para quem foi bem melhor
  *  e lavada (70/30+) só quando um foi muito ruim. Esquerda × direita aperta ainda mais. Com 3+ candidatos,
  *  suaviza a dispersão (o 1º turno costuma ter dois polos fortes). */
-const forcaCand = c => perf(c.st) - .6 * c.st.dano - .2 * c.st.fugas;
+const forcaCand = c => perf(c.st) - .6 * c.st.dano - .2 * c.st.fugas - .45 * (c.st.agressao || 0) + .3 * (c.st.simpatia || 0) + .3 * (c.st.solid || 0);
 function equilibrar(lista, brutos) {
   if (lista.length < 2) return brutos;
   if (lista.length > 2) { const v = brutos.map(p => Math.pow(Math.max(p, .1), .8)), s = v.reduce((a, b) => a + b, 0); return v.map(x => x / s * 100); }
