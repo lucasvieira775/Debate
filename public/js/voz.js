@@ -251,6 +251,7 @@ function barramento(c) {
   return bus;
 }
 function saida(c, pan = 0) { const p = c.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); p.connect(barramento(c)); return p; }
+export const audioBase = () => { const c = ctx(); return { c, volume, saida: pan => saida(c, pan) }; }; // p/ acoes/sons.js
 /** Pancada curta de ruído filtrado (salto/bico do sapato, estalos). */
 function estalo(c, dest, t, dur, vol, freq, q = 1.2) {
   const s = c.createBufferSource(); s.buffer = ruidoBuf; s.playbackRate.value = .9 + Math.random() * .2;

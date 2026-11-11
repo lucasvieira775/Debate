@@ -7,6 +7,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { Avatar, mat } from './avatar.js';
+import { criarProp, PEGADA } from './acoes/props.js';
 import { PARTIDO, TEMAS, TEMA, AV_MEDIADORA, ETAPAS } from '/shared/regras.js';
 import { desenharSimbolo, escurecer, fmtT, clamp } from './util.js';
 import { brasao } from '/shared/niveis.js';
@@ -1004,8 +1005,14 @@ export class Estudio {
     this.renderer.setRenderTarget(R.rt); this.renderer.render(this.scene, R.camRT); this.renderer.setRenderTarget(null);
     c.root.visible = false; m2.map = R.rt.texture; R.sobre.visible = true;
   }
-  testarNaVitrine(it) { this.vitrine?.animar(it.anim, it.tipo === 'danca' ? 5 : 3); }
-  pararVitrine() { if (this.vitrine) this.vitrine.anim = null; }
+  testarNaVitrine(it) {
+    this.tirarPropVitrine(); this.vitrine?.animar(it.anim, it.tipo === 'danca' ? 5 : 3);
+    if (it.tipo !== 'acao' || !this.vitrine) return; // ação: objeto na mão da vitrine enquanto a animação toca
+    const pg = PEGADA[it.id] || { pos: [0, -.09, 0], rot: [0, 0, 0] }, pr = criarProp(it.id), b = this.vitrine.bracos.find(b => b.userData.lado === -1);
+    pr.position.fromArray(pg.pos); pr.rotation.fromArray(pg.rot); b.userData.mao.add(pr); this.propVitrine = pr; this.propVitrineT = setTimeout(() => this.tirarPropVitrine(), 3000);
+  }
+  tirarPropVitrine() { clearTimeout(this.propVitrineT); this.propVitrine?.removeFromParent(); this.propVitrine = null; }
+  pararVitrine() { this.tirarPropVitrine(); if (this.vitrine) this.vitrine.anim = null; }
   /** X na tela (px) dos pés do avatar da vitrine, para alinhar botões embaixo dele. */
   xVitrine() { const v = new THREE.Vector3(); if (!this.vitrine) return innerWidth / 2; this.vitrine.root.getWorldPosition(v).project(this.camera); const r = this.canvas.getBoundingClientRect(); return r.left + (v.x + 1) / 2 * r.width; }
   folhear(id) { this.podios.get(id)?.avatar.animar('folhear', id === this.meuId && this.lendo ? 9999 : 3.4); }

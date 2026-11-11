@@ -1,0 +1,44 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#222}</style>
+<script type="importmap">
+{ "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/" } }
+</script></head><body>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { Avatar } from '/js/avatar.js';
+import { AV_MEDIADOR } from '/shared/regras.js';
+import { criarProp, PEGADA, lancar, impacto } from '/js/acoes/props.js';
+const q = new URLSearchParams(location.search), cena = q.get('cena') || 'props', tf = +(q.get('tf') || .3);
+const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(innerWidth, innerHeight); document.body.appendChild(r.domElement);
+r.toneMapping = THREE.ACESFilmicToneMapping;
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#2a3350');
+scene.environment = new THREE.PMREMGenerator(r).fromScene(new RoomEnvironment(), .04).texture;
+scene.add(new THREE.HemisphereLight('#ffffff', '#445', 1.2)); const d = new THREE.DirectionalLight('#fff', 2); d.position.set(2, 4, 3); scene.add(d);
+const chao = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.MeshStandardMaterial({ color: '#1b2470' })); chao.rotation.x = -Math.PI / 2; scene.add(chao);
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, .01, 100); scene.add(camera);
+const est = { scene, camera }, fx = [];
+const ids = ['cadeirada', 'paulada', 'tomate', 'flores', 'torta', 'balde'];
+const sim = (T) => { for (let t = 0; t < T; t += 1 / 60) fx.forEach(f => f.update(1 / 60, t)); };
+if (cena === 'props') {
+  ids.forEach((id, i) => { const g = criarProp(id); g.position.set((i - 2.5) * .55, id === 'balde' ? .9 : .3, 0); g.rotation.y = +(q.get('ry') || .5); scene.add(g); });
+  camera.position.set(0, .8, 2.6); camera.lookAt(0, .6, 0);
+} else if (cena === 'mao') {
+  ids.forEach((id, i) => {
+    const a = new Avatar(AV_MEDIADOR); a.root.position.set((i - 2.5) * 1.1, 0, 0); scene.add(a.root); a.update(.016, 0);
+    const b = a.bracos.find(b => b.userData.lado === -1); b.rotation.x = -1.2; a.root.updateMatrixWorld(true);
+    const pg = PEGADA[id], pr = criarProp(id); pr.position.fromArray(pg.pos); pr.rotation.fromArray(pg.rot); b.userData.mao.add(pr);
+  });
+  camera.position.set(2, 2, 7); camera.lookAt(0, 1.3, 0);
+} else if (cena === 'efeitos' || cena === 'voo') {
+  const so = q.get('item'), lista = so ? [so] : ids;
+  lista.forEach((id, i) => {
+    const a = new Avatar(AV_MEDIADOR); const x = (i - (lista.length - 1) / 2) * 1.3; a.root.position.set(x, 0, 0); scene.add(a.root); a.update(.016, 0); a.root.updateMatrixWorld(true);
+    const p = { avatar: a, ator: a.root };
+    if (cena === 'voo') fx.push(lancar(est, id, new THREE.Vector3(x + 3, 1.5, 3), new THREE.Vector3(x, 1.8, .3), .7));
+    else fx.push(impacto(est, id, p));
+  });
+  if (so) { camera.position.set(1.2, 2.1, 2.4); camera.lookAt(0, 1.6, 0); } else { camera.position.set(0, 2.2, 6.5); camera.lookAt(0, 1.5, 0); }
+  sim(tf);
+}
+r.render(scene, camera);
+</script></body></html>
