@@ -177,7 +177,7 @@ class Sala {
       i: this.i, total: this.fila.length,
       passo: p && { tipo: p.tipo, etapa: p.etapa, t2: p.t2, kind: p.kind, falante: p.falante, alvo: p.alvo, tema: p.tema, segundos: p.segundos, titulo: p.titulo, poll: p.poll, escolhido: p.escolhido,
         elegiveis: p.tipo === 'escolha' && !p.escolhido ? this.elegiveis(p) : undefined },
-      duelo: this.duelo && { a: this.duelo.a, b: this.duelo.b, fase: this.duelo.fase },
+      duelo: this.duelo && { a: this.duelo.a, b: this.duelo.b, fase: this.duelo.fase }, pular: this.pularInfo(),
       fala: this.fala, temaAtual: this.temaAtual, roleta: this.roleta, autoEm: this.autoEm, textoJ: this.textoJ, narr: this.narr, perguntas: this.perguntas,
       jorn: this.jorn && { nome: this.jorn.nome, genero: this.jorn.genero, avatar: this.jorn.avatar },
       microfones: this.microfones(), narrando: this.narrando(),
@@ -364,7 +364,7 @@ class Sala {
   auto(ms) { this.autoEm = Date.now() + ms; this.later(ms, () => this.proximo()); }
   irPara(i) {
     this.limpar();
-    this.i = i; const p = this.passo = this.fila[i];
+    this.i = i; const p = this.passo = this.fila[i]; this.pulos?.clear();
     this.fala = null; this.roleta = null; this.autoEm = null;
     const nome = id => this.porId(id)?.nome || '';
     if (p.tipo === 'cumprimento') { this.temaAtual = null; this.textoJ = ''; this.narrandoAte = 0; this.auto(SEGUNDOS.cumprimento * 1000); }
@@ -664,10 +664,14 @@ class Sala {
     this.later(12000, voltar); // se a narração falhar, não trava
     this.emit();
   }
-  avancar() {
-    if (this.fase !== 'debate') return;
-    const p = this.passo;
-    if (p.tipo === 'cumprimento' || p.tipo === 'intro' || p.tipo === 'pesquisa' || (p.tipo === 'fala' && this.fala?.status === 'avaliado')) this.proximo();
+  pulavel() { const p = this.passo; return this.fase === 'debate' && !!p && (p.tipo === 'cumprimento' || p.tipo === 'intro' || p.tipo === 'pesquisa' || (p.tipo === 'fala' && this.fala?.status === 'avaliado')); }
+  votantesPular() { return this.humanos().filter(j => !j.banido && !j.saiu); }
+  pularInfo() { if (!this.pulavel()) return null; const v = this.votantesPular(); return { n: v.filter(j => this.pulos?.has(j.id)).length, total: v.length, ids: [...(this.pulos || [])] }; }
+  avancar(pid) { // pular animação: só pula quando todos os jogadores humanos concordarem
+    if (!this.pulavel() || !this.porId(pid)) return;
+    (this.pulos ||= new Set()).add(pid);
+    const inf = this.pularInfo();
+    if (inf.n >= inf.total) { this.pulos.clear(); this.proximo(); } else this.emit();
   }
   proximo() {
     if (this.pausa) { this.pausa.pendente = true; this.autoEm = null; return this.emit(); } // aguardando o ausente voltar
@@ -1055,7 +1059,7 @@ export class Salas {
     });
     socket.on('expulsar', id => { const s = sala(); if (s && ehHost() && s.fase === 'lobby' && id !== s.hostId) { const sk = s.socketDe(id); s.remover(id); if (sk) { sk.leave(s.code); sk.emit('expulso'); sk.data = {}; } } });
     socket.on('iniciar', (_, cb) => { const s = sala(); if (!s || !ehHost() || s.fase !== 'lobby') return; resp(cb, { erro: s.iniciar() }); });
-    socket.on('avancar', () => { if (ehHost()) sala().avancar(); });
+    socket.on('avancar', () => { if (eu()) sala().avancar(socket.data.pid); });
     socket.on('comecar', d => sala()?.comecar(socket.data.pid, d?.mic));
     socket.on('texto', d => { const s = sala(); if (s) s.receberTexto(socket, socket.data.pid, d?.t); });
     socket.on('confirmar', d => sala()?.confirmar(socket.data.pid, d?.t));

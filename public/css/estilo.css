@@ -350,3 +350,5 @@ body.celular :is(input,textarea){user-select:text;-webkit-user-select:text}
 .cargo-l{align-items:flex-start}.cargo-l small{line-height:1.45}
 .cargo-l.bloq .cargo-img img{filter:grayscale(1) brightness(.25)}.cargo-l.bloq b{opacity:.75}
 .cadeado{position:absolute;inset:0;display:grid;place-items:center;font-size:26px;filter:drop-shadow(0 2px 3px #000)}
+
+#h-pular.votado { opacity: .65; }

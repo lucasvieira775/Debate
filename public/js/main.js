@@ -979,7 +979,9 @@ function renderHUD() {
     $('#h-bloco').innerHTML = p.t2 ? `2º TURNO<small>${p.etapa === 2 ? 'Confronto · tema livre' : ETAPAS[p.etapa - 1]}</small>` : `BLOCO ${p.etapa}/3<small>${ETAPAS[p.etapa - 1]}</small>`;
     if (!s.roleta) $('#h-tema').innerHTML = s.temaAtual ? `<small>Tema atual · ${esc(TEMA[s.temaAtual].estado)}</small><b><span class="uf">${TEMA[s.temaAtual].uf}</span>${esc(TEMA[s.temaAtual].titulo)}</b>`
       : `<small>Debate presidencial</small><b>${p.tipo === 'cumprimento' ? 'Cumprimentos' : p.tipo === 'pesquisa' ? 'Pesquisa relâmpago' : p.kind === 'final' ? 'Considerações finais' : ETAPAS[p.etapa - 1]}</b>`;
-    $('#h-pular').hidden = !(ehHost() && (p.tipo === 'cumprimento' || p.tipo === 'intro' || p.tipo === 'pesquisa' || s.fala?.status === 'avaliado'));
+    const pu = s.pular, mim = eu(), bp = $('#h-pular'); // pular animação: todos os jogadores precisam concordar (n/total)
+    bp.hidden = !(pu && mim && !mim.banido && !mim.saiu);
+    if (pu) { const votei = pu.ids.includes(E.eu); bp.textContent = `${votei ? '✓ ' : ''}Pular ▶ ${pu.n}/${pu.total}`; bp.classList.toggle('votado', votei); bp.title = votei ? 'Aguardando os outros jogadores' : 'Todos precisam concordar para pular'; }
   }
   renderLateral(); renderPerguntas(); renderJogadores(); atualizarLegenda(); renderAcao(); renderResultado(); tick();
 }
