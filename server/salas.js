@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {
-  PARTIDO, PARTIDOS, AV, SEGUNDOS, DUR_MULT, TEMA, analisar, aplicar, apurar, novoStats, perf, percebida,
+  PARTIDO, PARTIDOS, AV, SEGUNDOS, DUR_MULT, TEMA, analisar, aplicar, apurar, novoStats, perf, percebida, contarConfronto,
   rotuloPos, sortearTema, shuffle, pick, avatarAleatorio, generoDe, DIFICULDADES, JORNALISTAS, alvosValidos, registrarAcao,
 } from '../shared/regras.js';
 const PULPITO_MS = 10000; // a produção leva ~8 s empurrando o púlpito do confronto até o centro (cliente: PULP_EMPURRA)
@@ -606,6 +606,7 @@ class Sala {
     this.limpar();
     const tema = sortearTema(this.usados);
     p.escolhido = { alvo, tema };
+    contarConfronto(this.porId(id).st); contarConfronto(this.porId(alvo).st); // equilíbrio na apuração (shared/regras.js)
     const base = { tipo: 'fala', etapa: 2, tema };
     const novos = [
       { ...base, kind: 'pergunta', falante: id, alvo, segundos: this.seg('pergunta'), var: sortearVariacao() },

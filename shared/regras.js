@@ -284,7 +284,17 @@ export function analisar(texto, passo, cands) {
   return { nota, wc, extensao, relevancia, concretude, apelo, vicios, lean, forca, ataque, mencionados, fugiu, danoEm: [], rebateu: false };
 }
 
-export const novoStats = () => ({ somaNotas: 0, somaPesos: 0, nFalas: 0, leanSum: 0, leanW: 0, ataques: 0, dano: 0, fugas: 0, melhor: null, agressao: 0, simpatia: 0, solid: 0 });
+/** b2 = confrontos diretos do bloco 2, guardados à parte (n = nº de confrontos). Na apuração o bloco 2 vale
+ *  sempre o mesmo para todos: a média das falas com peso fixo, e ideologia/dano/fugas divididos por n —
+ *  quem debateu 2× não ganha (nem perde) por ter falado mais que quem debateu 1×. */
+export const novoStats = () => ({ somaNotas: 0, somaPesos: 0, nFalas: 0, leanSum: 0, leanW: 0, ataques: 0, dano: 0, fugas: 0, melhor: null, agressao: 0, simpatia: 0, solid: 0,
+  b2: { n: 0, s: 0, p: 0, ls: 0, lw: 0, fug: 0, dano: 0 } });
+const B2_PESO = 2; // bloco 2 inteiro pesa como 1 confronto (2 falas de cada lado)
+const nB2 = st => Math.max(1, st.b2?.n || 0);
+/** Confronto registrado no bloco 2 (chamado ao escolher o adversário, para os dois). */
+export const contarConfronto = st => { if (st.b2) st.b2.n++; };
+export const danoEf = st => Math.min(3, st.dano + (st.b2?.dano || 0) / nB2(st));
+export const fugasEf = st => st.fugas - (st.b2?.fug || 0) + (st.b2?.fug || 0) / nB2(st);
 /** Ação da loja (cadeirada, tomate, flores…) contra outro candidato: it.agr pesa contra o agressor (sobretudo entre moderados)
  *  e rende um pequeno voto de solidariedade à vítima; it.simp (flores) é simpatia. Pesos ficam no item (shared/loja.js). */
 export function registrarAcao(stAgr, stAlvo, it) {
@@ -295,24 +305,34 @@ export function registrarAcao(stAgr, stAlvo, it) {
 /** Aplica o resultado de uma fala às estatísticas. porId: id -> {st, ideo} */
 export function aplicar(passo, texto, r, porId) {
   const c = porId[passo.falante]; const st = c.st;
+  const b2 = passo.etapa === 2 && !passo.t2 && st.b2 ? st.b2 : null; // confronto direto do bloco 2: vai para o acumulador à parte
   const peso = passo.t2 ? 2.5 : passo.etapa === 3 ? 1.4 : 1; // 2º turno pesa mais: o 2º colocado pode virar no duelo
-  st.somaNotas += r.nota * peso; st.somaPesos += peso; st.nFalas++;
-  if (r.lean !== null) { st.leanSum += r.lean * r.forca; st.leanW += r.forca; }
-  if (r.fugiu) st.fugas++;
+  if (b2) { b2.s += r.nota; b2.p++; } else { st.somaNotas += r.nota * peso; st.somaPesos += peso; }
+  st.nFalas++;
+  if (r.lean !== null) { if (b2) { b2.ls += r.lean * r.forca; b2.lw += r.forca; } else { st.leanSum += r.lean * r.forca; st.leanW += r.forca; } }
+  if (r.fugiu) { st.fugas++; if (b2) b2.fug++; }
   if (r.ataque > 0) {
     st.ataques += r.ataque;
-    for (const id of r.mencionados) { const a = porId[id]; if (!a) continue; a.st.dano = Math.min(3, a.st.dano + r.ataque * .3); r.danoEm.push(id); }
+    for (const id of r.mencionados) { const a = porId[id]; if (!a) continue; const ab = b2 && a.st.b2; if (ab) ab.dano = Math.min(3, ab.dano + r.ataque * .3); else a.st.dano = Math.min(3, a.st.dano + r.ataque * .3); r.danoEm.push(id); }
   }
-  if ((passo.kind === 'resposta' || passo.kind === 'treplica') && r.nota >= 6.5 && st.dano > 0) { st.dano = Math.max(0, st.dano - .5); r.rebateu = true; }
+  if ((passo.kind === 'resposta' || passo.kind === 'treplica') && r.nota >= 6.5 && danoEf(st) > 0) {
+    if (b2 && b2.dano > 0) b2.dano = Math.max(0, b2.dano - .5 * nB2(st)); else st.dano = Math.max(0, st.dano - .5);
+    r.rebateu = true;
+  }
   if (texto && (!st.melhor || r.nota > st.melhor.nota)) st.melhor = { nota: r.nota, texto, kind: passo.kind, tema: passo.tema };
 }
 
-export const perf = st => st.somaPesos ? st.somaNotas / st.somaPesos : 5;
+export const perf = st => {
+  const b = st.b2, tem = b?.p > 0;
+  const s = st.somaNotas + (tem ? B2_PESO * b.s / b.p : 0), p = st.somaPesos + (tem ? B2_PESO : 0);
+  return p ? s / p : 5;
+};
 export const ideoDe = c => c.ideo || PARTIDO[c.partido]?.ideo || 'centro';
 export function percebida(c) {
-  const d = IDEO[ideoDe(c)].pos; const st = c.st;
-  if (!st.leanW) return d;
-  return clamp(d + (st.leanSum / st.leanW - d) * Math.min(st.leanW / 8, .6), -2, 2);
+  const d = IDEO[ideoDe(c)].pos; const st = c.st, k = nB2(st);
+  const ls = st.leanSum + (st.b2?.ls || 0) / k, lw = st.leanW + (st.b2?.lw || 0) / k;
+  if (!lw) return d;
+  return clamp(d + (ls / lw - d) * Math.min(lw / 8, .6), -2, 2);
 }
 export const rotuloPos = p => IDEO[IDEO_POR_POS[Math.round(p) || 0]].nome;
 
@@ -323,14 +343,14 @@ function utilidade(c, g) {
   const tolerancia = [.15, .7, 1.3, .7, .15][g.pos + 2];
   const mobiliza = Math.abs(g.pos) === 2 ? agr * .25 : 0;
   const acoes = -.4 * (st.agressao || 0) * tolerancia + .25 * (st.simpatia || 0) + .3 * (st.solid || 0); // agressão física: centro rejeita, extremos pouco ligam
-  return .6 * perf(st) - 1.5 * Math.pow(d, 1.25) - .7 * st.dano - agr * tolerancia + mobiliza + acoes;
+  return .6 * perf(st) - 1.5 * Math.pow(d, 1.25) - .7 * danoEf(st) - agr * tolerancia + mobiliza + acoes;
 }
 
 /** Brasil polarizado: o eleitorado é quase meio a meio. Mano a mano, a margem vem sobretudo do desempenho
  *  no debate (nota, dano, fugas) — empate técnico quando estão parecidos, 10–20 pts para quem foi bem melhor
  *  e lavada (70/30+) só quando um foi muito ruim. Esquerda × direita aperta ainda mais. Com 3+ candidatos,
  *  suaviza a dispersão (o 1º turno costuma ter dois polos fortes). */
-const forcaCand = c => perf(c.st) - .6 * c.st.dano - .2 * c.st.fugas - .45 * (c.st.agressao || 0) + .3 * (c.st.simpatia || 0) + .3 * (c.st.solid || 0);
+const forcaCand = c => perf(c.st) - .6 * danoEf(c.st) - .2 * fugasEf(c.st) - .45 * (c.st.agressao || 0) + .3 * (c.st.simpatia || 0) + .3 * (c.st.solid || 0);
 function equilibrar(lista, brutos) {
   if (lista.length < 2) return brutos;
   if (lista.length > 2) { const v = brutos.map(p => Math.pow(Math.max(p, .1), .8)), s = v.reduce((a, b) => a + b, 0); return v.map(x => x / s * 100); }
