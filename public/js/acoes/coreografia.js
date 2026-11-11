@@ -21,7 +21,7 @@ const CENTRO = V(0, 0, -3.2), R_ARCO = 5.3; // mesa da mediação (estudio.js) e
 const VEL = 2.3;                             // m/s (passo apressado de quem vai brigar)
 const T_PEGA = .4, T_PREP = .6, T_SOME = .5, T_SOLTA = .7;
 // distância até o alvo (ao lado dele) e quem tem passos com barulho do objeto
-const DIST = { cadeirada: 1.08, paulada: 1.0, torta: .62, balde: .64 };
+const DIST = { cadeirada: 1.08, paulada: 1.0, torta: .8, balde: .64 };
 const CARREGA = { cadeirada: 1, balde: 1 };
 const AGARRA = { cadeirada: 1, paulada: 1, balde: 1 }; // posição calculada a cada quadro (o resto usa a PEGADA fixa)
 const POSE_GOLPE = { cadeirada: 'golpeCadeira', paulada: 'golpePau', torta: 'tortada', balde: 'baldeada' };
@@ -49,7 +49,7 @@ const B = {
   pauLeva: [-.35, .12, -1.25, .5, 0, 'punho'], pauArma: [-2.35, 1.05, -1.55, -.4, 0, 'punho', .2], pauBate: [-1.85, -.4, -.1, -.9, 0, 'punho', .7],
   guarda: [-.7, .25, -1.5, -.6, 0, 'punho', .2],
   // torta: prato na palma da direita
-  tortLeva: [-.5, .02, -1.45, 1.35, 0, 'aberta', .1], tortArma: [-.35, .45, -2.1, 1.35, 0, 'aberta'], tortBate: [-1.45, -.1, -1.15, 1.35, 0, 'aberta', .9],
+  tortLeva: [-.5, .02, -1.45, 1.35, 0, 'aberta', .1], tortArma: [-.35, .45, -2.1, 1.35, 0, 'aberta'], tortBate: [-1.5, -.1, -.6, 1.35, 0, 'aberta', .9],
   // balde: alça na direita; para virar, a esquerda segura o fundo
   baldLeva: [-.12, .14, -.12, 0, 0, 'punho'], baldAlto: [-2.6, -.08, -.5, 0, 0, 'punho', .5], baldVira: [-2.5, -.1, -.3, 0, 0, 'punho', .8],
   // arremesso (direita)
