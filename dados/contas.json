@@ -1743,10 +1743,10 @@
  "9e276dfa-05ea-4e14-a42d-adcd2e9fde92": {
   "uid": "9e276dfa-05ea-4e14-a42d-adcd2e9fde92",
   "nome": "Luk Bozossauro",
-  "moedas": 120,
+  "moedas": 282,
   "dicasExtra": 0,
-  "partidas": 1,
-  "vitorias": 0,
+  "partidas": 3,
+  "vitorias": 1,
   "criadaEm": 1794344833684,
   "cadastro": {
    "idade": 32,
@@ -1759,7 +1759,18 @@
     "t": 1794345501315,
     "valor": 20,
     "motivo": "Partida de debate"
+   },
+   {
+    "t": 1794349166516,
+    "valor": 31,
+    "motivo": "Partida de debate"
+   },
+   {
+    "t": 1794350299478,
+    "valor": 131,
+    "motivo": "Partida de debate"
    }
+<<<<<<< Updated upstream
   ],
   "banidoAte": 0,
   "banPerm": false,
@@ -1883,10 +1894,39 @@
  "2bc03949-eb74-47b5-91eb-29d25f486eb6": {
   "uid": "2bc03949-eb74-47b5-91eb-29d25f486eb6",
   "nome": "Teste Fois",
+=======
+  ]
+ },
+ "3e08dfb1-7e60-4be3-af87-6046f46a242c": {
+  "uid": "3e08dfb1-7e60-4be3-af87-6046f46a242c",
+  "nome": "Barbara Balestri",
+  "moedas": 149,
+  "dicasExtra": 0,
+  "partidas": 1,
+  "vitorias": 0,
+  "criadaEm": 1794349363744,
+  "cadastro": {
+   "idade": 30,
+   "nome": "Barbara Balestri",
+   "user": "barbarabalestri",
+   "criadoEm": 1794349428356
+  },
+  "extrato": [
+   {
+    "t": 1794350299481,
+    "valor": 49,
+    "motivo": "Partida de debate"
+   }
+  ]
+ },
+ "23a2d35c-26b8-4451-8c9e-3ca5932eedc8": {
+  "uid": "23a2d35c-26b8-4451-8c9e-3ca5932eedc8",
+>>>>>>> Stashed changes
   "moedas": 100,
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
+<<<<<<< Updated upstream
   "criadaEm": 1794358473399,
   "cadastro": {
    "idade": 32,
@@ -1900,10 +1940,17 @@
  },
  "bc2ca313-0c92-429f-b118-33087c9e7b13": {
   "uid": "bc2ca313-0c92-429f-b118-33087c9e7b13",
+=======
+  "criadaEm": 1794350837394
+ },
+ "e2aef7a6-6b77-4386-bb9b-819468d04d1c": {
+  "uid": "e2aef7a6-6b77-4386-bb9b-819468d04d1c",
+>>>>>>> Stashed changes
   "moedas": 100,
   "dicasExtra": 0,
   "partidas": 0,
   "vitorias": 0,
+<<<<<<< Updated upstream
   "criadaEm": 1794363212282,
   "banidoAte": 0,
   "banPerm": false,
@@ -2029,5 +2076,8 @@
   "banidoAte": 0,
   "banPerm": false,
   "abandonos": []
+=======
+  "criadaEm": 1794363621215
+>>>>>>> Stashed changes
  }
 }

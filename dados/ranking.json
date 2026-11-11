@@ -247,9 +247,9 @@
  },
  "luk bozossauro": {
   "nome": "Luk Bozossauro",
-  "pts": 82,
-  "partidas": 1,
-  "vitorias": 0,
+  "pts": 1632,
+  "partidas": 3,
+  "vitorias": 1,
   "avatar": {
    "genero": "masculino",
    "pele": "#d19a6a",
@@ -258,7 +258,7 @@
    "barba": "nenhuma",
    "oculos": "redondo",
    "chapeu": "nenhum",
-   "roupa": "social",
+   "roupa": "terno_aberto",
    "corRoupa": "#a8a29e",
    "corCamisa": "#fce7f3",
    "corGravata": "#1d4ed8",
@@ -271,6 +271,7 @@
   "partido": "PUN",
   "uid": "9e276dfa-05ea-4e14-a42d-adcd2e9fde92"
  },
+<<<<<<< Updated upstream
  "bozonauro lulatron": {
   "nome": "Bozonauro Lulatron",
   "pts": 903,
@@ -290,11 +291,36 @@
    "corGravata": "#0f766e",
    "brinco": false,
    "broche": false,
+=======
+ "barbara balestri": {
+  "nome": "Barbara Balestri",
+  "pts": 609,
+  "partidas": 1,
+  "vitorias": 0,
+  "avatar": {
+   "genero": "feminino",
+   "pele": "#4f2f1c",
+   "cabelo": "cacheado",
+   "corCabelo": "#6a4423",
+   "barba": "nenhuma",
+   "oculos": "nenhum",
+   "chapeu": "nenhum",
+   "roupa": "terno",
+   "corRoupa": "#111111",
+   "corCamisa": "#ffffff",
+   "corGravata": "#15803d",
+   "brinco": false,
+   "broche": true,
+>>>>>>> Stashed changes
    "extra": "nenhum",
    "corpo": "magro",
    "expressao": "simpatico"
   },
   "partido": "MVB",
+<<<<<<< Updated upstream
   "uid": "ee2659ef-514d-4b04-8aff-81fbd09939d4"
+=======
+  "uid": "3e08dfb1-7e60-4be3-af87-6046f46a242c"
+>>>>>>> Stashed changes
  }
 }
