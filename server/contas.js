@@ -126,7 +126,7 @@ export class Contas {
   }
   tem(c, item) { return GRATIS.includes(item) || !!c?.itens?.includes(item); }
   comprarItem(c, id) {
-    const it = ITEM[id]; if (!c || !it) return 'Item inválido.';
+    const it = Object.hasOwn(ITEM, id) && ITEM[id]; if (!c || !it) return 'Item inválido.'; // hasOwn: '__proto__'/'constructor' zeravam as moedas (NaN)
     if (this.tem(c, id)) return 'Você já tem este item.';
     if (c.moedas < it.preco) return `Moedas insuficientes: faltam ${it.preco - c.moedas}.`;
     c.moedas -= it.preco; (c.itens ||= []).push(id);

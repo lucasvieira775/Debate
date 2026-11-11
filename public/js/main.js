@@ -236,13 +236,15 @@ socket.on('voltouPartida', d => { if (d.id !== E.eu) toast(`${d.nome} voltou ao 
 socket.on('estado', s => { if (s.fase === 'lobby') E.acoesUsadas = null; onEstado(s); });
 // ---------- ações (cadeirada, tomate, flores…): a animação roda em est.acao; no impacto, a mediação comenta ----------
 const acaoFalas = new Map(); // n → { t, url, impacto }
-socket.on('acao', d => { if (!ITEM[d.item]) return; acaoFalas.set(d.n, { t: d.fala }); est.acao(d); if (d.id === E.eu) { E.ultAcao = Date.now(); (E.acoesUsadas ||= new Set()).add(d.item); } });
+socket.on('acao', d => { if (!ITEM[d.item]) return; for (const [k, f] of acaoFalas) if (Date.now() - f.em > 30000) acaoFalas.delete(k); // impacto que nunca veio (aba oculta, saiu da sala)
+  acaoFalas.set(d.n, { t: d.fala, em: Date.now() }); est.acao(d); if (d.id === E.eu) { E.ultAcao = Date.now(); (E.acoesUsadas ||= new Set()).add(d.item); } });
 socket.on('acaoFala', d => { const f = acaoFalas.get(d.n); if (!f) return; f.url = d.url; f.pronta = true; if (f.impacto) falaAcao(d.n); });
 function falaAcao(n) {
-  const f = acaoFalas.get(n); if (!f || f.dita) return; f.impacto = true; if (!f.pronta) return; // espera o áudio (o servidor manda em até 4 s)
+  const f = acaoFalas.get(n); if (!f || f.dita || E.sala?.fase !== 'debate') return; f.impacto = true; if (!f.pronta) return; // espera o áudio (o servidor manda em até 4 s)
   f.dita = true; acaoFalas.delete(n);
   E.legAcao = { t: f.t, ate: Date.now() + Math.max(4000, f.t.length * 70) }; atualizarLegenda(); setTimeout(atualizarLegenda, E.legAcao.ate - Date.now() + 50);
-  if (f.url && E.cfg.voz && !E.micOn) tocarNarracao({ id: 'acao' + n, itens: [{ t: f.t, url: f.url }] }); else falarMediadora(f.t);
+  if (f.url && E.cfg.voz && !E.micOn && narrador.fila.length < 2) tocarNarracao({ id: 'acao' + n, itens: [{ t: f.t, url: f.url }] }); // fila cheia: não empurra fora uma narração do jogo
+  else if (!narrador.tocando) falarMediadora(f.t); // sem áudio: só boca + legenda (não corta a boca da narração em curso)
 }
 // eventos da coreografia 3D: impacto (som + comentário da mediação 0,7 s depois)
 est.onAcao = (ev, d) => { if (ev === 'impacto') { est.agitarPlateia(1, 2500); setTimeout(() => falaAcao(d.n), 700); } };
@@ -919,7 +921,7 @@ function renderHUD() {
     $('#h-emotes-b').onclick = () => {
       const p = $('#h-emotes'); p.hidden = !p.hidden; if (p.hidden) return;
       const tem = id => E.conta?.itens?.includes(id), bt = (i, at) => `<button ${at}="${i.id}" class="${tem(i.id) ? '' : 'bloq'}${E.acoesUsadas?.has(i.id) ? ' usada' : ''}" title="${esc(i.nome)}${tem(i.id) ? '' : ' (compre na loja)'}">${i.emoji}<small>${esc(i.nome)}</small></button>`;
-      const espera = Math.max(0, ACAO_ESPERA_MS - (Date.now() - (E.ultAcao || 0))), mmss = `${Math.floor(espera / 60000)}:${String(Math.ceil(espera / 1000) % 60).padStart(2, '0')}`;
+      const espera = Math.max(0, ACAO_ESPERA_MS - (Date.now() - (E.ultAcao || 0))), sEsp = Math.ceil(espera / 1000), mmss = `${sEsp / 60 | 0}:${String(sEsp % 60).padStart(2, '0')}`;
       p.innerHTML = `<div class="em-tit">💥 Ações${espera ? ` <span class="mut">· próxima em ${mmss}</span>` : ''}</div>${ITENS.filter(i => i.tipo === 'acao').map(i => bt(i, 'data-ac')).join('')}
         <div class="em-tit">😀 Emotes, danças e provocações</div>${ITENS.filter(i => i.tipo !== 'acao').map(i => bt(i, 'data-em')).join('')}`;
       $$('[data-em]', p).forEach(b => b.onclick = () => { if (!tem(b.dataset.em)) return toast(`"${ITEM[b.dataset.em].nome}" está na Loja por 🪙 ${ITEM[b.dataset.em].preco}.`); socket.emit('emote', b.dataset.em, r => r?.erro && toast(r.erro, 'erro')); p.hidden = true; });

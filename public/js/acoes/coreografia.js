@@ -127,7 +127,7 @@ export class Acoes {
   /** Teste (?acaot=s): pula s segundos da ação de uma vez (o print headless renderiza poucos quadros). */
   adiantar(q) { // "3.5" = 3,5 s; "golpe:0.3" = 0,3 s depois de começar a fase golpe
     const est = this.est, dt = 1 / 30, a = this.lista[this.lista.length - 1], [f, s] = q.includes(':') ? q.split(':') : [null, q];
-    const passo = () => { est.t += dt; this.update(dt, est.t); for (const p of est.podios.values()) p.avatar.update(dt, est.t); };
+    const passo = () => { est.t += dt; this.update(dt, est.t); for (const p of est.podios.values()) p.avatar.update(dt, est.t); if (est.modo === 'fp') this.camera(dt, est.t); };
     if (f) for (let k = 0; k < 600 && a.fase !== f; k++) passo();
     for (let k = 0; k < Number(s) / dt; k++) passo();
   }

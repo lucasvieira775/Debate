@@ -9,7 +9,7 @@ const PULPITO_MS = 10000; // a produção leva ~8 s empurrando o púlpito do con
 const CAMINHADA_MS = 5500; // tempo da caminhada automática até o púlpito central (e de volta); o cliente anima em até 5 s
 import { gerarFala, nomeIA } from '../shared/ia.js';
 import { Dublagem, VOZES_IA, DIR_PLATEIA } from './voz.js';
-import { N, trechosFixos, trechosTemas, sortearVariacao, FALAS_ACAO, FALAS_FLORES } from './narracao.js';
+import { N, trechosFixos, trechosTemas, sortearVariacao, FALAS_ACAO, FALAS_LEVE, FALAS_FLORES } from './narracao.js';
 import { moderar, GRITOS, PUNICAO } from '../shared/moderacao.js';
 import { Contas, ECONOMIA } from './contas.js';
 import { XP, XP_PUNICAO, cargo } from '../shared/niveis.js';
@@ -349,7 +349,7 @@ class Sala {
       if (p.tipo === 'escolha') this.antecipar(N.escolha(nome(p.falante)));
       if (p.partes) this.antecipar(p.partes);
     }
-    this.antecipar([...FALAS_ACAO, ...FALAS_FLORES].filter(() => Math.random() < .5)); // falas das ações (cache: aos poucos cobre todas)
+    this.antecipar([...FALAS_ACAO, ...FALAS_LEVE, ...FALAS_FLORES].filter(() => Math.random() < .5)); // falas das ações (cache: aos poucos cobre todas)
   }
   seg(kind) { return Math.round(SEGUNDOS[kind] * DUR_MULT[this.cfg.dur]); }
   auto(ms) { this.autoEm = Date.now() + ms; this.later(ms, () => this.proximo()); }
@@ -808,21 +808,25 @@ class Sala {
     this.io.to(this.code).emit('emote', { id: j.id, item });
   }
   // ---------- ações (cadeirada, tomate, flores…): itens da loja usados contra outro candidato ----------
-  acao(j, d = {}) {
-    const it = ITEM[d.item], alvo = this.porId(d.alvo);
+  acao(j, d) {
+    const it = Object.hasOwn(ITEM, d?.item) && ITEM[d.item], alvo = this.porId(d?.alvo);
     if (!it || it.tipo !== 'acao' || !j) return 'Ação inválida.';
     if (this.fase !== 'debate') return 'As ações só valem durante o debate.';
     if (!j.bot && !this.mgr.contas.tem(this.conta(j), it.id)) return `"${it.nome}" está na Loja por 🪙 ${it.preco}.`;
     if (!alvo || alvo === j || alvo.banido || alvo.saiu) return 'Escolha um adversário.';
     if (j.banido || j.saiu) return 'Você está fora do debate.';
     if ((j.acoes ||= new Set()).has(it.id)) return `Você já usou "${it.nome}" neste debate.`;
-    const espera = ACAO_ESPERA_MS - (Date.now() - (j.ultAcao || 0));
-    if (espera > 0) return `Aguarde ${Math.floor(espera / 60000)}:${String(Math.ceil(espera / 1000) % 60).padStart(2, '0')} para usar outra ação.`;
+    // espera de 5 min por conta (uid), não por sala: sair e entrar em outra sala não zera
+    const ults = this.mgr.ultAcao ||= new Map(), chave = j.uid || j.id;
+    const espera = ACAO_ESPERA_MS - (Date.now() - Math.max(j.ultAcao || 0, ults.get(chave) || 0)), sEsp = Math.ceil(espera / 1000);
+    if (espera > 0) return `Aguarde ${sEsp / 60 | 0}:${String(sEsp % 60).padStart(2, '0')} para usar outra ação.`;
     if (Date.now() < (this.acaoAte || 0)) return 'Espere a confusão acabar!';
     if (this.duelo && this.duelo.fase !== 'no') return 'Espere os candidatos chegarem ao púlpito.';
     j.acoes.add(it.id); j.ultAcao = Date.now();
+    for (const [k, v] of ults) if (Date.now() - v > ACAO_ESPERA_MS) ults.delete(k);
+    ults.set(chave, j.ultAcao);
     this.acaoAte = Date.now() + (it.golpe === 'perto' ? 13000 : 6000);
-    const n = this.acaoN = (this.acaoN || 0) + 1, t = pick(it.reacao === 'amor' ? FALAS_FLORES : FALAS_ACAO);
+    const n = this.acaoN = (this.acaoN || 0) + 1, t = pick(it.reacao === 'amor' ? FALAS_FLORES : it.reacao === 'nocaute' ? FALAS_ACAO : FALAS_LEVE);
     this.io.to(this.code).emit('acao', { n, id: j.id, alvo: alvo.id, item: it.id, fala: t });
     // a fala da mediação toca no impacto: o áudio (já em cache, quase sempre) chega antes
     const dub = this.mgr.dub;

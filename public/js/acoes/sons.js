@@ -152,6 +152,7 @@ export const SONS_ACAO = {
     const hz = m => 440 * 2 ** ((m - 69) / 12), rev = ganho(c, d, 1);
     // eco suave (ambiência brilhante)
     const dl = c.createDelay(); dl.delayTime.value = .17; const fb = ganho(c, dl, .35), lp = filtro(c, fb, 'lowpass', 4000); dl.connect(lp); dl.connect(ganho(c, d, .3)); rev.connect(dl);
+    setTimeout(() => { rev.disconnect(); dl.disconnect(); }, 3500); // quebra o laço do eco (não fica pendurado)
     [60, 64, 67, 69, 72, 76, 79, 81, 84, 88, 91].forEach((m, i) => harpa(c, rev, t + i * .042, hz(m), .16 * v * (1 - i * .03), 1.8));
     [76, 79, 84, 88, 91, 86, 84, 96].forEach((m, i) => sininho(c, rev, t + .45 + i * .19 + R(-.03, .03), hz(m), .09 * v));
     const pad = ganho(c, filtro(c, rev, 'lowpass', 2600), 0); // acorde Cmaj9 com coro leve
@@ -197,12 +198,12 @@ export const SONS_ACAO = {
       for (let k = 0; k < n; k++) {
         const t0 = t + tt + k * R(.07, .1), os = c.createOscillator(), g = c.createGain();
         os.frequency.setValueAtTime(f * 1.35, t0); os.frequency.exponentialRampToValueAtTime(f * .8, t0 + .03); os.frequency.exponentialRampToValueAtTime(f * 1.5, t0 + .065);
-        lfo(c, os.frequency, t0, .07, 70, f * .06); env(g.gain, t0, .1 * v * k0, .006, .075); os.connect(g).connect(lado); os.start(t0); os.stop(t0 + .1);
+        lfo(c, os.frequency, t0, .07, 70, f * .06); env(g.gain, t0, .16 * v * k0, .006, .075); os.connect(g).connect(lado); os.start(t0); os.stop(t0 + .1);
       }
     }
     const w = c.createOscillator(), g = c.createGain(); w.type = 'sine'; w.frequency.value = 820; // assobio de tontura ondulante
     lfo(c, w.frequency, t, dur, 1.4, 160); lfo(c, w.frequency, t, dur, 6, 12);
-    g.gain.value = .045 * v; w.connect(g).connect(mestre); w.start(t); w.stop(t + dur + .05);
+    g.gain.value = .065 * v; w.connect(g).connect(mestre); w.start(t); w.stop(t + dur + .05);
   },
   levanta(o = {}) {
     const a = abre(o); if (!a) return; const { c, d, t, v } = a;

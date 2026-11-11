@@ -47,6 +47,15 @@ export const FALAS_ACAO = [
   'Ai, meu Deus! Corta pro intervalo! Não, não, estamos ao vivo! Levanta, candidato, não foi nada!',
   'Vamos respeitar o adversário, por favor! Candidato, levante, foi só um susto!',
 ];
+// tomate, torta, balde: o alvo não cai (sem "levante")
+export const FALAS_LEVE = [
+  'Calma, gente, vamos manter a calma! Não foi nada, candidato, pode se limpar aí!',
+  'Opa, opa, opa! Isso aqui é um debate, não é guerra de comida! Produção, uma toalha, por favor!',
+  'Senhores, senhoras, isso é inadmissível! Vamos voltar às propostas! Tá tudo bem aí, candidato?',
+  'Calma, calma! Ninguém se machucou de verdade. Vamos manter o nível, por favor!',
+  'Que é isso, minha gente! Segura essa emoção aí! Candidato, respira fundo, o debate continua!',
+  'Vamos respeitar o adversário, por favor! Foi só um susto, candidato, seguimos!',
+];
 export const FALAS_FLORES = [
   'Que lindo! Olha só, gente, finalmente um pouco de amor neste debate!',
   'Ownn, que gesto bonito! É disso que o Brasil precisa: mais flores e menos cadeiradas!',
