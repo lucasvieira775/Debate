@@ -3,3 +3,5 @@ node_modules/
 dados/audio/
 ~$*
 .claude/settings.local.json
+
+*.log
