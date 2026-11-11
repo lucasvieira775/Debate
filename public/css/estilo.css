@@ -127,6 +127,13 @@ button{cursor:pointer}
 .cores{display:flex;flex-wrap:wrap;gap:8px}
 .cor{width:34px;height:34px;border-radius:10px;border:3px solid rgba(255,255,255,.2)}
 .cor.on{border-color:#fff;box-shadow:0 0 0 3px var(--amarelo)}
+.cor.provando{border-color:#fff;box-shadow:0 0 0 3px var(--verde);border-style:dashed}
+/* prova de item da loja dentro da personalização */
+.prova{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:14px;padding:10px 12px;border-radius:14px;border:2px solid var(--verde);background:linear-gradient(#3a2a9a,#24176b);box-shadow:0 6px 16px rgba(0,0,0,.35)}
+.prova-txt{flex:1;min-width:180px;font-size:14px;font-weight:800}
+.prova-txt small{display:block;font-size:12px;font-weight:600;color:#c4b5fd;margin-top:2px}
+.opc.provando{border-color:var(--verde);border-style:dashed;box-shadow:0 0 0 3px rgba(34,197,94,.35)}
+.opc.provando::before{content:"👀 provando";position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--verde);color:#062b12;font-size:10px;font-weight:900;border-radius:999px;padding:1px 7px;white-space:nowrap}
 .partidos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
 .partido{border:3px solid rgba(255,255,255,.15);border-radius:18px;padding:12px 10px;text-align:center;color:#fff;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}
 .partido img{width:58px;height:58px;border-radius:14px;box-shadow:0 3px 0 rgba(0,0,0,.3)}

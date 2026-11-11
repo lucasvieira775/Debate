@@ -495,7 +495,7 @@ let perfilT = null;
 function sincronizarPerfil() { if (!E.sala || E.sala.fase !== 'lobby') return; clearTimeout(perfilT); perfilT = setTimeout(() => socket.emit('perfil', perfilEnvio(), r => r?.erro && toast(r.erro, 'erro')), 250); }
 
 // ======================= RENDER: telas =======================
-function ir(tela) { sfx.clique(); E.tela = tela; if (tela === 'personalizar' || tela === 'loja') { est.setVitrine(E.perfil.avatar); est.setModo('vitrine'); } else if (!emJogo()) est.setModo('menu'); renderUI(); }
+function ir(tela) { sfx.clique(); E.tela = tela; E.prova = null; if (tela === 'personalizar' || tela === 'loja') { est.setVitrine(E.perfil.avatar); est.setModo('vitrine'); } else if (!emJogo()) est.setModo('menu'); renderUI(); }
 function renderUI() {
   if (E.demo) return;
   const ui = $('#ui'), hud = $('#hud');
@@ -580,6 +580,11 @@ function telaSalas(ui) {
   carregar(); $('#s-atual').onclick = carregar;
   $('#s-criar').onclick = () => { if (exigirNome()) socket.emit('criar', { publica: true, perfil: perfilEnvio() }, tratar); };
 }
+/** Confirma e compra um item da loja; no sucesso chama aoComprar() antes do renderUI. */
+function comprarItemConfirmado(id, aoComprar) {
+  const it = ITEM[id]; janela(`<h2>${it.emoji} ${esc(it.nome)}</h2><p>Comprar por <b>🪙 ${it.preco}</b>? Seu saldo: 🪙 ${fmtN(E.conta?.moedas || 0)}.</p><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn peq" id="cx">Cancelar</button><button class="btn peq amarelo" id="ok">Comprar</button></div>`,
+    (el, fechar) => { $('#cx', el).onclick = fechar; $('#ok', el).onclick = () => { fechar(); socket.emit('comprarItem', { uid: UID, item: id }, r => { if (r?.erro) return toast(r.erro, 'erro'); atualizarConta(r.conta); sfx.vitoria(); toast('Compra concluída!', 'ok'); aoComprar?.(); renderUI(); }); }; });
+}
 function telaDaLoja(ui) {
   const voltar = E.sala ? 'sala' : 'menu';
   if (!E.lojaInfo && !E.lojaPedindo) { E.lojaPedindo = true; socket.emit('lojaInfo', null, i => { E.lojaPedindo = false; E.lojaInfo = i; if (E.tela === 'loja') renderUI(); }); }
@@ -614,8 +619,7 @@ function telaDaLoja(ui) {
               }); }, 5000);
           });
         }); }; }); },
-    comprarItem: id => { const it = ITEM[id]; janela(`<h2>${it.emoji} ${esc(it.nome)}</h2><p>Comprar por <b>🪙 ${it.preco}</b>? Seu saldo: 🪙 ${fmtN(E.conta?.moedas || 0)}.</p><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn peq" id="cx">Cancelar</button><button class="btn peq amarelo" id="ok">Comprar</button></div>`,
-      (el, fechar) => { $('#cx', el).onclick = fechar; $('#ok', el).onclick = () => { fechar(); socket.emit('comprarItem', { uid: UID, item: id }, pos); }; }); },
+    comprarItem: id => comprarItemConfirmado(id),
     equipar: id => socket.emit('equiparDanca', { uid: UID, item: id }, r => { if (r?.erro) return toast(r.erro, 'erro'); atualizarConta(r.conta); toast('Dança equipada para a sua vitória!', 'ok'); renderUI(); }),
     testar: id => {
       const tela = $('#ui .tela'); tela.style.transition = 'opacity .3s'; tela.style.opacity = 0; tela.style.pointerEvents = 'none';
@@ -774,8 +778,20 @@ const ABAS = { aparencia: '👤 Aparência', roupas: '👔 Roupas', acessorios: 
 /** Item mais barato da loja que libera avatar[campo] = valor, se o jogador ainda não o tem (senão undefined). */
 const bloqueio = (campo, valor) => { const ids = itensDe(campo, valor); if (!ids.length || ids.some(id => E.conta?.itens?.includes(id))) return; return ids.map(id => ITEM[id]).sort((x, y) => x.preco - y.preco)[0]; };
 const ICONE_ROUPA = { terno: '🤵', terno_aberto: '🧥', blazer: '💼', saia: '👗', social: '👔', colete: '🦺', polo: '👕', batina: '⛪', pastor: '📖' };
+/** O que a prova veste por cima do avatar salvo (conjunto = peça inteira; acessório = só o campo). */
+const provaAv = p => p.it.tipo === 'conjunto' ? { ...p.it.av, ...p.it.cores } : { [p.campo]: p.valor };
+/** Vitrine da personalização: avatar salvo + item em prova (nunca gravado no perfil antes da compra). */
+const vitrinePers = () => est.setVitrine(E.prova ? { ...E.perfil.avatar, ...provaAv(E.prova) } : E.perfil.avatar);
+const reRenderPers = () => { const sc = $('.pers-conteudo')?.scrollTop; renderPersConteudo(); const el = $('.pers-conteudo'); if (el) el.scrollTop = sc; };
+const desfazerProva = () => { if (!E.prova) return; E.prova = null; vitrinePers(); };
+function comprarProva() {
+  const p = E.prova; if (!p) return;
+  comprarItemConfirmado(p.it.id, () => { E.prova = null; E.perfil.avatar = { ...E.perfil.avatar, ...provaAv(p) }; salvar(); est.setVitrine(E.perfil.avatar); sincronizarPerfil(); });
+}
 function setAv(campo, valor) {
-  const it = bloqueio(campo, valor); if (it) { E.lojaAba = it.tipo; toast(`"${it.nome}" está na Loja por 🪙 ${it.preco}.`); return ir('loja'); }
+  const it = bloqueio(campo, valor);
+  if (it) { E.prova = { campo, valor, it }; vitrinePers(); sfx.clique(); return reRenderPers(); } // prova no lugar, sem ir para a Loja
+  E.prova = null;
   E.perfil.avatar = { ...E.perfil.avatar, [campo]: valor };
   if (campo === 'genero') { // ajustes de praxe ao trocar o sexo (tudo pode ser alterado depois)
     const a = E.perfil.avatar;
@@ -787,11 +803,10 @@ function setAv(campo, valor) {
     }
     if (valor === 'feminino' && ['careca', 'calvo', 'topete'].includes(a.cabelo)) a.cabelo = 'longo';
   }
-  salvar(); est.setVitrine(E.perfil.avatar); sincronizarPerfil(); sfx.clique();
-  const sc = $('.pers-conteudo')?.scrollTop; renderPersConteudo(); const el = $('.pers-conteudo'); if (el) el.scrollTop = sc;
+  salvar(); est.setVitrine(E.perfil.avatar); sincronizarPerfil(); sfx.clique(); reRenderPers();
 }
 function telaPersonalizar(ui) {
-  est.setVitrine(E.perfil.avatar); est.setModo('vitrine');
+  vitrinePers(); est.setModo('vitrine');
   ui.innerHTML = `<div class="tela">${topo('Personalizar candidato', E.persVoltar)}
     <div class="pers">
       <div class="pers-esq">
@@ -807,15 +822,16 @@ function telaPersonalizar(ui) {
       </div>
     </div></div>`;
   ligarIr(ui);
-  $$('[data-aba]', ui).forEach(b => b.onclick = () => { E.persAba = b.dataset.aba; sfx.clique(); $$('[data-aba]', ui).forEach(x => x.classList.toggle('on', x === b)); renderPersConteudo(); });
-  $('#p-rand').onclick = () => { E.perfil.avatar = avatarAleatorio(E.perfil.avatar.genero); salvar(); est.setVitrine(E.perfil.avatar); sincronizarPerfil(); sfx.sorteio(); renderPersConteudo(); };
+  $$('[data-aba]', ui).forEach(b => b.onclick = () => { E.persAba = b.dataset.aba; desfazerProva(); sfx.clique(); $$('[data-aba]', ui).forEach(x => x.classList.toggle('on', x === b)); renderPersConteudo(); });
+  $('#p-rand').onclick = () => { E.prova = null; E.perfil.avatar = avatarAleatorio(E.perfil.avatar.genero); salvar(); est.setVitrine(E.perfil.avatar); sincronizarPerfil(); sfx.sorteio(); renderPersConteudo(); };
   renderPersConteudo();
 }
 function renderPersConteudo() {
-  const el = $('.pers-conteudo'); if (!el) return; const a = E.perfil.avatar;
-  const cores = (campo, lista) => `<div class="cores">${lista.map(c => `<button class="cor ${a[campo] === c ? 'on' : ''}" style="background:${c}" data-c="${campo}" data-v="${c}"></button>`).join('')}</div>`;
+  const el = $('.pers-conteudo'); if (!el) return; const a = E.perfil.avatar, pv = E.prova;
+  const prov = (campo, v) => pv && pv.campo === campo && pv.valor === v ? 'provando' : '';
+  const cores = (campo, lista) => `<div class="cores">${lista.map(c => `<button class="cor ${a[campo] === c ? 'on' : ''} ${prov(campo, c)}" style="background:${c}" data-c="${campo}" data-v="${c}"></button>`).join('')}</div>`;
   const tiles = (campo, opcoes, comRetrato = true, icones) => `<div class="grade">${Object.entries(opcoes).map(([v, nome]) => { const it = bloqueio(campo, v);
-    return `<button class="opc ${a[campo] === v ? 'on' : ''} ${it ? 'bloq' : ''}" data-c="${campo}" data-v="${v}" ${it ? `title="${esc(it.nome)} · 🪙 ${it.preco}"` : ''}>${comRetrato ? `<img src="${ret({ ...a, [campo]: v })}">` : icones ? `<i class="opc-ico">${icones[v] || '✨'}</i>` : ''}<span>${esc(nome)}</span>${it ? `<small class="opc-preco">🔒 🪙 ${it.preco}</small>` : ''}</button>`; }).join('')}</div>`;
+    return `<button class="opc ${a[campo] === v ? 'on' : ''} ${it ? 'bloq' : ''} ${prov(campo, v)}" data-c="${campo}" data-v="${v}" ${it ? `title="${esc(it.nome)} · 🪙 ${it.preco}"` : ''}>${comRetrato ? `<img src="${ret({ ...a, [campo]: v })}">` : icones ? `<i class="opc-ico">${icones[v] || '✨'}</i>` : ''}<span>${esc(nome)}</span>${it ? `<small class="opc-preco">🔒 🪙 ${it.preco}</small>` : ''}</button>`; }).join('')}</div>`;
   const tg = (campo, nome) => `<div class="cfg-linha"><span>${nome}</span><button class="toggle ${a[campo] ? 'on' : ''}" data-t="${campo}"></button></div>`;
   const g = (t, c) => `<div class="grupo"><h4>${t}</h4>${c}</div>`;
   let h = '';
@@ -831,7 +847,10 @@ function renderPersConteudo() {
           <img src="${logoPartido(p.sigla, 116)}"><b>${p.sigla} · ${p.numero}</b><small>${esc(p.nome)}</small><span class="chip" style="font-size:11px">${IDEO[p.ideo].nome}</span><small class="lema">“${esc(p.lema)}”</small></button>`).join('')}</div>`;
     }
   }
+  if (pv) h = `<div class="prova"><div class="prova-txt">👀 Provando: <b>${pv.it.emoji} ${esc(pv.it.nome)}</b> · 🪙 ${pv.it.preco}${pv.it.tipo === 'conjunto' ? `<small>Este item é parte do ${esc(pv.it.nome)}: a compra inclui todas as peças.</small>` : ''}</div>
+    <button class="btn peq" id="pv-x">↺ Desfazer</button><button class="btn peq amarelo" id="pv-ok">🛒 Comprar</button></div>` + h;
   el.innerHTML = h;
+  if (pv) { $('#pv-x', el).onclick = () => { sfx.clique(); desfazerProva(); reRenderPers(); }; $('#pv-ok', el).onclick = comprarProva; }
   $$('[data-c]', el).forEach(b => b.onclick = () => setAv(b.dataset.c, b.dataset.v));
   $$('[data-t]', el).forEach(b => b.onclick = () => setAv(b.dataset.t, !a[b.dataset.t]));
   $$('[data-p]', el).forEach(b => b.onclick = () => { E.perfil.partido = b.dataset.p; salvar(); sincronizarPerfil(); sfx.clique(); renderPersConteudo(); });
@@ -1299,7 +1318,7 @@ window.__debate = { E, est, socket };
 // modo de demonstração visual: ?demo=fp | ?demo=lado | ?demo=vitrine
 const demo = new URLSearchParams(location.search).get('demo');
 if (demo) setTimeout(() => {
-  if (demo === 'vitrine') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); E.persAba = new URLSearchParams(location.search).get('aba') || E.persAba; ir('personalizar'); return; } // ?demo=vitrine&aba=roupas
+  if (demo === 'vitrine') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); E.persAba = new URLSearchParams(location.search).get('aba') || E.persAba; ir('personalizar'); const pr = new URLSearchParams(location.search).get('provar'); if (pr) setAv(...pr.split(':')); return; } // ?demo=vitrine&aba=roupas[&provar=roupa:batina]
   if (demo === 'config') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('config'); return; } // ?demo=config
   if (demo === 'emote') { const q = new URLSearchParams(location.search), it = ITEM[q.get('item')]; E.perfil.nome ||= 'Demo'; if (it.av) E.perfil.avatar = { ...E.perfil.avatar, ...it.av, ...it.cores, genero: 'masculino', barba: q.get('barba') || E.perfil.avatar.barba }; ir('personalizar'); $('#ui').style.opacity = 0; est.testarNaVitrine({ ...it, tipo: 'danca' }); if (est.vitrine?.anim) est.vitrine.anim.ini = -(Number(q.get('t')) || 0); return; } // &t=1 começa a animação 1 s adiantada // ?demo=emote&item=chorao
   if (demo === 'loja') { E.perfil.nome ||= 'Demo'; E.lojaAba = new URLSearchParams(location.search).get('aba') || 'moedas'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('loja'); return; } // ?demo=loja&aba=assessoria
