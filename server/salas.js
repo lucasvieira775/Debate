@@ -282,7 +282,7 @@ class Sala {
     const p = this.passo; // se era a vez do ausente, congela já (e a etapa recomeça quando ele voltar); senão para ao fim da etapa atual
     const imediata = !!p && this.ausente(p.falante) && ((p.tipo === 'fala' && this.fala?.status !== 'avaliado') || (p.tipo === 'escolha' && !p.escolhido));
     this.pausa = { imediata, pendente: false };
-    if (imediata) { this.limpar(); this.fala = null; this.roleta = null; this.autoEm = null; }
+    if (imediata) { const v = this.fala?.vaiado; if (v) (this.porId(p.falante).vaiaPend ||= []).unshift(v); this.limpar(); this.fala = null; this.roleta = null; this.autoEm = null; }
   }
   retomar() {
     const pz = this.pausa; if (!pz || this.fase !== 'debate' || this.precisaPausa()) return;
@@ -838,7 +838,8 @@ class Sala {
     ults.set(chave, j.ultAcao);
     this.acaoAte = Date.now() + (it.golpe === 'perto' ? 13000 : 6000);
     const bane = it.adv && (j.advertencias || 0) + it.adv >= PUNICAO.advertencias; // a advertência do impacto vai tirá-lo do debate: a mediação não comenta por cima
-    setTimeout(() => this.consequenciasAcao(j, alvo, it), it.golpe === 'perto' ? 5000 : 1500); // ~impacto da animação (setTimeout: limpar() da troca de etapa não cancela)
+    const st = j.st; // mesma partida? (iniciar/voltarLobby trocam o st)
+    setTimeout(() => j.st === st && this.consequenciasAcao(j, alvo, it), it.golpe === 'perto' ? 5000 : 1500); // ~impacto da animação (setTimeout: limpar() da troca de etapa não cancela)
     const n = this.acaoN = (this.acaoN || 0) + 1, t = pick(it.reacao === 'amor' ? FALAS_FLORES : it.reacao === 'nocaute' ? FALAS_ACAO : FALAS_LEVE);
     this.io.to(this.code).emit('acao', { n, id: j.id, alvo: alvo.id, item: it.id, fala: t });
     // a fala da mediação toca no impacto: o áudio (já em cache, quase sempre) chega antes
