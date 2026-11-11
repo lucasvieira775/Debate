@@ -18,15 +18,16 @@ const sm = u => { u = clamp(u, 0, 1); return u * u * (3 - 2 * u); };
 const trap = (u, a = .2) => { u = clamp(u, 0, 1); const v = 1 / (1 - a); return u < a ? v * u * u / (2 * a) : u > 1 - a ? 1 - v * (1 - u) ** 2 / (2 * a) : v * (u - a / 2); };
 const angDif = a => Math.atan2(Math.sin(a), Math.cos(a));
 const CENTRO = V(0, 0, -3.2), R_ARCO = 5.3; // mesa da mediação (estudio.js) e raio do corredor em frente aos púlpitos
-const VEL = 2.1;                             // m/s (passo apressado de quem vai brigar)
+const VEL = 2.3;                             // m/s (passo apressado de quem vai brigar)
 const T_PEGA = .4, T_PREP = .6, T_SOME = .5, T_SOLTA = .7;
 // distância até o alvo (ao lado dele) e quem tem passos com barulho do objeto
-const DIST = { cadeirada: 1.08, paulada: 1.0, torta: .62, balde: .74 };
+const DIST = { cadeirada: 1.08, paulada: 1.0, torta: .62, balde: .64 };
 const CARREGA = { cadeirada: 1, balde: 1 };
+const AGARRA = { cadeirada: 1, paulada: 1, balde: 1 }; // posição calculada a cada quadro (o resto usa a PEGADA fixa)
 const POSE_GOLPE = { cadeirada: 'golpeCadeira', paulada: 'golpePau', torta: 'tortada', balde: 'baldeada' };
 const POSE_CARREGA = { cadeirada: 'carregaCadeira', paulada: 'carregaPau', torta: 'carregaTorta', balde: 'carregaBalde' };
 const Q_DEBUG = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
-const CAM_DEBUG = Q_DEBUG.get('acaocam'), ADIANTA = Number(Q_DEBUG.get('acaot')) || 0; // só para prints de teste
+const CAM_DEBUG = Q_DEBUG.get('acaocam'), ADIANTA = Q_DEBUG.get('acaot'); // só para prints de teste
 
 // ---------- poses do atacante ----------
 // braço [rot x, abertura z, cotovelo, giro do braço, giro da mão, mão, avanço do ombro]
@@ -43,14 +44,14 @@ const seq = (u, ch) => {
 };
 const B = {
   // cadeira: as duas mãos no topo do encosto
-  cadBaixo: [-.62, -.2, -.95, 0, 0, 'punho', .15], cadAlto: [-2.85, -.1, -.65, 0, 0, 'punho', .45], cadBate: [-1.62, -.12, -.12, 0, 0, 'punho', .8],
+  cadBaixo: [-.62, -.2, -.95, 0, 0, 'punho', .15], cadAlto: [-2.85, -.1, -.65, 0, 0, 'punho', .45], cadBate: [-2.25, -.12, -.15, 0, 0, 'punho', .8],
   // pau na mão direita
-  pauLeva: [-.35, .12, -1.25, .5, 0, 'punho'], pauArma: [-2.35, 1.05, -1.55, -.4, 0, 'punho', .2], pauBate: [-1.5, -.55, -.1, -.9, 0, 'punho', .7],
+  pauLeva: [-.35, .12, -1.25, .5, 0, 'punho'], pauArma: [-2.35, 1.05, -1.55, -.4, 0, 'punho', .2], pauBate: [-1.85, -.4, -.1, -.9, 0, 'punho', .7],
   guarda: [-.7, .25, -1.5, -.6, 0, 'punho', .2],
   // torta: prato na palma da direita
   tortLeva: [-.5, .02, -1.45, 1.35, 0, 'aberta', .1], tortArma: [-.35, .45, -2.1, 1.35, 0, 'aberta'], tortBate: [-1.45, -.1, -1.15, 1.35, 0, 'aberta', .9],
   // balde: alça na direita; para virar, a esquerda segura o fundo
-  baldLeva: [-.12, .14, -.12, 0, 0, 'punho'], baldAlto: [-2.45, -.08, -.55, 0, 0, 'punho', .5], baldVira: [-2.05, -.12, -.35, 0, 0, 'punho', .8],
+  baldLeva: [-.12, .14, -.12, 0, 0, 'punho'], baldAlto: [-2.6, -.08, -.5, 0, 0, 'punho', .5], baldVira: [-2.5, -.1, -.3, 0, 0, 'punho', .8],
   // arremesso (direita)
   arrPega: [-.55, .2, -1.4, 0, 0, 'punho'], arrArma: [-2.55, .55, -1.55, 0, 0, 'punho', .1], arrSolta: [-1.95, -.05, -.15, 0, 0, 'aberta', .6], arrSegue: [-.85, -.25, -.3, 0, 0, 'aberta', .4],
   mira: [-1.35, .25, -.35, 0, 0, 'aberta', .2], solto: [-.2, .1, -.35, 0, 0, 'relax'],
@@ -124,9 +125,11 @@ export class Acoes {
     if (ADIANTA && !this.adiantou) { this.adiantou = true; this.adiantar(ADIANTA); }
   }
   /** Teste (?acaot=s): pula s segundos da ação de uma vez (o print headless renderiza poucos quadros). */
-  adiantar(seg) {
-    const est = this.est, dt = 1 / 30;
-    for (let k = 0; k < seg / dt; k++) { est.t += dt; this.update(dt, est.t); for (const p of est.podios.values()) p.avatar.update(dt, est.t); }
+  adiantar(q) { // "3.5" = 3,5 s; "golpe:0.3" = 0,3 s depois de começar a fase golpe
+    const est = this.est, dt = 1 / 30, a = this.lista[this.lista.length - 1], [f, s] = q.includes(':') ? q.split(':') : [null, q];
+    const passo = () => { est.t += dt; this.update(dt, est.t); for (const p of est.podios.values()) p.avatar.update(dt, est.t); };
+    if (f) for (let k = 0; k < 600 && a.fase !== f; k++) passo();
+    for (let k = 0; k < Number(s) / dt; k++) passo();
   }
 
   // ---------- caminho: sai pela lateral do púlpito, passa pela frente (arco) e chega ao lado do alvo ----------
@@ -166,7 +169,7 @@ export class Acoes {
     const ok = pts.filter((q, i) => i === 0 || q.distanceTo(pts[i - 1]) > .05);
     if (ok.length < 2) ok.push(ok[0].clone().add(V(0, 0, .01)));
     const curva = new THREE.CatmullRomCurve3(ok, false, 'centripetal'), tot = curva.getLength();
-    a.cam = { curva, dur: clamp(tot / VEL, 1, 5), t: 0, yawFim, yaw0: at.rotation.y, pts: ok };
+    a.cam = { curva, dur: clamp(tot / VEL, 1, 4.6), t: 0, yawFim, yaw0: at.rotation.y, pts: ok };
     a.atk.lugar = 'andando';
   }
   /** Um passo da caminhada (mesma lógica de estudio.andarAtores). true = chegou e já virou. */
@@ -204,22 +207,25 @@ export class Acoes {
     const o = a.prop; if (!o) return;
     a.cresce = Math.min(1, a.cresce + dt / .15);
     const id = a.it.id, av = a.av, esc = .01 + .99 * sm(a.cresce);
-    if (id !== 'cadeirada' && id !== 'balde') { o.scale.setScalar(esc); return; }
+    if (!AGARRA[id]) { o.scale.setScalar(esc); return; }
     av.root.updateWorldMatrix(true, true);
     const [mE, mD] = [maoDe(av, 1), maoDe(av, -1)].map(b => b.userData.mao.localToWorld(V(-b.userData.lado * .035, -.09, 0)));
-    const qR = av.root.getWorldQuaternion(_q);
+    const qR = av.root.getWorldQuaternion(_q), R = (x, y, z) => V(x, y, z).normalize().applyQuaternion(qR);
     const golpe = a.fase === 'golpe' || a.fase === 'depois', u = golpe ? a.ft : 0;
+    // k: 0 = carregando → 1 = erguido (preparo); kb: erguido → batendo; volta a carregar no fim
+    const k = golpe ? sm(u / .35) * (1 - sm((u - 1.05) / .45)) : 0, kb = golpe ? sm((u - .45) / .15) * (1 - sm((u - 1.05) / .45)) : 0;
+    if (golpe && !a.mira) a.mira = this.cabecaAlvo(a); // mira na cabeça do alvo (onde ela estava no começo do golpe)
     let pos, quat;
-    if (id === 'cadeirada') {
-      // cadeira na linha dos braços (ombros → mãos); carregando, pendurada à frente
-      const om = av.bracos[0].getWorldPosition(V()).add(av.bracos[1].getWorldPosition(V())).multiplyScalar(.5);
-      pos = mE.clone().add(mD).multiplyScalar(.5);
-      const X = V(1, 0, 0).applyQuaternion(qR), baixo = V(0, -1, .35).normalize().applyQuaternion(qR);
-      const Y = pos.clone().sub(om).normalize().lerp(baixo, golpe ? 1 - sm(u / .3) + sm((u - 1.05) / .45) : 1).normalize();
-      const Z = X.clone().cross(Y).normalize(); X.crossVectors(Y, Z);
-      quat = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(X, Y, Z));
+    if (id === 'cadeirada' || id === 'paulada') {
+      // erguido: o objeto continua a linha do braço; no golpe o punho dobra e ele desce sobre a cabeça do alvo
+      const cad = id === 'cadeirada', m = cad ? mE.clone().add(mD).multiplyScalar(.5) : mD;
+      const ombro = cad ? av.bracos[0].getWorldPosition(V()).add(av.bracos[1].getWorldPosition(V())).multiplyScalar(.5) : maoDe(av, -1).getWorldPosition(V());
+      const leva = cad ? R(0, -1, .35) : R(.15, 1, -.45), bate = cad ? R(0, -.2, 1) : a.mira ? a.mira.clone().sub(m).normalize() : R(0, 0, 1);
+      const Y = leva.clone().lerp(m.clone().sub(ombro).normalize(), k).normalize().lerp(bate, kb).normalize();
+      const X = R(1, 0, 0), Z = X.clone().cross(Y).normalize(); X.crossVectors(Y, Z);
+      pos = m; quat = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(X, Y, Z));
     } else { // balde: na direita pela alça (em pé); para virar, entre as duas mãos e inclinado para frente
-      const k = golpe ? sm(u / .4) * (1 - sm((u - 1.1) / .3)) : 0, vira = golpe ? sm((u - .45) / .2) * 2.1 * (1 - sm((u - 1.1) / .3)) : 0;
+      const vira = golpe ? sm((u - .45) / .2) * 2.6 * (1 - sm((u - 1.1) / .3)) : 0;
       pos = mD.clone().lerp(mE.clone().add(mD).multiplyScalar(.5), k);
       quat = qR.clone().multiply(_q2.setFromEuler(_e.set(vira, 0, 0)));
     }
@@ -228,6 +234,7 @@ export class Acoes {
     _m.compose(pos, quat, V(esc, esc, esc)).premultiply(a.mao.matrixWorld.clone().invert());
     _m.decompose(o.position, o.quaternion, o.scale);
   }
+
 
   // ---------- impacto ----------
   cabecaAlvo(a) { const c = a.alvo.avatar.cabeca; c.updateWorldMatrix(true, false); return c.localToWorld(V(0, .3, 0)); }
@@ -271,7 +278,7 @@ export class Acoes {
       if (i >= 0) { const [f] = this.fila.splice(i, 1); f.d = { ...f.d, n: undefined }; this.iniciar(f.d); }
     }
   }
-  irPara(a, fase) { a.fase = fase; a.ft = 0; }
+  irPara(a, fase) { a.fase = fase; a.ft = 0; if (ADIANTA) console.log('[atk]', fase, a.t.toFixed(2), a.cam ? 'dur ' + a.cam.dur.toFixed(2) : ''); }
   passoAtk(a, dt) {
     a.ft += dt; this.moverProp(a, dt);
     const av = a.av, at = a.atk.ator;
@@ -339,7 +346,8 @@ export class Acoes {
     const m = p1.clone().add(p2).multiplyScalar(.5), dir = CENTRO.clone().sub(m).setY(0).normalize();
     dir.applyAxisAngle(V(0, 1, 0), Number(CAM_DEBUG) || 0); const foco = Q_DEBUG.get('foco') === 'atk' ? p1 : Q_DEBUG.get('foco') === 'alvo' ? p2 : m;
     const dist = Number(Q_DEBUG.get('dist')) || 2.6 + p1.distanceTo(p2) * .45;
-    est.camera.position.copy(foco).addScaledVector(dir, dist).setY(Number(Q_DEBUG.get('alt')) || 2.1); est.camera.lookAt(foco.x, 1.4, foco.z);
+    const cp = foco.clone().addScaledVector(dir, dist).setY(Number(Q_DEBUG.get("alt")) || 2.1), cam = est.camera; cam.parent?.updateWorldMatrix(true, false);
+    cam.position.copy(cam.parent ? cam.parent.worldToLocal(cp) : cp); cam.updateMatrixWorld(); cam.lookAt(foco.x, 1.4, foco.z);
     return true;
   }
   ocupado(id) { return this.lista.some(a => (a.atkVivo && a.atk.id === id) || (a.vitViva && a.alvo.id === id)); }

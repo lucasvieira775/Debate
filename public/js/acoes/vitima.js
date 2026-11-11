@@ -47,12 +47,12 @@ registrarPose('vitNocaute', u => {
 registrarPose('vitSujo', u => {
   const r = u < .12 ? u / .12 : Math.max(0, 1 - (u - .12) / .45); // tranco para trás
   const nojo = suave((u - .25) / .3) * (1 - suave((u - 2.7) / .3));
-  const limpa = u > .55 && u < 2.35, v = u - .55;
+  const limpa = u > .55 && u < 2.35, v = u - .55, lk = suave((u - .5) / .25) * (1 - suave((u - 2.3) / .25)); // lk: cabeça baixa enquanto limpa
   const susto = [-1.05, .55, -1.35, 0, 0, 'aberta', .2];
   const dir = u < .55 ? mix(REP, susto, suave(u / .2))
-    : limpa ? [-1.4, -.58 + sen(v * 10) * .22, -1.23, -.08, .99 + sen(v * 10) * .35, 'cobre', .97] // esfrega o rosto
+    : limpa ? [-1.4, -.58 + sen(v * 9) * .1, -1.23 + sen(v * 9 + 1) * .12, -.08, .99 + sen(v * 9) * .3, 'cobre', .97] // esfrega o rosto
     : u < 2.75 ? [-.75, .7, -.9, 0, sen(u * 32) * .7, 'aberta', .1] : REP; // sacode a mão
-  return { esq: u < .55 ? mix(REP, susto, suave(u / .2)) : REP, dir, cabeca: -.5 * r + .18 * nojo, cabecaZ: -.2 * nojo + (limpa ? sen(v * 10) * .04 : 0), giro: -.12 * nojo, pulo: .03 * r, olhosFechados: nojo > .3, boca: nojo > .3 && !limpa ? .18 : 0 };
+  return { esq: u < .55 ? mix(REP, susto, suave(u / .2)) : REP, dir, cabeca: -.5 * r + (.18 + .2 * lk) * nojo, cabecaZ: (-.2 + .32 * lk) * nojo + sen(v * 10) * .05 * lk, giro: -.12 * (1 - lk) * nojo, pulo: .03 * r, olhosFechados: nojo > .3, boca: nojo > .3 && !limpa ? .18 : 0 };
 });
 registrarPose('vitMolhado', u => {
   const s = u < .45 ? sen(u / .45 * PI) : 0, f = suave((u - .35) / .25) * (1 - suave((u - 2.75) / .25)), tr = f * (.6 + .4 * sen(u * 3));
@@ -131,8 +131,9 @@ export class Vitima {
     this.vida += dt; const av = this.p.avatar, est = this.est;
     if (this.sim === undefined && (this.sim = Number(new URLSearchParams(location.search).get('vitsim')) || 0)) { // teste: ?vitsim=s pula direto para s segundos após o impacto
       this.impacto(); const n = Math.round(this.sim * 30);
-      for (let i = 0; i < n; i++) { this.update(1 / 30, est.t + i / 30); if (this.minha && est.modo === 'fp') this.camera(1 / 30, est.t + i / 30); }
+      for (let i = 0; i < n; i++) { this.update(1 / 30, est.t + i / 30); av.update(1 / 30, est.t + i / 30); if (this.minha && est.modo === 'fp') this.camera(1 / 30, est.t + i / 30); }
       if (av.anim) av.anim.ini = est.t - this.sim;
+      this.simFeito = true;
     }
     if (this.vida > 25) return false; // segurança: o impacto nunca veio
     if (!this.bateu) { // vira a cabeça para quem vem bater
@@ -140,6 +141,7 @@ export class Vitima {
       if (a) { const w = a.ator.localToWorld(V(0, 1.9, 0)), l = this.p.ator.worldToLocal(w).sub(V(0, 2, 0)); this.olhar(Math.atan2(l.x, l.z) * .8, Math.atan2(l.y, Math.hypot(l.x, l.z))); }
       return true;
     }
+    if (this.simFeito && location.search.includes('congela')) { av.animar(POSE[this.tipo], this.dur); av.anim.ini = t - this.t; return true; } // teste: congela no instante pedido
     this.t += dt; const u = this.t;
     if (av.anim?.nome !== POSE[this.tipo] && u < this.dur - .1) { av.animar(POSE[this.tipo], this.dur); av.anim.ini = t - u; } // um emote no meio não interrompe a reação
     if (this.tipo === 'nocaute') this.nocaute(u, dt, t);
@@ -157,7 +159,7 @@ export class Vitima {
     if (u > .45) this.som('queda');
     if (u > .7) this.som('zonzo', { dur: N_FIM - .7 });
     if (u > N_FIM) this.som('levanta');
-    const cab = this.p.avatar.cabeca.getWorldPosition(V()), zz = u > .8 && u < N_FIM;
+    const cab = this.p.avatar.cabeca.getWorldPosition(V()), zz = u > .8 && u < N_FIM - .8; // o último Z some antes de terminar de levantar
     // ZzZzZZ subindo e sumindo
     if (zz) this.emitir(dt, .38, () => this.zzz(cab));
     // passarinhos girando sobre a cabeça
@@ -210,13 +212,13 @@ export class Vitima {
       this.side = atkCab.clone().sub(eu).dot(dir) > 0 ? -1 : 1; // fica do lado oposto a quem vem bater
     }
     if (cam.parent !== est.scene) est.scene.attach(cam);
-    this.p.avatar.ocultarCabeca(this.cp.distanceTo(A.localToWorld(V(0, 2, .1))) < .45); // só mostra a cabeça quando a câmera já saiu dela
+    this.p.avatar.ocultarCabeca(this.cp.distanceTo(A.localToWorld(V(0, 2, .1))) < .8); // só mostra a cabeça quando a câmera já saiu dela
     let pos, alvo, k = this.bateu ? 3.2 : 4.5;
     const u = this.bateu ? this.t : -1, cab = this.p.avatar.cabeca.getWorldPosition(V());
     if (this.bateu && u >= this.dur) { // volta para a 1ª pessoa
       pos = A.localToWorld(V(0, 2, .1)); alvo = A.localToWorld(V(0, 1.85, 3)); k = 5;
       if (this.cp.distanceTo(pos) < .05) { this.camFim = true; est.setModo('fp'); return false; }
-      if (this.cp.distanceTo(pos) < .4) this.p.avatar.ocultarCabeca(true);
+      if (this.cp.distanceTo(pos) < .8) this.p.avatar.ocultarCabeca(true);
     } else if (this.bateu && this.tipo === 'nocaute') { // acompanha o corpo no chão, de cima e de lado
       pos = eu.clone().addScaledVector(dir, this.side * 2.1).addScaledVector(fwd, -.5).add(V(0, 2.5, 0));
       alvo = cab.clone().add(V(0, .15, 0)); k = u < 1 ? 5 : 3;
