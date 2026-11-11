@@ -26,7 +26,7 @@ const CARREGA = { cadeirada: 1, balde: 1 };
 const AGARRA = { cadeirada: 1, paulada: 1, balde: 1 }; // posição calculada a cada quadro (o resto usa a PEGADA fixa)
 const POSE_GOLPE = { cadeirada: 'golpeCadeira', paulada: 'golpePau', torta: 'tortada', balde: 'baldeada' };
 const POSE_CARREGA = { cadeirada: 'carregaCadeira', paulada: 'carregaPau', torta: 'carregaTorta', balde: 'carregaBalde' };
-const Q_DEBUG = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
+const Q_DEBUG = new URLSearchParams(typeof location !== 'undefined' && location.search.includes('demo=') ? location.search : ''); // parâmetros de teste só com ?demo=
 const CAM_DEBUG = Q_DEBUG.get('acaocam'), ADIANTA = Q_DEBUG.get('acaot'); // só para prints de teste
 
 // ---------- poses do atacante ----------
@@ -87,7 +87,7 @@ registrarPose('arremessar', u => ({
 }));
 
 // ---------- objeto na mão ----------
-const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _e = new THREE.Euler(), _s = V(1, 1, 1);
+const _m = new THREE.Matrix4(), _mi = new THREE.Matrix4(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _q3 = new THREE.Quaternion(), _e = new THREE.Euler(), _s = V(1, 1, 1), _s2 = V();
 const maoDe = (av, lado) => av.bracos.find(b => b.userData.lado === lado) || av.bracos[0];
 const PEG_PADRAO = { pos: [.03, -.09, 0], rot: [Math.PI / 2, 0, 0] };
 function propFalso(id) { // props.js ainda não carregou: um bloquinho no lugar
@@ -108,11 +108,11 @@ export class Acoes {
     // quem estava no meio da caminhada do confronto já aparece no destino
     for (const p of [atk, alvo]) if (p.caminho) est.colocarAtor(p, p.caminho.destino);
     const orig = atk.lugar === 'duelo' ? 'duelo' : 'podio';
-    const vit = new Vitima(est, alvo, it, d);
-    const a = { d, it, atk, alvo, vit, orig, t: 0, fase: 'pega', ft: 0, bateu: false, atkVivo: true, vitViva: true, perto: it.golpe === 'perto' };
+    const a = { d, it, atk, alvo, orig, t: 0, fase: 'pega', ft: 0, bateu: false, atkVivo: true, vitViva: true, perto: it.golpe === 'perto' };
     a.eu = atk.id === est.meuId;
     a.av = atk.avatar; a.av.festa = false; a.av.empurra = false;
-    this.segurar(a);
+    try { this.segurar(a); } catch (e) { console.warn(e); this.soltar(a, false); return; }
+    a.vit = new Vitima(est, alvo, it, d); // depois do objeto: se ele falhar, a vítima não fica com o olhar travado
     this.som(a, 'pega', .8);
     if (a.perto) {
       a.av.animar(POSE_CARREGA[it.id] || 'carregaPau', 60);
@@ -223,15 +223,15 @@ export class Acoes {
       const leva = cad ? R(0, -1, .35) : R(.15, 1, -.45), bate = cad ? R(0, -.2, 1) : a.mira ? a.mira.clone().sub(m).normalize() : R(0, 0, 1);
       const Y = leva.clone().lerp(m.clone().sub(ombro).normalize(), k).normalize().lerp(bate, kb).normalize();
       const X = R(1, 0, 0), Z = X.clone().cross(Y).normalize(); X.crossVectors(Y, Z);
-      pos = m; quat = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(X, Y, Z));
+      pos = m; quat = _q3.setFromRotationMatrix(_m.makeBasis(X, Y, Z));
     } else { // balde: na direita pela alça (em pé); para virar, entre as duas mãos e inclinado para frente
       const vira = golpe ? sm((u - .45) / .2) * 2.6 * (1 - sm((u - 1.1) / .3)) : 0;
       pos = mD.clone().lerp(mE.clone().add(mD).multiplyScalar(.5), k);
-      quat = qR.clone().multiply(_q2.setFromEuler(_e.set(vira, 0, 0)));
+      quat = _q3.copy(qR).multiply(_q2.setFromEuler(_e.set(vira, 0, 0)));
     }
     // converte para o espaço da mão direita (o objeto continua preso a ela)
     a.mao.updateWorldMatrix(true, false);
-    _m.compose(pos, quat, V(esc, esc, esc)).premultiply(a.mao.matrixWorld.clone().invert());
+    _m.compose(pos, quat, _s2.setScalar(esc)).premultiply(_mi.copy(a.mao.matrixWorld).invert());
     _m.decompose(o.position, o.quaternion, o.scale);
   }
 
@@ -263,19 +263,19 @@ export class Acoes {
       // púlpito sumiu/foi recriado: encerra sem travar ninguém
       if (est.podios.get(a.d.id) !== a.atk || est.podios.get(a.d.alvo) !== a.alvo) { this.abortar(a); return false; }
       a.t += dt;
-      if (a.atkVivo) { try { this.passoAtk(a, dt); } catch (er) { console.warn(er); this.terminarAtk(a); } }
+      if (a.atkVivo) { try { this.passoAtk(a, dt); } catch (er) { console.warn(er); try { this.terminarAtk(a); } catch (e2) { console.warn(e2); a.atkVivo = false; } } }
       if (a.vitViva) {
         let viva = false; try { viva = a.vit.update(dt, t); } catch (er) { console.warn(er); }
-        if (!viva && (a.bateu || !a.atkVivo)) { a.vitViva = false; a.vit.limpar?.(); }
+        if (!viva && (a.bateu || !a.atkVivo)) { a.vitViva = false; try { a.vit.limpar?.(); } catch (er) { console.warn(er); } }
       }
       if (a.atkVivo || a.vitViva) return true;
-      est.aplicarDuelo(false); return false;
+      try { est.aplicarDuelo(false); } catch (er) { console.warn(er); } return false;
     });
     // fila: ações que chegaram com alguém ocupado
     if (this.fila.length) {
       this.fila = this.fila.filter(f => est.t - f.t < 15);
       const i = this.fila.findIndex(f => !this.ocupado(f.d.id) && !this.ocupado(f.d.alvo));
-      if (i >= 0) { const [f] = this.fila.splice(i, 1); f.d = { ...f.d, n: undefined }; this.iniciar(f.d); }
+      if (i >= 0) { const [f] = this.fila.splice(i, 1); this.vistos.delete(f.d.n); try { this.iniciar(f.d); } catch (er) { console.warn(er); } }
     }
   }
   irPara(a, fase) { a.fase = fase; a.ft = 0; if (ADIANTA) console.log('[atk]', fase, a.t.toFixed(2), a.cam ? 'dur ' + a.cam.dur.toFixed(2) : ''); }
@@ -328,6 +328,7 @@ export class Acoes {
     this.est.colocarAtor(a.atk, a.orig);
     if (a.eu && a.perto) this.olharFrente();
     this.est.aplicarDuelo(false);
+    if (a.atk.id === this.est.meuId && this.est.lendo) av.animar('folhear', 9999); // estava lendo a pergunta: volta a folhear
   }
   abortar(a) {
     this.soltar(a, false); try { a.vit.limpar?.(); } catch {}
@@ -338,7 +339,7 @@ export class Acoes {
   /** true = a câmera foi posicionada aqui (você é o alvo: 3ª pessoa). */
   camera(dt, t) {
     if (CAM_DEBUG && this.lista.length) return this.camDebug();
-    return this.lista.some(a => a.vitViva && a.vit.camera?.(dt, t));
+    return this.lista.some(a => { if (!a.vitViva || a.semCam) return false; try { return a.vit.camera?.(dt, t); } catch (er) { console.warn(er); a.semCam = true; a.vit.camFim = true; this.est.setModo('fp'); return false; } });
   }
   /** ?acaocam=1|2 (só para testes): enquadra atacante e alvo de fora. */
   camDebug() {

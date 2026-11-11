@@ -16,7 +16,7 @@ const M = (cor, o = {}) => {
   if (!mats.has(k)) mats.set(k, new THREE.MeshStandardMaterial({ color: cor, roughness: o.r ?? .6, metalness: o.m ?? 0, transparent: o.op !== undefined, opacity: o.op ?? 1, emissive: o.em ?? '#000000', emissiveIntensity: o.ei ?? 1, side: o.ds ? THREE.DoubleSide : THREE.FrontSide, flatShading: !!o.fs, depthWrite: o.dw ?? true }));
   return mats.get(k);
 };
-const m = (g, mt, x = 0, y = 0, z = 0, pai) => { const me = new THREE.Mesh(g, mt); me.position.set(x, y, z); me.castShadow = true; if (pai) pai.add(me); return me; };
+const m = (g, mt, x = 0, y = 0, z = 0, pai) => { const me = new THREE.Mesh(g, mt); me.position.set(x, y, z); if (pai) pai.add(me); return me; };
 const Y = V(0, 1, 0);
 /** tubo cilíndrico de a até b (geometria unitária em cache, escalada). */
 const tubo = (a, b, r, mt, pai) => { const d = b.clone().sub(a), me = m(cil(1, 1, 1, 10), mt, 0, 0, 0, pai); me.scale.set(r, d.length(), r); me.position.copy(a).addScaledVector(d, .5); me.quaternion.setFromUnitVectors(Y, d.normalize()); return me; };
@@ -150,7 +150,7 @@ export const PEGADA = {
 };
 
 // ===== EFEITOS =====
-const camQ = new THREE.Quaternion(), _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _s = V(), _v = V();
+const camQ = new THREE.Quaternion(), _qz = new THREE.Quaternion(), EIXO_Z = V(0, 0, 1), _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _s = V(), _v = V();
 const camQuat = est => (est.camera.getWorldQuaternion(camQ), camQ);
 /** Partículas num InstancedMesh. gerar(i) → { pos, vel, esc, vida, atraso?, cor?, giro?, rot? }. */
 function particulas(est, geo, mat, n, gerar, o = {}) {
@@ -181,7 +181,7 @@ function particulas(est, geo, mat, n, gerar, o = {}) {
           }
         }
         const k = u / p.vida, f = (k < .08 ? k / .08 : 1) * (k > .7 ? 1 - (k - .7) / .3 : 1);
-        if (billboard) { _q.copy(cq); _q.multiply(new THREE.Quaternion().setFromAxisAngle(V(0, 0, 1), p.rot.z * .2)); } else _q.setFromEuler(_e.set(p.rot.x, p.rot.y, p.rot.z));
+        if (billboard) { _q.copy(cq); _q.multiply(_qz.setFromAxisAngle(EIXO_Z, p.rot.z * .2)); } else _q.setFromEuler(_e.set(p.rot.x, p.rot.y, p.rot.z));
         const e = p.esc; _s.set(e.x ?? e, e.y ?? e, e.z ?? e).multiplyScalar(f);
         mesh.setMatrixAt(i, _m.compose(p.pos, _q, _s));
       });
@@ -231,7 +231,7 @@ function estrelinhas(est, p, n = 5, dur = 1.8) {
       for (let i = 0; i < n; i++) {
         const a = t * 4.5 + i * PI * 2 / n, s = .11 * Math.min(1, t * 5) * Math.min(1, (dur - t) / .4);
         _v.set(Math.cos(a) * .36, Math.sin(a * 2) * .04 + .04, Math.sin(a) * .36).add(ctr);
-        _q.copy(cq).multiply(new THREE.Quaternion().setFromAxisAngle(V(0, 0, 1), t * 6 + i));
+        _q.copy(cq).multiply(_qz.setFromAxisAngle(EIXO_Z, t * 6 + i));
         mesh.setMatrixAt(i, _m.compose(_v, _q, _s.setScalar(Math.max(0, s))));
       }
       mesh.instanceMatrix.needsUpdate = true; return t < dur;

@@ -11,6 +11,7 @@ const mix = (a, b, k) => a.map((v, i) => typeof v === 'string' ? (k < .5 ? v : b
 
 // ---------- tempos (s após o impacto) ----------
 const QUEDA = .6, ZONZO = 4, LEVANTA = .8;
+const DEMO = typeof location !== 'undefined' && location.search.includes('demo='); // parâmetros de teste (vitsim, congela) só com ?demo=
 const N_FIM = QUEDA + ZONZO, N_TOTAL = N_FIM + LEVANTA; // 5,4 s
 const DUR = { nocaute: N_TOTAL, sujo: 3, molhado: 3, amor: 3 };
 const SENTA = .55; // inclinação do tronco sentado no chão (rad, para trás)
@@ -129,7 +130,7 @@ export class Vitima {
   /** false = terminou (a coreografia chama limpar). */
   update(dt, t) {
     this.vida += dt; const av = this.p.avatar, est = this.est;
-    if (this.sim === undefined && (this.sim = Number(new URLSearchParams(location.search).get('vitsim')) || 0)) { // teste: ?vitsim=s pula direto para s segundos após o impacto
+    if (this.sim === undefined && (this.sim = (DEMO && Number(new URLSearchParams(location.search).get('vitsim'))) || 0)) { // teste: ?vitsim=s pula direto para s segundos após o impacto
       this.impacto(); const n = Math.round(this.sim * 30);
       for (let i = 0; i < n; i++) { this.update(1 / 30, est.t + i / 30); av.update(1 / 30, est.t + i / 30); if (this.minha && est.modo === 'fp') this.camera(1 / 30, est.t + i / 30); }
       if (av.anim) av.anim.ini = est.t - this.sim;
@@ -141,7 +142,7 @@ export class Vitima {
       if (a) { const w = a.ator.localToWorld(V(0, 1.9, 0)), l = this.p.ator.worldToLocal(w).sub(V(0, 2, 0)); this.olhar(Math.atan2(l.x, l.z) * .8, Math.atan2(l.y, Math.hypot(l.x, l.z))); }
       return true;
     }
-    if (this.simFeito && location.search.includes('congela')) { av.animar(POSE[this.tipo], this.dur); av.anim.ini = t - this.t; return true; } // teste: congela no instante pedido
+    if (this.simFeito && DEMO && location.search.includes('congela')) { av.animar(POSE[this.tipo], this.dur); av.anim.ini = t - this.t; return true; } // teste: congela no instante pedido
     this.t += dt; const u = this.t;
     if (av.anim?.nome !== POSE[this.tipo] && u < this.dur - .1) { av.animar(POSE[this.tipo], this.dur); av.anim.ini = t - u; } // um emote no meio não interrompe a reação
     if (this.tipo === 'nocaute') this.nocaute(u, dt, t);
@@ -252,6 +253,7 @@ export class Vitima {
     if (this.minha) {
       if (this.camMovida && !this.camFim && est.modo === 'fp') est.setModo('fp'); // devolve a câmera ao rig da 1ª pessoa
       av.ocultarCabeca(est.modo === 'fp');
+      if (est.lendo) av.animar('folhear', 9999); // estava lendo a pergunta: volta a folhear
     }
     this.camFim = true;
   }
