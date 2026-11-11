@@ -170,7 +170,7 @@ class Sala {
   snapshot() {
     const p = this.passo;
     return {
-      code: this.code, publica: this.publica, hostId: this.hostId, fase: this.fase, cfg: this.cfg, agora: Date.now(),
+      code: this.code, publica: this.publica, hostId: this.hostId, fase: this.fase, cfg: this.cfg, agora: Date.now(), chat: this.fase === 'lobby' ? this.chat || [] : undefined,
       jogadores: this.jog.map(j => ({ id: j.id, nome: j.nome, avatar: j.avatar, partido: j.partido, pronto: j.pronto, conectado: j.conectado, slot: j.slot, bot: !!j.bot, dif: j.dif,
         banido: !!j.banido, saiu: !!j.saiu, ausenteAte: j.ausenteAte || null, adv: j.advertencias || 0, nota: this.fase !== 'lobby' && j.st.nFalas ? perf(j.st) : null, fanpage: j.bot ? null : this.mgr.contas.resumoFanpage(this.conta(j)), nivel: j.bot ? 0 : this.mgr.contas.nivel(this.conta(j)) })),
       i: this.i, total: this.fila.length,
@@ -969,7 +969,7 @@ export class Salas {
   }
   rankingDe(periodo) {
     const sem = Salas.top(periodo === 'semana' ? this.per.semana?.ranking : periodo === 'mes' ? this.per.mes?.ranking : this.ranking);
-    return sem.map(({ uid, ...r }) => ({ ...r, nivel: uid ? this.contas.nivel(this.contas.contas[uid]) : 0 })); // uid não sai do servidor
+    return sem.map(({ uid, ...r }) => { const c = uid && this.contas.contas[uid]; return { ...r, nivel: c ? this.contas.nivel(c) : 0, fp: c?.fanpage && !this.contas.banido(c) ? c.fanpage.user : null }; }); // uid não sai do servidor; fp = @ da fanpage
   }
   novaSala(publica) { let code; do code = gerarCodigo(); while (this.salas.has(code)); const s = new Sala(this, code, publica); this.salas.set(code, s); return s; }
 
@@ -1017,10 +1017,19 @@ export class Salas {
     const existe = f => (fs.existsSync(path.join(this.dub.pasta, f)) ? '/audio/' + f : null);
     socket.on('boasVindas', (_, cb) => resp(cb, { ...(this.dub.pronto(BOAS_VINDAS, 'locutor') || {}), vinheta: existe('vinheta.mp3'), palmas: existe('palmas.mp3'), burburinho: existe('burburinho.wav') }));
     socket.on('ranking', (d, cb) => { this.virarPeriodos(); const p = d?.periodo; resp(cb, { lista: this.rankingDe(p), id: p === 'semana' ? this.per.semana?.id : p === 'mes' ? this.per.mes?.id : null, premio: ECONOMIA.campeaoMensal, premioSemanal: ECONOMIA.campeaoSemanal, campeoes: this.per.campeoes || [] }); });
-    socket.on('topXzona', (_, cb) => resp(cb, this.contas.topSeguidores(5)));
+    socket.on('topXzona', (_, cb) => resp(cb, this.contas.topSeguidores(10)));
+    socket.on('verFanpageUser', (d, cb) => { const c = this.contas.porUserFanpage(d?.user); if (!c) return resp(cb, null); const r = Object.values(this.ranking).find(x => x.uid === c.uid);
+      resp(cb, { fp: this.contas.fanpage(c), avatar: r?.avatar || null, partido: r?.partido || null }); });
     socket.on('campeao', (_, cb) => { this.virarPeriodos(); resp(cb, this.per.campeao || null); });
     socket.on('sair', () => this.sairDaSala(socket));
     socket.on('perfil', (d, cb) => { const s = sala(), j = eu(); if (s && j) resp(cb, { erro: s.atualizarPerfil(j, d || {}) }); });
+    // chat escrito da sala de espera (moderado: ofensa grave é bloqueada, leve vira ***)
+    socket.on('chatSala', (d, cb) => { const s = sala(), j = eu(); if (!s || !j || s.fase !== 'lobby') return resp(cb, { erro: 'Chat só na sala de espera.' });
+      const texto = String(d?.texto || '').replace(/\s+/g, ' ').trim().slice(0, 200); if (!texto) return resp(cb, {});
+      if (Date.now() - (j.ultChat || 0) < 1200) return resp(cb, { erro: 'Calma! Espere um pouco para mandar outra mensagem.' });
+      const m = moderar(texto); if (m.grave) return resp(cb, { erro: 'Mensagem bloqueada: linguagem ofensiva não é permitida.' });
+      let t = texto; for (const w of [...m.leves, ...m.brandas]) t = t.replace(new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), x => x[0] + '*'.repeat(x.length - 1));
+      j.ultChat = Date.now(); (s.chat ||= []).push({ id: j.id, nome: j.nome, texto: t, t: Date.now() }); if (s.chat.length > 40) s.chat.shift(); s.emit(); resp(cb, {}); });
     socket.on('pronto', v => { const s = sala(), j = eu(); if (s && j && s.fase === 'lobby') { j.pronto = !!v; s.emit(); } });
     socket.on('cfg', d => {
       const s = sala(); if (!s || !ehHost() || s.fase !== 'lobby') return;

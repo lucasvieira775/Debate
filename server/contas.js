@@ -88,6 +88,7 @@ export class Contas {
     if (depois > max) c.cargoMax = depois; if (premio) this.creditar(c, premio, 'Promoção a ' + CARGOS[depois - 1].nome);
     return { antes, depois, xp: c.xp, premio };
   }
+  porUserFanpage(user) { const u = String(user || '').toLowerCase(); return u ? Object.values(this.contas).find(c => c.fanpage && !this.banido(c) && c.fanpage.user.toLowerCase() === u) : null; }
   topSeguidores(n = 5) { return Object.values(this.contas).filter(c => c.fanpage && !this.banido(c)).sort((a, b) => b.fanpage.seguidores - a.fanpage.seguidores).slice(0, n).map(c => this.resumoFanpage(c)); }
   resumoFanpage(c) { const f = c?.fanpage; return f ? { nome: f.nome, user: f.user, seguidores: f.seguidores, nivel: this.nivel(c) } : null; }
   criarFanpage(c, d) {

@@ -172,21 +172,21 @@ button{cursor:pointer}
 .rank-podio .foto{position:relative;margin-bottom:-14px;z-index:2}
 .rank-podio .foto img{width:92px;height:92px;border-radius:50%;border:5px solid #c7cbe0;background:radial-gradient(#6d7cf0,#2a1f7a);display:block;box-shadow:0 0 0 3px #4b4f6b,0 6px 14px rgba(0,0,0,.5)}
 .rank-podio .med{position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);font-family:var(--titulo);font-size:20px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(#e5e7f0,#8b90a8);color:#1a1052;border:3px solid #fff;box-shadow:0 3px 0 rgba(0,0,0,.4)}
-.rank-podio .bloco{width:190px;height:96px;border-radius:16px 16px 4px 4px;background:linear-gradient(#8a8fb5,#4a4f7a);border:3px solid #c7cbe0;padding:24px 8px 8px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 6px 0 rgba(0,0,0,.35)}
+.rank-podio .bloco{width:190px;min-height:110px;border-radius:16px 16px 4px 4px;background:linear-gradient(#8a8fb5,#4a4f7a);border:3px solid #c7cbe0;padding:24px 8px 8px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 6px 0 rgba(0,0,0,.35)}
 .rank-podio .bloco b{font-family:var(--titulo);font-weight:400;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rank-podio .bloco span{font-family:var(--titulo);font-size:30px;line-height:1.1;text-shadow:0 3px 0 rgba(0,0,0,.35)}
 .rank-podio .bloco small{font-size:.6em}
 .rank-podio .ouro .foto img{width:120px;height:120px;border-color:#facc15;box-shadow:0 0 0 3px #a16207,0 0 30px rgba(250,204,21,.6)}
 .rank-podio .ouro .med{width:48px;height:48px;font-size:24px;background:linear-gradient(#fde047,#d97706)}
-.rank-podio .ouro .bloco{width:240px;height:124px;background:linear-gradient(#e0a526,#8a5a06);border-color:#fde68a;box-shadow:0 6px 0 #5c3a02,0 0 30px rgba(250,204,21,.4)}
+.rank-podio .ouro .bloco{width:240px;min-height:140px;background:linear-gradient(#e0a526,#8a5a06);border-color:#fde68a;box-shadow:0 6px 0 #5c3a02,0 0 30px rgba(250,204,21,.4)}
 .rank-podio .ouro .bloco b{font-size:22px}
 .rank-podio .ouro .bloco span{font-size:38px}
 .rank-podio .coroa{font-size:40px;line-height:1;margin-bottom:-12px;position:relative;z-index:3;filter:drop-shadow(0 3px 0 #7a4b00)}
 .rank-podio .bronze .foto img{border-color:#e0915a;box-shadow:0 0 0 3px #7c3f12,0 6px 14px rgba(0,0,0,.5)}
 .rank-podio .bronze .med{background:linear-gradient(#f4b183,#a8561f)}
-.rank-podio .bronze .bloco{height:80px;background:linear-gradient(#b8693a,#6b3512);border-color:#f4b183}
+.rank-podio .bronze .bloco{min-height:96px;background:linear-gradient(#b8693a,#6b3512);border-color:#f4b183}
 .rank-tab{border:2px solid #5a4bc4;border-radius:20px;background:rgba(15,8,50,.5);padding:6px 8px 8px}
-.rank-tab .cab,.rank-tab .lin{display:grid;grid-template-columns:60px minmax(0,2.2fr) 1.2fr .9fr .9fr .8fr 1.3fr;align-items:center;gap:8px;text-align:center}
+.rank-tab .cab,.rank-tab .lin{display:grid;grid-template-columns:56px minmax(0,2.8fr) 1.2fr .8fr .8fr .7fr 1.2fr;align-items:center;gap:8px;text-align:center}
 .rank-tab .cab{font-weight:800;font-size:14px;color:#d6d0ff;padding:8px 6px 10px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:6px}
 .rank-tab .cab span:nth-child(2){text-align:left}
 .rank-tab .lin{padding:6px;margin-top:6px;border-radius:14px;background:linear-gradient(90deg,rgba(59,42,153,.75),rgba(36,23,107,.75));border:2px solid rgba(139,124,240,.35);font-weight:800;font-size:16px}

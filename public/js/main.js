@@ -547,7 +547,7 @@ function telaMenu(ui) {
       ${!contextoSeguro ? `<p class="painel" style="margin-top:12px;font-size:14px;max-width:460px">⚠ Endereço sem HTTPS: o microfone fica bloqueado aqui. Use <b>localhost</b> ou o link https gerado pelo <b>JOGAR-ONLINE.bat</b>. Ainda dá para jogar digitando.</p>` : ''}
       ${!temReconhecimento ? `<p class="painel" style="margin-top:12px;font-size:14px;max-width:460px">⚠ Este navegador não transcreve voz. Use o <b>Google Chrome</b> ou o <b>Edge</b>.</p>` : ''}
       ${E.campeao ? `<div class="painel campeao-mes">${E.campeao.avatar ? `<img src="${ret(E.campeao.avatar)}">` : '<span style="font-size:34px">🏆</span>'}<div><small>🏆 Campeão do mês · ${esc(nomeMes(E.campeao.mes))}</small><b>${esc(E.campeao.nome)}</b><small>${fmtN(E.campeao.pts)} pts${E.campeao.vitorias ? ` · ${E.campeao.vitorias} vitórias` : ''}</small></div></div>` : ''}
-      ${E.topXz?.length ? `<div class="painel top-xz"><div class="top-xz-tit"><span class="xz-logo">Xzona</span> Mais seguidos</div>${E.topXz.map((f, i) => `<div class="top-xz-l"><span class="pos">${['🥇', '🥈', '🥉'][i] || i + 1}</span>${htmlBrasao(f.nivel, 20)}<b>${esc(f.nome)}</b><small>@${esc(f.user)}</small><span class="seg">${fmtN(f.seguidores)}</span></div>`).join('')}</div>` : ''}
+      ${E.topXz?.length ? `<div class="painel top-xz"><div class="top-xz-tit"><span class="xz-logo">Xzona</span> Mais seguidos</div>${E.topXz.map((f, i) => `<div class="top-xz-l"><span class="pos">${['🥇', '🥈', '🥉'][i] || i + 1}</span>${htmlBrasao(f.nivel, 20)}<b>${esc(f.nome)}</b><small>@${esc(f.user)}</small><span class="seg">${fmtN(f.seguidores)}</span>${btnXz(f.user)}</div>`).join('')}</div>` : ''}
       ${E.conta && !E.conta.fanpage ? `<div class="painel fp-banner"><span style="font-size:26px">📱</span><span style="flex:1">Crie sua <b>fanpage na Xzona</b>: ganhe seguidores a cada debate e mostre suas melhores falas.</span><button class="btn peq amarelo" data-a="fanpage">Criar</button></div>` : ''}
     </div>
     <div class="menu-col">
@@ -680,6 +680,11 @@ function telaFanpage(ui) {
     E.fpEditar = false; atualizarConta(r.conta); sfx.vitoria(); toast(fp ? 'Fanpage atualizada!' : 'Fanpage criada na Xzona!', 'ok'); renderUI();
   }));
 }
+// botão "ver fanpage na Xzona" por @ (ranking e mais seguidos do menu)
+const btnXz = user => user ? `<button class="btn-xz" data-fpu="${esc(user)}" title="Ver página na Xzona"><span class="xz-logo">Xzona</span></button>` : '';
+document.addEventListener('click', e => { const b = e.target.closest?.('[data-fpu]'); if (!b) return; e.stopPropagation(); sfx.clique();
+  socket.emit('verFanpageUser', { user: b.dataset.fpu }, r => { if (!r?.fp) return toast('Fanpage indisponível.', 'erro'); const p = PARTIDO[r.partido];
+    janelaFanpage(r.fp, { img: r.avatar ? ret(r.avatar) : '', partido: p ? `${p.sigla} ${p.numero}` : '' }); }); });
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const nomeMes = id => { const [a, m] = String(id || '').split('-'); return m ? `${MESES[+m - 1]} de ${a}` : ''; };
 function telaRanking(ui) {
@@ -701,9 +706,9 @@ function telaRanking(ui) {
     const img = r => r.avatar ? ret(r.avatar) : '';
     const top = [[lista[1], 2, 'prata'], [lista[0], 1, 'ouro'], [lista[2], 3, 'bronze']];
     const cargo = r => r.nivel ? CARGOS[r.nivel - 1].nome : '—', sigla = r => r.partido && PARTIDO[r.partido] ? PARTIDO[r.partido].sigla : '—';
-    el.innerHTML = `<div class="rank-podio">${top.map(([r, n, c]) => r ? `<div class="lugar ${c}">${n === 1 ? '<span class="coroa">👑</span>' : ''}<div class="foto"><img src="${img(r)}"><span class="med">${n}º</span></div><div class="bloco"><b>${htmlBrasao(r.nivel, 18)}${esc(r.nome)}</b><span>${fmtN(r.pts)} <small>pts</small></span></div></div>` : '').join('')}</div>
+    el.innerHTML = `<div class="rank-podio">${top.map(([r, n, c]) => r ? `<div class="lugar ${c}">${n === 1 ? '<span class="coroa">👑</span>' : ''}<div class="foto"><img src="${img(r)}"><span class="med">${n}º</span></div><div class="bloco"><b>${htmlBrasao(r.nivel, 18)}${esc(r.nome)}</b><span>${fmtN(r.pts)} <small>pts</small></span>${btnXz(r.fp)}</div></div>` : '').join('')}</div>
       <div class="rank-tab"><div class="cab"><span>#</span><span>👤 Candidato(a)</span><span>🏛 Cargo</span><span>🎮 Partidas</span><span>🏆 Vitórias</span><span>Sigla</span><span>📊 Pontuação</span></div>
-      ${lista.map((r, i) => `<div class="lin ${['ouro', 'prata', 'bronze'][i] || ''}"><span class="pos">${i + 1}º</span><span class="cand"><img src="${img(r)}"><b>${esc(r.nome)}</b></span><span class="cargo">${htmlBrasao(r.nivel, 22)}${cargo(r)}</span><span>${r.partidas}</span><span>${r.vitorias}</span><span><em class="sig">${sigla(r)}</em></span><span><em class="pts">${fmtN(r.pts)} <small>pts</small></em></span></div>`).join('')}</div>`;
+      ${lista.map((r, i) => `<div class="lin ${['ouro', 'prata', 'bronze'][i] || ''}"><span class="pos">${i + 1}º</span><span class="cand"><img src="${img(r)}"><b>${esc(r.nome)}</b>${btnXz(r.fp)}</span><span class="cargo">${htmlBrasao(r.nivel, 22)}${cargo(r)}</span><span>${r.partidas}</span><span>${r.vitorias}</span><span><em class="sig">${sigla(r)}</em></span><span><em class="pts">${fmtN(r.pts)} <small>pts</small></em></span></div>`).join('')}</div>`;
   });
 }
 function telaConfig(ui) {
@@ -743,6 +748,7 @@ function telaSala(ui) {
   const cfg = s.cfg, durNome = { curto: 'Curto (30s)', normal: 'Normal (60s)', longo: 'Longo (90s)' };
   const todosProntos = s.jogadores.filter(j => j.conectado && j.id !== s.hostId).every(j => j.pronto);
   const podeIniciar = s.jogadores.filter(j => j.conectado).length >= 2 && todosProntos;
+  const rasc = $('#sc-in')?.value || '', focado = document.activeElement?.id === 'sc-in'; // re-render a cada 'estado': preserva o que está sendo digitado
   const vagas = Array.from({ length: 5 - s.jogadores.length }, () => `<div class="jog vago"><span class="ok-ico">·</span><div class="av"></div><div class="nome"><b class="mut">Vaga livre</b><small>Convide um amigo</small></div></div>`).join('');
   ui.innerHTML = `<div class="tela">
     <div class="topo"><button class="voltar" id="sl-sair" title="Sair da sala">${SETA_VOLTAR}</button>
@@ -784,7 +790,13 @@ function telaSala(ui) {
           <p class="mut" style="margin:0;text-align:center;font-size:14px">${s.jogadores.filter(j => j.conectado).length < 2 ? 'Mínimo de 2 candidatos para começar.' : todosProntos ? 'Tudo pronto!' : 'Aguardando todos ficarem prontos…'}</p>`
           : `<button class="btn ${me.pronto ? '' : 'verde'} grande" id="sl-pronto">${me.pronto ? '✓ PRONTO! (cancelar)' : 'ESTOU PRONTO'}</button>`}
       </div>
+      <div class="painel sala-chat"><h2>💬 Chat da sala</h2><div class="sc-lista" id="sc-lista">${(s.chat || []).map(m => { const j = s.jogadores.find(x => x.id === m.id);
+        return `<div class="sc-msg ${m.id === E.eu ? 'eu' : ''}">${j ? `<img src="${ret(j.avatar)}">` : ''}<div><b>${esc(m.nome)}</b> ${esc(m.texto)}</div></div>`; }).join('') || '<p class="mut" style="margin:auto;font-size:13px">Ninguém falou ainda. Diga oi! 👋</p>'}</div>
+        <form class="sc-form" id="sc-form"><input id="sc-in" maxlength="200" placeholder="Escreva uma mensagem…" autocomplete="off"><button class="btn peq amarelo">Enviar</button></form></div>
     </div></div>`;
+  const scl = $('#sc-lista'), sci = $('#sc-in'); scl.scrollTop = scl.scrollHeight; sci.value = rasc; if (focado) sci.focus();
+  $('#sc-form').onsubmit = e => { e.preventDefault(); const texto = sci.value.trim(); if (!texto) return;
+    socket.emit('chatSala', { texto }, r => r?.erro ? toast(r.erro, 'erro') : (($('#sc-in') || {}).value = '')); };
   $('#sl-sair').onclick = sairSala;
   const link = location.origin + '/?sala=' + s.code;
   const copiar = (t, msg) => { navigator.clipboard?.writeText(t).then(() => toast(msg, 'ok'), () => toast(t)); };
@@ -1367,6 +1379,8 @@ if (demo) setTimeout(() => {
   if (demo === 'vitrine') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); E.persAba = new URLSearchParams(location.search).get('aba') || E.persAba; ir('personalizar'); const pr = new URLSearchParams(location.search).get('provar'); if (pr) setAv(...pr.split(':')); return; } // ?demo=vitrine&aba=roupas[&provar=roupa:batina]
   if (demo === 'config') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('config'); return; } // ?demo=config
   if (demo === 'emote') { const q = new URLSearchParams(location.search), it = ITEM[q.get('item')]; E.perfil.nome ||= 'Demo'; if (it.av) E.perfil.avatar = { ...E.perfil.avatar, ...it.av, ...it.cores, genero: 'masculino', barba: q.get('barba') || E.perfil.avatar.barba }; ir('personalizar'); $('#ui').style.opacity = 0; if (it.tipo === 'acao') { setTimeout(() => { est.testarNaVitrine(it); est.adiantarDemo(Number(q.get('t')) || 0); }, 400); return; } est.testarNaVitrine({ ...it, tipo: 'danca' }); if (est.vitrine?.anim) est.vitrine.anim.ini = -(Number(q.get('t')) || 0); return; } // &t=1 começa a animação 1 s adiantada // ?demo=emote&item=chorao
+  if (demo === 'sala') { E.perfil.nome ||= 'Demo'; const js = bots().slice(0, 3).map((j, i) => ({ ...j, bot: false, pronto: i === 1, nivel: i + 1 })); E.eu = js[0].id; // ?demo=sala (lobby com chat)
+    E.sala = { code: 'AB12', publica: true, hostId: js[0].id, fase: 'lobby', cfg: { dur: 'normal', permitirTexto: true, reacoes: true }, jogadores: js, chat: [{ id: js[1].id, nome: js[1].nome, texto: 'Boa noite! Bora debater?' }, { id: js[0].id, nome: js[0].nome, texto: 'Bora! Só esperando o Alex.' }, { id: js[2].id, nome: js[2].nome, texto: 'Já vou ficar pronto, só ajustando o terno 😅' }] }; ir('sala'); return; }
   if (demo === 'ranking') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} });E.rankPer = new URLSearchParams(location.search).get('per') || 'semana'; ir('ranking'); return; } // ?demo=ranking&per=geral
   if (demo === 'loja') { E.perfil.nome ||= 'Demo'; E.lojaAba = new URLSearchParams(location.search).get('aba') || 'moedas'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('loja'); return; } // ?demo=loja&aba=assessoria
   if (demo === 'promocao') { const c = CARGOS[(+new URLSearchParams(location.search).get('n') || 2) - 1]; E.perfil.nome ||= 'Demo'; ir('menu'); animarPromocao({ n: c.n, nome: c.nome, recompensa: c.recompensa, bonus: c.bonus }); return; } // ?demo=promocao&n=5
