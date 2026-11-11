@@ -30,7 +30,12 @@ button{cursor:pointer}
 .tela>*{pointer-events:auto}
 .topo{display:flex;align-items:center;gap:14px;margin-bottom:16px}
 .topo h1{flex:1;text-align:center;margin:0;font-family:var(--titulo);font-weight:400;font-size:40px;letter-spacing:.02em;text-shadow:0 4px 0 #1a1052,0 0 20px rgba(0,0,0,.4);text-transform:uppercase}
-.voltar{width:58px;height:58px;border-radius:50%;border:3px solid var(--borda);background:linear-gradient(#3b2a99,#24176b);color:#fff;font-size:26px;display:grid;place-items:center;box-shadow:0 4px 0 #120a3a}
+.voltar{width:58px;height:58px;padding:0;border-radius:50%;border:3px solid var(--borda);background:linear-gradient(#4b38c4,#2a1c80);color:#fff;font-size:26px;display:grid;place-items:center;box-shadow:0 4px 0 #120a3a,0 0 0 3px rgba(255,255,255,.08);transition:transform .12s,filter .12s}
+.voltar svg{display:block;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))}
+.voltar:hover{transform:translateY(-2px);filter:brightness(1.15)}
+.voltar:active{transform:translateY(2px);box-shadow:0 2px 0 #120a3a}
+/* botões fixos embaixo do avatar da vitrine (comprar ao provar/ver itens) */
+.sob-av{position:fixed;bottom:34px;transform:translateX(-50%);z-index:50;display:flex;gap:10px;white-space:nowrap}
 .painel{background:linear-gradient(160deg,rgba(52,34,140,.92),rgba(26,16,82,.94));border:3px solid var(--borda);border-radius:22px;box-shadow:0 8px 0 rgba(10,6,40,.6),0 20px 50px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12);padding:18px}
 .painel h2{font-family:var(--titulo);font-weight:400;margin:0 0 12px;font-size:24px;text-transform:uppercase;letter-spacing:.03em}
 .mut{color:var(--mut)}

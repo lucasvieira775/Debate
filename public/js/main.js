@@ -495,7 +495,7 @@ let perfilT = null;
 function sincronizarPerfil() { if (!E.sala || E.sala.fase !== 'lobby') return; clearTimeout(perfilT); perfilT = setTimeout(() => socket.emit('perfil', perfilEnvio(), r => r?.erro && toast(r.erro, 'erro')), 250); }
 
 // ======================= RENDER: telas =======================
-function ir(tela) { sfx.clique(); E.tela = tela; E.prova = null; if (tela === 'personalizar' || tela === 'loja') { est.setVitrine(E.perfil.avatar); est.setModo('vitrine'); } else if (!emJogo()) est.setModo('menu'); renderUI(); }
+function ir(tela) { sfx.clique(); E.tela = tela; E.prova = null; $$('.sob-av').forEach(b => b.remove()); if (tela === 'personalizar' || tela === 'loja') { est.setVitrine(E.perfil.avatar); est.setModo('vitrine'); } else if (!emJogo()) est.setModo('menu'); renderUI(); }
 function renderUI() {
   if (E.demo) return;
   const ui = $('#ui'), hud = $('#hud');
@@ -508,7 +508,9 @@ function renderUI() {
   atualizarLED();
   fn(ui);
 }
-const topo = (titulo, voltar = 'menu') => `<div class="topo"><button class="voltar" data-ir="${voltar}">←</button><h1>${titulo}</h1><div style="width:58px"></div></div>`;
+/** Seta do botão voltar em SVG: centralizada e grossa (o caractere ← fica fino e fora do centro). */
+const SETA_VOLTAR = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 5l-7 7 7 7"/></svg>';
+const topo = (titulo, voltar = 'menu') => `<div class="topo"><button class="voltar" data-ir="${voltar}" title="Voltar">${SETA_VOLTAR}</button><h1>${titulo}</h1><div style="width:58px"></div></div>`;
 function ligarIr(el) { $$('[data-ir]', el).forEach(b => b.onclick = () => ir(b.dataset.ir)); }
 
 function telaMenu(ui) {
@@ -580,6 +582,12 @@ function telaSalas(ui) {
   carregar(); $('#s-atual').onclick = carregar;
   $('#s-criar').onclick = () => { if (exigirNome()) socket.emit('criar', { publica: true, perfil: perfilEnvio() }, tratar); };
 }
+/** Barra fixa de botões embaixo do avatar da vitrine (acompanha a posição dele na tela). */
+function sobAvatar(html, id) {
+  const el = document.createElement('div'); el.className = 'sob-av'; if (id) el.id = id; el.innerHTML = html; document.body.append(el);
+  const seguir = () => { if (!el.isConnected) return; el.style.left = est.xVitrine() + 'px'; requestAnimationFrame(seguir); }; seguir();
+  return el;
+}
 /** Confirma e compra um item da loja; no sucesso chama aoComprar() antes do renderUI. */
 function comprarItemConfirmado(id, aoComprar) {
   const it = ITEM[id]; janela(`<h2>${it.emoji} ${esc(it.nome)}</h2><p>Comprar por <b>🪙 ${it.preco}</b>? Seu saldo: 🪙 ${fmtN(E.conta?.moedas || 0)}.</p><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn peq" id="cx">Cancelar</button><button class="btn peq amarelo" id="ok">Comprar</button></div>`,
@@ -622,13 +630,13 @@ function telaDaLoja(ui) {
     comprarItem: id => comprarItemConfirmado(id),
     equipar: id => socket.emit('equiparDanca', { uid: UID, item: id }, r => { if (r?.erro) return toast(r.erro, 'erro'); atualizarConta(r.conta); toast('Dança equipada para a sua vitória!', 'ok'); renderUI(); }),
     testar: id => {
-      const tela = $('#ui .tela'); tela.style.transition = 'opacity .3s'; tela.style.opacity = 0; tela.style.pointerEvents = 'none';
-      const bt = document.createElement('button'); bt.className = 'btn amarelo'; bt.textContent = '✕ Parar';
-      bt.style.cssText = 'position:fixed;bottom:40px;left:50%;transform:translateX(-50%);z-index:50';
-      const roupa = !!ITEM[id].av; if (roupa) est.setVitrine({ ...E.perfil.avatar, ...ITEM[id].av, ...ITEM[id].cores }); // prova o acessório/conjunto
+      const it = ITEM[id], tela = $('#ui .tela'); tela.style.transition = 'opacity .3s'; tela.style.opacity = 0; tela.style.pointerEvents = 'none';
+      const compra = it.preco > 0 && !E.conta?.itens?.includes(id);
+      const bt = sobAvatar(`<button class="btn" data-x>✕ Parar</button>${compra ? `<button class="btn amarelo" data-ok>🛒 Comprar · 🪙 ${fmtN(it.preco)}</button>` : ''}`);
+      const roupa = !!it.av; if (roupa) est.setVitrine({ ...E.perfil.avatar, ...it.av, ...it.cores }); // prova o acessório/conjunto
       let tm; const som = roupa ? null : somItem(id); const fim = () => { clearTimeout(tm); som?.pause?.(); bt.remove(); est.pararVitrine(); if (roupa) est.setVitrine(E.perfil.avatar); tela.style.opacity = 1; tela.style.pointerEvents = ''; };
-      bt.onclick = fim; document.body.append(bt);
-      est.testarNaVitrine(ITEM[id]); tm = setTimeout(fim, ITEM[id].tipo === 'danca' ? 5000 : roupa ? 4500 : 3000);
+      $('[data-x]', bt).onclick = fim; if (compra) $('[data-ok]', bt).onclick = () => { fim(); comprarItemConfirmado(id); };
+      est.testarNaVitrine(it); tm = setTimeout(fim, it.tipo === 'danca' ? 6000 : roupa ? 8000 : 4500);
     },
   });
   ligarIr(ui);
@@ -715,7 +723,7 @@ function telaSala(ui) {
   const podeIniciar = s.jogadores.filter(j => j.conectado).length >= 2 && todosProntos;
   const vagas = Array.from({ length: 5 - s.jogadores.length }, () => `<div class="jog vago"><span class="ok-ico">·</span><div class="av"></div><div class="nome"><b class="mut">Vaga livre</b><small>Convide um amigo</small></div></div>`).join('');
   ui.innerHTML = `<div class="tela">
-    <div class="topo"><button class="voltar" id="sl-sair" title="Sair da sala">←</button>
+    <div class="topo"><button class="voltar" id="sl-sair" title="Sair da sala">${SETA_VOLTAR}</button>
       <h1>Sala: <span class="codigo">#${esc(s.code)}</span> <button class="btn peq" id="sl-copiar" title="Copiar código">⧉</button></h1>
       <span class="chip ${s.publica ? 'verde' : 'amarelo'}">${s.publica ? 'Pública' : 'Privada'}</span><span class="chip">👤 ${s.jogadores.length}/5</span></div>
     <div class="sala-grid">
@@ -851,6 +859,8 @@ function renderPersConteudo() {
     <button class="btn peq" id="pv-x">↺ Desfazer</button><button class="btn peq amarelo" id="pv-ok">🛒 Comprar</button></div>` + h;
   el.innerHTML = h;
   if (pv) { $('#pv-x', el).onclick = () => { sfx.clique(); desfazerProva(); reRenderPers(); }; $('#pv-ok', el).onclick = comprarProva; }
+  $('#prova-av')?.remove(); // botão de compra embaixo do avatar enquanto prova
+  if (pv) { const b = sobAvatar(`<button class="btn amarelo" data-ok>🛒 Comprar ${esc(pv.it.nome)} · 🪙 ${fmtN(pv.it.preco)}</button>`, 'prova-av'); $('[data-ok]', b).onclick = comprarProva; }
   $$('[data-c]', el).forEach(b => b.onclick = () => setAv(b.dataset.c, b.dataset.v));
   $$('[data-t]', el).forEach(b => b.onclick = () => setAv(b.dataset.t, !a[b.dataset.t]));
   $$('[data-p]', el).forEach(b => b.onclick = () => { E.perfil.partido = b.dataset.p; salvar(); sincronizarPerfil(); sfx.clique(); renderPersConteudo(); });

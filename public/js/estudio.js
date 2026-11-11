@@ -1001,6 +1001,8 @@ export class Estudio {
   }
   testarNaVitrine(it) { this.vitrine?.animar(it.anim, it.tipo === 'danca' ? 5 : 3); }
   pararVitrine() { if (this.vitrine) this.vitrine.anim = null; }
+  /** X na tela (px) dos pés do avatar da vitrine, para alinhar botões embaixo dele. */
+  xVitrine() { const v = new THREE.Vector3(); if (!this.vitrine) return innerWidth / 2; this.vitrine.root.getWorldPosition(v).project(this.camera); const r = this.canvas.getBoundingClientRect(); return r.left + (v.x + 1) / 2 * r.width; }
   folhear(id) { this.podios.get(id)?.avatar.animar('folhear', id === this.meuId && this.lendo ? 9999 : 3.4); }
   /** Lendo a anotação da assessoria: a câmera desce suave até o papel do púlpito e o avatar fica folheando até guardar. */
   lerDica(on) {
