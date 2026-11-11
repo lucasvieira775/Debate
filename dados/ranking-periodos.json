@@ -1,10 +1,116 @@
 {
  "semana": {
   "id": "2026-11-09",
-  "ranking": {}
+  "ranking": {
+   "lula meupau": {
+    "nome": "Lula Meupau",
+    "pts": 2760,
+    "partidas": 3,
+    "vitorias": 2,
+    "avatar": {
+     "genero": "masculino",
+     "pele": "#eab68c",
+     "cabelo": "afro",
+     "corCabelo": "#a0522d",
+     "barba": "nenhuma",
+     "oculos": "escuro",
+     "chapeu": "nenhum",
+     "roupa": "terno_aberto",
+     "corRoupa": "#1e2a4a",
+     "corCamisa": "#dbeafe",
+     "corGravata": "#f97316",
+     "brinco": false,
+     "broche": false,
+     "extra": "nenhum",
+     "corpo": "largo",
+     "expressao": "confiante"
+    },
+    "partido": "CBI",
+    "uid": "852c87d5-ca24-481d-8c57-ebced570b133"
+   },
+   "lucas biloludo": {
+    "nome": "Lucas Biloludo",
+    "pts": 2370,
+    "partidas": 3,
+    "vitorias": 1,
+    "avatar": {
+     "genero": "masculino",
+     "pele": "#eab68c",
+     "cabelo": "curto",
+     "corCabelo": "#3b2416",
+     "barba": "cavanhaque",
+     "oculos": "escuro",
+     "chapeu": "nenhum",
+     "roupa": "terno",
+     "corRoupa": "#111111",
+     "corCamisa": "#dbeafe",
+     "corGravata": "#b91c1c",
+     "brinco": false,
+     "broche": false,
+     "extra": "nenhum",
+     "corpo": "largo",
+     "expressao": "bravo"
+    },
+    "partido": "CNB",
+    "uid": "ce9cc2fc-24a9-44f3-8f3e-060cb62abf23"
+   }
+  }
  },
  "mes": {
   "id": "2026-11",
-  "ranking": {}
+  "ranking": {
+   "lula meupau": {
+    "nome": "Lula Meupau",
+    "pts": 2760,
+    "partidas": 3,
+    "vitorias": 2,
+    "avatar": {
+     "genero": "masculino",
+     "pele": "#eab68c",
+     "cabelo": "afro",
+     "corCabelo": "#a0522d",
+     "barba": "nenhuma",
+     "oculos": "escuro",
+     "chapeu": "nenhum",
+     "roupa": "terno_aberto",
+     "corRoupa": "#1e2a4a",
+     "corCamisa": "#dbeafe",
+     "corGravata": "#f97316",
+     "brinco": false,
+     "broche": false,
+     "extra": "nenhum",
+     "corpo": "largo",
+     "expressao": "confiante"
+    },
+    "partido": "CBI",
+    "uid": "852c87d5-ca24-481d-8c57-ebced570b133"
+   },
+   "lucas biloludo": {
+    "nome": "Lucas Biloludo",
+    "pts": 2370,
+    "partidas": 3,
+    "vitorias": 1,
+    "avatar": {
+     "genero": "masculino",
+     "pele": "#eab68c",
+     "cabelo": "curto",
+     "corCabelo": "#3b2416",
+     "barba": "cavanhaque",
+     "oculos": "escuro",
+     "chapeu": "nenhum",
+     "roupa": "terno",
+     "corRoupa": "#111111",
+     "corCamisa": "#dbeafe",
+     "corGravata": "#b91c1c",
+     "brinco": false,
+     "broche": false,
+     "extra": "nenhum",
+     "corpo": "largo",
+     "expressao": "bravo"
+    },
+    "partido": "CNB",
+    "uid": "ce9cc2fc-24a9-44f3-8f3e-060cb62abf23"
+   }
+  }
  }
 }

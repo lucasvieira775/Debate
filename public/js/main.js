@@ -212,7 +212,9 @@ socket.on('ganhos', g => { avisoGanhos(g); sfx.nota();
   if (g.xp?.depois > g.xp?.antes) setTimeout(() => { const c = CARGOS[g.xp.depois - 1]; animarPromocao({ n: c.n, nome: c.nome, recompensa: g.xp.premio || 0, bonus: c.bonus }); }, 2500); });
 socket.on('xzona', post => { if (emJogo()) postXzona(post); });
 socket.on('folheando', d => { est.folhear(d.id); if (d.id !== E.eu) sfx.clique(); });
-socket.on('emote', d => { const it = ITEM[d.item]; if (!it) return; est.emote(d.id, it); if (it.tipo === 'provocacao') { somItem(it.id, sfx.vaia); est.agitarPlateia(.5, 1500); } else if (it.tipo !== 'danca') somItem(it.id, sfx.clique); }); // dança no debate é muda: som só na comemoração
+// mediação ou candidato falando: emotes, danças e provocações ficam mudos (só a animação)
+const alguemFalando = () => !!(est.medFalando || narrador.tocando || ['ativo', 'encerrando'].includes(E.sala?.fala?.status));
+socket.on('emote', d => { const it = ITEM[d.item]; if (!it) return; est.emote(d.id, it); if (alguemFalando()) return; if (it.tipo === 'provocacao') { somItem(it.id, sfx.vaia); est.agitarPlateia(.5, 1500); } else if (it.tipo !== 'danca') somItem(it.id, sfx.clique); }); // dança no debate é muda: som só na comemoração
 socket.on('advertencia', d => {
   anunciar(`⚠ ${d.nome.toUpperCase()} ADVERTIDO(A) · ${d.n}/${d.max}`); sfx.martelo();
   toast(`${d.id === E.eu ? 'Você recebeu' : d.nome + ' recebeu'} ${d.dupla ? '2 advertências' : 'uma advertência'} da moderação: ${d.motivo} (${d.n}/${d.max}).${d.id === E.eu && d.n === d.max - 1 ? ' Mais uma e você está fora!' : ''}`, 'erro');
@@ -261,7 +263,7 @@ socket.on('banido', d => {
 });
 socket.on('reacao', d => {
   const em = { aplauso: '👏', vaia: '👎', risada: '😂', pensativo: '🤔', mao: '✋' }[d.tipo]; est.reacao(d.id, em);
-  if (d.tipo === 'aplauso') { sfx.aplausos(1.2, .15); est.agitarPlateia(.6, 1500); } else if (d.tipo === 'vaia') sfx.vaia(); else sfx.clique();
+  if (!alguemFalando()) sfx.clique(); // reação é só do jogador: a plateia não reage
 });
 socket.on('expulso', () => { toast('Você foi removido da sala pelo anfitrião.', 'erro'); sairLocal(); });
 socket.on('disconnect', () => toast('Conexão perdida. Tentando reconectar…', 'erro'));

@@ -2,17 +2,94 @@
  "ce9cc2fc-24a9-44f3-8f3e-060cb62abf23": {
   "uid": "ce9cc2fc-24a9-44f3-8f3e-060cb62abf23",
   "nome": "Lucas Biloludo",
-  "moedas": 100,
+  "moedas": 397,
   "dicasExtra": 0,
-  "partidas": 0,
-  "vitorias": 0,
+  "partidas": 3,
+  "vitorias": 1,
   "criadaEm": 1794401623885,
   "cadastro": {
    "idade": 32,
    "nome": "Lucas Biloludo",
    "user": "lucasbiloludo",
    "criadoEm": 1794401659546
-  }
+  },
+  "fanpage": {
+   "nome": "Lucas Biloludo",
+   "user": "lucasbiloludo",
+   "bio": "",
+   "seguidores": 1137,
+   "criadaEm": 1794403246678,
+   "posts": [
+    {
+     "t": 1794408801954,
+     "texto": "bom gente vocês estão vendo isso que eu tô vendo ouviu isso é melhor ouvir isso que ser surdo cara vem falar que vai criar chuva vai fazer chover que que é isso daqui a pouco vai falar que vai fazer chover dinheiro e o povo vai acreditar para de cair falsas Promessas de políticos Como o Lula o Lula tá 20 anos no governo não fez nada para o povo eu sou a salvação Rios secos eu vou criar canos embai",
+     "tema": "Seca dos rios amazônicos",
+     "nota": 8.9,
+     "delta": 262,
+     "curtidas": 497,
+     "reposts": 93,
+     "respostas": 33
+    },
+    {
+     "t": 1794407441045,
+     "texto": "bom obrigado pela pergunta Lula meu pau apesar de nossas diversidades a gente quer um país melhor só que é comigo que isso vai acontecer o Distrito Federal hoje concentra diversos servidores federais então eu vou criar uma reforma administrativa aumentando os concursos públicos tendo aposentadoria digna no setor público e o principal vou fazer um equilíbrio nas contas para o povo brasileiro não ac",
+     "tema": "Servidores públicos e Previdência",
+     "nota": 8.6,
+     "delta": 287,
+     "curtidas": 435,
+     "reposts": 74,
+     "respostas": 56
+    },
+    {
+     "t": 1794404472033,
+     "texto": "é o cara que tá aqui só você viu esse meu tipo desse cidadão a gente tá aqui um debate presidencial meu amigo o povo quer ver pessoa séria aqui que não é um show de stand up não é uma vergonha para o país gente eu vou deixar esses ataques de lado e vou focar em propósito que é que o povo quer ouvir quer ver stand up vai para outro lugar meu amigo está no lugar errado que é para candidato à presidê",
+     "tema": "Royalties do petróleo e crise fiscal",
+     "nota": 9.2,
+     "delta": 588,
+     "curtidas": 1224,
+     "reposts": 337,
+     "respostas": 113
+    }
+   ]
+  },
+  "itens": [
+   "coracao",
+   "joinha"
+  ],
+  "extrato": [
+   {
+    "t": 1794403314454,
+    "valor": -40,
+    "motivo": "Loja: Coração para o eleitor"
+   },
+   {
+    "t": 1794403356281,
+    "valor": -40,
+    "motivo": "Loja: Joinha"
+   },
+   {
+    "t": 1794404472031,
+    "valor": 137,
+    "motivo": "Partida de debate"
+   },
+   {
+    "t": 1794407441042,
+    "valor": 84,
+    "motivo": "Partida de debate"
+   },
+   {
+    "t": 1794408801951,
+    "valor": 100,
+    "motivo": "Promoção a Vereador"
+   },
+   {
+    "t": 1794408801952,
+    "valor": 56,
+    "motivo": "Partida de debate"
+   }
+  ],
+  "xp": 810,
+  "cargoMax": 2
  },
  "11dc14f6-b39c-4ac7-91bb-b14f9beb324f": {
   "uid": "11dc14f6-b39c-4ac7-91bb-b14f9beb324f",
@@ -29,5 +106,110 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794402124314
+ },
+ "852c87d5-ca24-481d-8c57-ebced570b133": {
+  "uid": "852c87d5-ca24-481d-8c57-ebced570b133",
+  "nome": "Lula Meupau",
+  "moedas": 554,
+  "dicasExtra": 0,
+  "partidas": 3,
+  "vitorias": 2,
+  "criadaEm": 1794403385486,
+  "cadastro": {
+   "idade": 38,
+   "nome": "Lula Meupau",
+   "user": "lulameupau",
+   "criadoEm": 1794403413850
+  },
+  "fanpage": {
+   "nome": "Lula Meupau",
+   "user": "lulameupau",
+   "bio": "Sou ladrão mesmo, corrupto ao extremo",
+   "seguidores": 1317,
+   "criadaEm": 1794403437703,
+   "posts": [
+    {
+     "t": 1794408801950,
+     "texto": "primeiramente muito obrigado pela oportunidade Tá bom eu quero mostrar para o Brasil que o Brasil tem jeito eu quero zerar a fome no país até o final do primeiro mandato tá bom é isso que eu vou fazer eu quero tributar as grandes fortunas para financiar a saúde pública melhorar a saúde pública que tá aí quero garantir salário igual para todos os trabalhadores entre homens e mulheres de imediato eu",
+     "tema": "",
+     "nota": 9.1,
+     "delta": 587,
+     "curtidas": 1118,
+     "reposts": 102,
+     "respostas": 117
+    },
+    {
+     "t": 1794407441040,
+     "texto": "primeiramente muito obrigado a todos esses meus candidatos horríveis aí que não servem para nada bom o que que eu vou ter que fazer vota em mim que vocês vão ver o zerando a filha do Sul dos primeiros dois anos com caravanas de saúde móveis tá eu quero tributar o super ricos em 100 dias para financiar o bolsa família vão ampliar o bolsa família tá eu quero garantir essa área igual para trabalho pa",
+     "tema": "",
+     "nota": 9.2,
+     "delta": 636,
+     "curtidas": 341,
+     "reposts": 45,
+     "respostas": 172
+    },
+    {
+     "t": 1794404472029,
+     "texto": "bom meus companheiros é a seguinte para melhorar a violência ele tá de idade policial na Bahia primeiro que segurança se faz com inteligência de direitos humanos não como a saca igual vem acontecendo aqui no estado do nosso querido candidato na minha frente que vem da Bahia e não fez nada até hoje tá meio que a gente tem que fazer o quê implementar a câmera em todas as falhas policiais no primeiro",
+     "tema": "Violência e letalidade policial",
+     "nota": 7.7,
+     "delta": 94,
+     "curtidas": 67,
+     "reposts": 27,
+     "respostas": 32
+    }
+   ]
+  },
+  "xp": 919,
+  "extrato": [
+   {
+    "t": 1794404472027,
+    "valor": 51,
+    "motivo": "Partida de debate"
+   },
+   {
+    "t": 1794407441037,
+    "valor": 167,
+    "motivo": "Partida de debate"
+   },
+   {
+    "t": 1794408801942,
+    "valor": 100,
+    "motivo": "Promoção a Vereador"
+   },
+   {
+    "t": 1794408801947,
+    "valor": 136,
+    "motivo": "Partida de debate"
+   }
+  ],
+  "cargoMax": 2
+ },
+ "6e594cd3-ec84-44cd-8d17-f56d7438067f": {
+  "uid": "6e594cd3-ec84-44cd-8d17-f56d7438067f",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794404737018
+ },
+ "6341f414-4feb-4b32-bdf5-2950f01633a1": {
+  "uid": "6341f414-4feb-4b32-bdf5-2950f01633a1",
+  "nome": "Mario Quemario",
+  "moedas": 100,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794405874140,
+  "cadastro": {
+   "idade": 33,
+   "nome": "Mario Quemario",
+   "user": "atrasdoarmario",
+   "criadoEm": 1794405933991
+  },
+  "abandonos": [],
+  "xp": 0,
+  "banidoAte": 1794411925532,
+  "banAbandono": 1794411925532
  }
 }
