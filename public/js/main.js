@@ -455,7 +455,7 @@ function revelarVencedor(v, anim, aoFim) {
   pararRevelacao(); E.revelando = true; E.celebrar = false; clearTimeout(E.celebrarT);
   if (E.sala) { E.resKey = ''; renderResultado(); } // tira os painéis da frente durante a cinemática
   est.setCampeao(v.avatar, anim); est.revelar({ nome: v.nome, partido: v.partido }); est.faseRevelacao('close');
-  faseRev('close', v); // SOM: rufar + ducking (a fala "E o novo presidente do Brasil é…" vem do servidor; o nome, 3,5 s depois)
+  faseRev('close', v); // SOM: rufar + ducking (a fala de suspense vem do servidor; o nome, 3,5 s depois)
   const T = E.revelacaoT = [];
   T.push(setTimeout(() => { est.faseRevelacao('telao'); faseRev('telao', v); /* SOM: telão acende ao vivo com o campeão dançando */ }, REVELACAO.telao));
   T.push(setTimeout(() => { est.faseRevelacao('transicao'); faseRev('transicao', v); /* SOM: whoosh do push-in no telão */ }, REVELACAO.transicao));

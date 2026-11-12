@@ -30,9 +30,9 @@ const TEMA_LIVRE = 'o tema é livre.', FINAL2 = 'Fim do confronto. Agora, as con
 export const seg = s => `Você tem ${s} segundos.`;
 const COBRANCAS = ['Vá direto ao ponto, por favor.', 'O eleitor quer propostas concretas.', 'E diga de onde vai sair o dinheiro.', 'Queremos ouvir números e prazos.'];
 // cada tema vira poucos trechos fixos (gerados uma vez e guardados): a abertura e a abertura+pergunta
-const aberturaTema = t => `o tema sorteado vem ${t.de}: ${t.titulo}.`;
+const aberturaTema = t => t.uf === 'BR' ? `o tema sorteado é nacional: ${t.titulo}.` : `o tema sorteado vem ${t.de}: ${t.titulo}.`;
 const temaComPergunta = t => `${aberturaTema(t)} ${t.pergunta}`;
-/** Todos os trechos de tema (54 temas), para gerar em segundo plano. */
+/** Todos os trechos de tema (estaduais + nacionais), para gerar em segundo plano. */
 export const trechosTemas = () => TEMAS.flatMap(t => [temaComPergunta(t), aberturaTema(t)]);
 
 // ações da loja (cadeirada, tomate, flores…): falas fixas, sem nome (ficam em cache na dublagem)
@@ -74,7 +74,7 @@ export const N = {
   bloco2: () => ['Segundo bloco: confronto direto. Cada candidato escolhe um adversário, e o tema é sorteado na hora. Teremos pergunta, resposta, réplica e tréplica.'],
   bloco3: () => ['Chegamos ao terceiro e último bloco: as considerações finais. A ordem foi sorteada. É a última chance de convencer o eleitor.'],
   pesquisa: () => [pick(['Vamos aos números. O instituto divulga agora uma pesquisa relâmpago de intenção de voto.', 'Atenção para a pesquisa relâmpago: veja como está a intenção de voto neste momento.'])],
-  roleta: nome => [n(nome), 'vamos sortear o estado e o seu tema.'],
+  roleta: nome => [n(nome), 'vamos sortear o seu tema.'],
   // cob = índice de cobrança extra ou -1 (sorteado ao montar a partida)
   proposta: (nome, t, s, v = 0, cob = -1) => [n(nome), temaComPergunta(t), ...(cob >= 0 ? [COBRANCAS[cob]] : []), seg(s)],
   escolha: nome => [n(nome), 'é a sua vez de perguntar. Escolha quem você vai enfrentar. O tema será sorteado.'],
@@ -107,7 +107,7 @@ export function trechosFixos(jorn) {
     ...N.bloco2(), ...N.bloco3(),
     BLOCO1,
     'Vamos aos números. O instituto divulga agora uma pesquisa relâmpago de intenção de voto.', 'Atenção para a pesquisa relâmpago: veja como está a intenção de voto neste momento.',
-    'vamos sortear o estado e o seu tema.', 'é a sua vez de perguntar. Escolha quem você vai enfrentar. O tema será sorteado.', 'escolheu quem vai enfrentar:', 'vamos sortear o tema!',
+    'vamos sortear o seu tema.', 'é a sua vez de perguntar. Escolha quem você vai enfrentar. O tema será sorteado.', 'escolheu quem vai enfrentar:', 'vamos sortear o tema!',
     'vai responder. Faça a sua pergunta.', 'a sua resposta.', 'agora é com você. A sua resposta.', 'a sua réplica.', 'a sua tréplica.',
     'suas considerações finais. Por que o eleitor deve votar em você?', 'suas considerações finais. O que o eleitor ganha votando em você?',
     SUSPENSE, VITORIA1, VITORIA2,
