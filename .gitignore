@@ -1,6 +1,6 @@
 node_modules/
 .env
-dados/audio/
+dados/audio/falas/
 ~$*
 .claude/settings.local.json
 
