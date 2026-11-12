@@ -101,6 +101,7 @@ export class Avatar {
     const bracoCor = torsoCor;
     const calca = mat(c.roupa === 'polo' || c.roupa === 'social' ? '#2b2f3a' : tom(roupaCor, -.04));
     const frente = .195;
+    this.W = W; this.zPeito = c.roupa === 'terno' || social || colete || pastor ? .255 : paleto ? .222 : .208; // até onde a roupa sobressai no peito
 
     // pernas e sapatos
     // cada perna fica num pivô no quadril (para a caminhada automática)
@@ -428,19 +429,33 @@ export class Avatar {
     }
   }
   extra(H, c) {
-    const T = this.torso, fr = .2;
+    const T = this.torso, W = this.W, zf = this.zPeito;
     switch (c.extra) {
-      case 'faixa': { // faixa presidencial verde e amarela, do ombro ao quadril
-        const f = new THREE.Group(); f.position.set(0, .42, fr + .012); f.rotation.z = -.82; T.add(f);
-        m(rbox(.13, 1.0, .018, .006), mat('#15803d', { r: .6 }), 0, 0, 0, f);
-        m(rbox(.045, 1.0, .02, .006), mat('#facc15', { r: .5 }), 0, 0, .002, f);
-        m(geo('brasao', () => new THREE.CylinderGeometry(.05, .05, .02, 16)), mat('#facc15', { r: .3, m: .6 }), 0, -.36, .015, f).rotation.x = Math.PI / 2;
+      case 'faixa': { // faixa presidencial verde e amarela: sobe pelo peito, passa no ombro, desce pelas costas e fecha no quadril
+        const verde = mat('#15803d', { r: .6 }), amar = mat('#facc15', { r: .5 });
+        const xo = W * .28, yo = .77, xq = -W / 2 - .012, yq = .1, zc = -.205; // ombro, quadril, costas
+        const tira = (x1, y1, x2, y2, z, s) => { // tira reta entre dois pontos no plano z (s = lado p/ onde fica a listra)
+          const g = new THREE.Group(); g.position.set((x1 + x2) / 2, (y1 + y2) / 2, z); g.rotation.z = Math.atan2(y2 - y1, x2 - x1) - Math.PI / 2; T.add(g);
+          const L = Math.hypot(x2 - x1, y2 - y1) + .02;
+          m(rbox(.13, L, .016, .005), verde, 0, 0, 0, g); m(rbox(.045, L, .018, .005), amar, 0, 0, s * .002, g);
+        };
+        tira(xo, yo, xq, yq, zf, 1); tira(xo, yo, xq, yq, zc, -1);
+        m(rbox(.13, .016, zf - zc + .02, .005), verde, xo, yo + .004, (zf + zc) / 2, T); m(rbox(.045, .018, zf - zc + .02, .005), amar, xo, yo + .006, (zf + zc) / 2, T); // sobre o ombro
+        m(rbox(.016, .13, zf - zc + .02, .005), verde, xq, yq, (zf + zc) / 2, T); m(rbox(.018, .045, zf - zc + .02, .005), amar, xq - .002, yq, (zf + zc) / 2, T); // lateral do quadril
+        const t = (yq + .2 - yo) / (yq - yo); // brasão na tira da frente, um pouco acima do quadril
+        m(geo('brasao', () => new THREE.CylinderGeometry(.05, .05, .02, 16)), mat('#facc15', { r: .3, m: .6 }), xo + (xq - xo) * t, yo + (yq - yo) * t, zf + .014, T).rotation.x = Math.PI / 2;
         break;
       }
-      case 'corrente': {
+      case 'corrente': { // corrente pendurada no pescoço, por cima da lapela e da gravata
         const ouro = mat('#e3b341', { r: .2, m: 1 });
-        const t = m(geo('corr', () => new THREE.TorusGeometry(.15, .018, 8, 30)), ouro, 0, .66, .1, T); t.rotation.x = -1.15; t.scale.y = 1.3;
-        m(rbox(.07, .09, .02, .01), ouro, 0, .46, fr + .02, T);
+        const zc = zf + .014, yc = .73, rc = .125;
+        const arco = m(geo('corr', () => new THREE.TorusGeometry(rc, .014, 8, 28, Math.PI)), ouro, 0, yc, zc, T); arco.rotation.z = Math.PI; arco.scale.y = 1.1; // U no peito
+        for (const s of [-1, 1]) { // sobe pela gola até a nuca
+          const a = new THREE.Vector3(s * rc, yc, zc), b = new THREE.Vector3(s * .1, .8, .02), d = b.clone().sub(a);
+          const p = m(geo('corrL', () => new THREE.CylinderGeometry(.014, .014, 1, 8)), ouro, 0, 0, 0, T); p.position.copy(a).add(b).multiplyScalar(.5); p.scale.y = d.length();
+          p.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+        }
+        m(rbox(.07, .09, .02, .01), ouro, 0, yc - rc * 1.1 - .045, zc + .006, T); // pingente
         break;
       }
       case 'charuto':

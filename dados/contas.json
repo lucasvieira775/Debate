@@ -1914,5 +1914,20 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794503534898
+ },
+ "cb985dd9-02b6-478c-85c8-5e6bca882adb": {
+  "uid": "cb985dd9-02b6-478c-85c8-5e6bca882adb",
+  "nome": "Lukas Bozonaro",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794504697586,
+  "cadastro": {
+   "idade": 32,
+   "nome": "Lukas Bozonaro",
+   "user": "lukasbozo",
+   "criadoEm": 1794504722061
+  }
  }
 }
