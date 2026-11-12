@@ -1,5 +1,6 @@
 // Vinhetas de TV dos blocos no telão curvo: tudo procedural em canvas 2D (sem imagens), determinístico em t, + SFX WebAudio.
-// Coordenadas de projeto 2048×576 (tile do telão); camadas estáticas pré-renderizadas em cache, só compostas por frame.
+// Coordenadas de projeto 2048×576 (quadro central); se o canvas for mais largo (telão panorâmico), a cena fica no centro e fundo/efeitos
+// se espalham pela largura toda (x de L a R, em unidades de projeto). Camadas estáticas pré-renderizadas em cache, só compostas por frame.
 import { audioBase } from './voz.js';
 
 export const VINHETA_S = 5;
@@ -28,13 +29,15 @@ const add = (x, f) => { x.save(); x.globalCompositeOperation = 'lighter'; f(); x
 const alfa = (x, a, f) => { if (a <= .002) return; x.save(); x.globalAlpha *= Math.min(1, a); f(); x.restore(); };
 
 // ---------- cache de camadas (por tamanho de tile; refeito quando as fontes carregam) ----------
-let K = 1, C = {}, fontesOk = false;
+let K = 1, C = {}, fontesOk = false, PW = DW, OX = 0, L = 0, R = DW, NT = 1; // PW = largura de projeto total; OX = sobra de cada lado do quadro central
 const CACHES = {};
 function prep(W, H) {
   if (!fontesOk) try { fontesOk = !document.fonts || (document.fonts.check('40px "Lilita One"') && document.fonts.check('900 40px "Nunito"')); } catch { fontesOk = true; }
   const ch = W + 'x' + H + fontesOk;
-  C = CACHES[ch] ||= { K: Math.min(1.5, Math.max(.2, W / DW)) }; K = C.K;
+  C = CACHES[ch] ||= (pw => ({ K: Math.min(1.5, Math.max(.2, W / pw)), PW: pw }))(Math.max(DW, DH * W / H));
+  K = C.K; PW = C.PW; OX = (PW - DW) / 2; L = -OX; R = DW + OX; NT = PW / DW;
 }
+const tf = (x, W, H) => x.setTransform(W / PW, 0, 0, H / DH, OX * W / PW, 0); // projeto → canvas (quadro central no meio)
 function cv(w, h, f) {
   const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w * K)); c.height = Math.max(1, Math.ceil(h * K));
   const g = c.getContext('2d'); g.scale(K, K); c.w = w; c.h = h; f?.(g, w, h); return c;
@@ -92,22 +95,21 @@ const cone = () => m('cone', () => cv(500, 700, g => {
 // ---------- fundos (gradiente de estúdio + piso brilhante) ----------
 const FUNDOS = { 0: ['#123c9e', '#0a2672', '#030c34'], 1: ['#2563e8', '#0c2f94', '#020b33'], 2: ['#1d52c8', '#0a2a80', '#030c34'], 3: ['#1648b0', '#08216e', '#020826'] };
 function fundo(b) {
-  return m('fundo' + b, () => cv(DW, DH, g => {
-    const [c0, c1, c2] = FUNDOS[b];
-    const r = g.createRadialGradient(1024, 230, 40, 1024, 260, 1250); r.addColorStop(0, c0); r.addColorStop(.42, c1); r.addColorStop(1, c2);
-    g.fillStyle = r; g.fillRect(0, 0, DW, DH);
-    g.fillStyle = grad(g, 0, 466, 0, DH, [[0, 'rgba(2,8,30,.3)'], [1, 'rgba(1,4,18,.9)']]); g.fillRect(0, 466, DW, DH - 466);
+  return m('fundo' + b, () => cv(PW, DH, g => {
+    const [c0, c1, c2] = FUNDOS[b], E = Math.sqrt(NT), elipse = f => { g.save(); g.translate(1024, 0); g.scale(E, 1); g.translate(-1024, 0); f(); g.restore(); };
+    g.translate(OX, 0); // desenha em coordenadas do quadro central (x de L a R)
+    elipse(() => { const r = g.createRadialGradient(1024, 230, 40, 1024, 260, 1250); r.addColorStop(0, c0); r.addColorStop(.42, c1); r.addColorStop(1, c2); g.fillStyle = r; g.fillRect(-PW, 0, 3 * PW, DH); });
+    g.fillStyle = grad(g, 0, 466, 0, DH, [[0, 'rgba(2,8,30,.3)'], [1, 'rgba(1,4,18,.9)']]); g.fillRect(L, 466, PW, DH - 466);
     g.save(); g.translate(1024, 505); g.scale(1, .13); const f = g.createRadialGradient(0, 0, 0, 0, 0, 760);
     f.addColorStop(0, 'rgba(140,190,255,.45)'); f.addColorStop(1, 'rgba(140,190,255,0)'); g.fillStyle = f; g.fillRect(-1100, -900, 2200, 1800); g.restore();
-    g.fillStyle = grad(g, 0, 0, DW, 0, [[0, 'rgba(150,200,255,0)'], [.5, 'rgba(200,225,255,.85)'], [1, 'rgba(150,200,255,0)']]); g.fillRect(0, 465, DW, 2);
-    if (b === 3 || b === 0) { g.strokeStyle = 'rgba(120,170,255,.1)'; g.lineWidth = 1.5; for (let i = -14; i <= 14; i++) { g.beginPath(); g.moveTo(1024 + i * 45, 468); g.lineTo(1024 + i * 230, DH); g.stroke(); } }
+    g.fillStyle = grad(g, L, 0, R, 0, [[0, 'rgba(150,200,255,0)'], [.5, 'rgba(200,225,255,.85)'], [1, 'rgba(150,200,255,0)']]); g.fillRect(L, 465, PW, 2);
+    if (b === 3 || b === 0) { g.strokeStyle = 'rgba(120,170,255,.1)'; g.lineWidth = 1.5; const n = Math.max(14, Math.ceil((OX + 1024) / 230) + 1); for (let i = -n; i <= n; i++) { g.beginPath(); g.moveTo(1024 + i * 45, 468); g.lineTo(1024 + i * 230, DH); g.stroke(); } }
     if (b === 2) {
-      g.fillStyle = grad(g, 0, 0, 0, 28, [[0, '#050b22'], [1, '#0d1d4a']]); g.fillRect(0, 0, DW, 26);
-      g.fillStyle = 'rgba(160,190,255,.25)'; g.fillRect(0, 26, DW, 2);
-      for (let i = 0; i < 12; i++) { const lx = 90 + i * 170; brilho(g, '255,240,200', lx, 22, 34, .7); g.fillStyle = '#fff6d8'; g.beginPath(); g.arc(lx, 20, 6, 0, TAU); g.fill(); }
+      g.fillStyle = grad(g, 0, 0, 0, 28, [[0, '#050b22'], [1, '#0d1d4a']]); g.fillRect(L, 0, PW, 26);
+      g.fillStyle = 'rgba(160,190,255,.25)'; g.fillRect(L, 26, PW, 2);
+      for (let lx = 90 - Math.ceil(OX / 170) * 170; lx < R; lx += 170) { brilho(g, '255,240,200', lx, 22, 34, .7); g.fillStyle = '#fff6d8'; g.beginPath(); g.arc(lx, 20, 6, 0, TAU); g.fill(); }
     }
-    const v = g.createRadialGradient(1024, 288, 380, 1024, 288, 1150); v.addColorStop(0, 'rgba(0,0,15,0)'); v.addColorStop(1, 'rgba(0,0,15,.6)');
-    g.fillStyle = v; g.fillRect(0, 0, DW, DH);
+    elipse(() => { const v = g.createRadialGradient(1024, 288, 380, 1024, 288, 1150); v.addColorStop(0, 'rgba(0,0,15,0)'); v.addColorStop(1, 'rgba(0,0,15,.6)'); g.fillStyle = v; g.fillRect(-PW, 0, 3 * PW, DH); });
   }));
 }
 
@@ -290,10 +292,10 @@ const logo3 = () => m('logo3', () => cv(560, 430, g => {
 
 // ---------- peças animadas comuns ----------
 function particulas(x, t, n, a, sem = 0, y0 = 0, y1 = DH) {
-  if (a <= 0) return; const sp = estrela(), hy = y1 - y0;
+  if (a <= 0) return; const sp = estrela(), hy = y1 - y0; n = Math.round(n * NT);
   add(x, () => { for (let i = 0; i < n; i++) {
     const h1 = hash(i + sem), h2 = hash(i * 7.3 + sem + 1), h3 = hash(i * 3.1 + sem + 2);
-    const px = (h1 * DW + t * (h3 - .5) * 50 + DW) % DW, py = y1 - ((h2 * hy + t * (14 + 34 * h3)) % hy);
+    const px = L + (h1 * PW + t * (h3 - .5) * 50 + PW) % PW, py = y1 - ((h2 * hy + t * (14 + 34 * h3)) % hy);
     const tw = .5 + .5 * Math.sin(t * (2 + 4 * h3) + i * 1.3), sz = 8 + 26 * h3 * tw;
     x.globalAlpha = a * tw * (.35 + .65 * h1); x.drawImage(sp, px - sz / 2, py - sz / 2, sz, sz);
   } });
@@ -332,12 +334,12 @@ function faixa(x, t, bd, cx, cy, refl = false) {
     x.translate(cx, cy); x.scale(1 + .3 * xo, 1 + .3 * xo); corpo();
     if (ab < 1) add(x, () => { for (const sx of [-1, 1]) { brilho(x, BRANCO, sx * w / 2 * ab, 0, 110, (1 - ab) * 1.4, 70); streak(x, sx * w / 2 * ab, 0, 60, 260, 1 - ab); } });
   });
-  if (refl) alfa(x, .2 * (1 - xo), () => { x.beginPath(); x.rect(0, 468, DW, DH - 468); x.clip(); x.translate(cx, 2 * (cy + h / 2 - 10) - cy); x.scale(1, -1); corpo(); });
+  if (refl) alfa(x, .2 * (1 - xo), () => { x.beginPath(); x.rect(L, 468, PW, DH - 468); x.clip(); x.translate(cx, 2 * (cy + h / 2 - 10) - cy); x.scale(1, -1); corpo(); });
 }
 /** Flashes globais, flare do impacto, flare que varre o título e o "whip" de saída. */
 function flashes(x, t, cx, cy) {
   const f = Math.max(pulso(t, .52, .7, 1) * .55, t > TI ? (1 - fase(t, TI, TI + .42)) ** 2 * .42 : 0, pulso(t, 4.72, 4.9, 5.25) * .32);
-  if (f > .003) alfa(x, f, () => { x.fillStyle = '#eef4ff'; x.fillRect(0, 0, DW, DH); });
+  if (f > .003) alfa(x, f, () => { x.fillStyle = '#eef4ff'; x.fillRect(L, 0, PW, DH); });
   add(x, () => {
     if (t > TI && t < TI + .8) {
       const k = fase(t, TI, TI + .55), r = 200 + 760 * eOutCubic(k);
@@ -351,7 +353,7 @@ function flashes(x, t, cx, cy) {
       for (const [k2, r] of [[.5, 26], [.9, 46], [1.4, 18]]) brilho(x, AZUL, cx + (cx - fx) * k2, cy - 30 + 20 * k2, r, a * .5);
     }
     const w = fase(t, 4.55, 4.98);
-    if (w > 0 && w < 1) { const a = Math.sin(Math.PI * w); streak(x, lerp(-400, DW + 400, eInOut(w)), cy, 1800, 220, a * 1.3); brilho(x, BRANCO, lerp(-400, DW + 400, eInOut(w)), cy, 260, a * .6, 160); }
+    if (w > 0 && w < 1) { const a = Math.sin(Math.PI * w); streak(x, lerp(L - 400, R + 400, eInOut(w)), cy, 1800, 220, a * 1.3); brilho(x, BRANCO, lerp(L - 400, R + 400, eInOut(w)), cy, 260, a * .6, 160); }
   });
 }
 const pulsoAzul = (x, t, cx, cy, a = 1) => add(x, () => brilho(x, AZUL, cx, cy, 950, a * (.16 + .07 * Math.sin(t * 3.1)), 360));
@@ -359,14 +361,14 @@ const pulsoAzul = (x, t, cx, cy, a = 1) => add(x, () => brilho(x, AZUL, cx, cy, 
 // ---------- BLOCO 1: Temas Diversos ----------
 function bloco1(x, t) {
   const cx = 1010, cy = 222, ei = eOutExpo(fase(t, 0, .9)), par = Math.max(0, t - .8) * 5, ef = ei * (1 - eInCubic(fase(t, 4.45, 5)));
-  img(x, fundo(1), 0, 0);
+  img(x, fundo(1), L, 0);
   add(x, () => {
-    for (let i = 0; i < 7; i++) desenhaFeixe(x, -120 + i * 340 + Math.sin(t * .35 + i) * 24, -60, .55 - i * .02 - (1 - ei) * 1.2 + Math.sin(t * .5 + i * 2) * .035,
+    for (let i = Math.floor((L + 120) / 340) - 1; -120 + i * 340 < R + 340; i++) desenhaFeixe(x, -120 + i * 340 + Math.sin(t * .35 + i) * 24, -60, .55 - (i % 7 + 7) % 7 * .02 - (1 - ei) * 1.2 + Math.sin(t * .5 + i * 2) * .035,
       (.2 + .12 * Math.sin(t * 1.1 + i * 1.9)) * (.35 + .65 * ei) + (1 - ei) * .3 * (t > .02), 1.25);
   });
   pulsoAzul(x, t, cx, 300, fase(t, .5, 1.2));
   anel(x, t, cx, 515, 560, .55 + .2 * Math.sin(t * 2.4));
-  fitasAnim(x, ef, () => {}); fitasAnim(x, ef, x => { x.translate(DW, DH); x.rotate(Math.PI); x.scale(.72, .72); });
+  fitasAnim(x, ef, x => x.translate(L, 0)); fitasAnim(x, ef, x => { x.translate(R, DH); x.rotate(Math.PI); x.scale(.72, .72); });
   const ec = eOutCubic(fase(t, .25, 1.3)); alfa(x, ec, () => img(x, congresso(0), 1390 + 90 * (1 - ec) - par, 213, 690, 391));
   const at = fase(t, .9, 1.3) * (1 - saidaK(t));
   add(x, () => { brilho(x, OURO, cx, cy + 112, 560, at * .8, 50); brilho(x, '255,230,150', cx, cy + 112, 260, at * .7, 22); });
@@ -380,16 +382,17 @@ function bloco1(x, t) {
 // ---------- BLOCO 2: Debate frente a frente ----------
 function bloco2(x, t) {
   const cx = 1024, cy = 268, ei = eOutExpo(fase(t, 0, .9)), par = Math.max(0, t - .8) * 5, ef = ei * (1 - eInCubic(fase(t, 4.45, 5)));
-  img(x, fundo(2), 0, 0);
+  img(x, fundo(2), L, 0);
   add(x, () => {
-    [140, 430, 1618, 1908].forEach((px, i) => {
-      const a = fase(t, .05 + i * .07, .25 + i * .07), lado = i < 2 ? -1 : 1, ang = lado * (.32 - .2 * eOutCubic(fase(t, 0, 1.2))) + Math.sin(t * .8 + i * 1.7) * .1;
+    const pos = [140, 430, 1618, 1908]; for (let p = -150; p > L; p -= 580) pos.unshift(p); for (let p = DW + 150; p < R; p += 580) pos.push(p);
+    pos.forEach((px, j) => {
+      const i = j % 4, a = fase(t, .05 + i * .07, .25 + i * .07), lado = px < 1024 ? -1 : 1, ang = lado * (.32 - .2 * eOutCubic(fase(t, 0, 1.2))) + Math.sin(t * .8 + i * 1.7) * .1;
       x.save(); x.translate(px, 18); x.rotate(ang); x.globalAlpha = a * (.8 + .2 * Math.sin(t * 5 + i)); x.drawImage(cone(), -250, 0, 500, 760); x.restore();
       brilho(x, '255,245,220', px, 20, 60, a);
     });
   });
   pulsoAzul(x, t, cx, cy, fase(t, .4, 1.2));
-  fitasAnim(x, ef, x => { x.translate(0, DH); x.scale(.66, -.66); });
+  fitasAnim(x, ef, x => { x.translate(L, DH); x.scale(.66, -.66); });
   const ec = eOutCubic(fase(t, .2, 1.2));
   alfa(x, ec, () => img(x, congresso(1), 120 - par, 228, 640, 363));
   const ep = eOutExpo(fase(t, .15, .8)), eo = saidaK(t);
@@ -416,20 +419,20 @@ function bandeiraOnda(x, t, px, py) {
 // ---------- BLOCO 3: Considerações finais ----------
 function bloco3(x, t) {
   const cx = 1100, cy = 205, ei = eOutExpo(fase(t, 0, .9)), par = Math.max(0, t - .8) * 4, ef = ei * (1 - eInCubic(fase(t, 4.45, 5)));
-  img(x, fundo(3), 0, 0);
+  img(x, fundo(3), L, 0);
   add(x, () => {
     [630, 700, 1500, 1570].forEach((px, i) => {
       const a = eOutExpo(fase(t, .1 + i * .06, .7 + i * .06)) * (.75 + .25 * Math.sin(t * 2.3 + i * 1.4));
       desenhaFeixe(x, px, 470, Math.PI, a * .9, i % 2 ? .45 : .7, .45 * (.3 + .7 * eOutExpo(fase(t, .1 + i * .06, .8 + i * .06))));
       brilho(x, CIANO, px, 468, 90, a * .8, 16);
     });
-    for (let i = 0; i < 6; i++) desenhaFeixe(x, 200 + i * 330, -80, .3 * Math.sin(t * .3 + i * 1.3) - (1 - ei) * .9, .1 * ei + .25 * (1 - ei) * (t > .02), 1.1);
+    for (let i = Math.floor((L - 200) / 330); 200 + i * 330 < R + 330; i++) desenhaFeixe(x, 200 + i * 330, -80, .3 * Math.sin(t * .3 + i * 1.3) - (1 - ei) * .9, .1 * ei + .25 * (1 - ei) * (t > .02), 1.1);
   });
   pulsoAzul(x, t, cx, cy + 60, fase(t, .4, 1.2));
   const el = eOutCubic(fase(t, .2, 1.1)), lg = logo3();
   alfa(x, el * (1 - saidaK(t) * .7), () => { x.save(); x.beginPath(); x.rect(0, 0, 40 + lg.w * eOutExpo(fase(t, .2, 1.3)) + 40, DH); x.clip(); img(x, lg, 40 - par * .6, 70); x.restore(); });
   anel(x, t, cx, 515, 520, .45 + .2 * Math.sin(t * 2.4), CIANO);
-  fitasAnim(x, ef, x => { x.translate(DW, 0); x.scale(-.72, .72); }); fitasAnim(x, ef, x => { x.translate(DW, DH); x.rotate(Math.PI); x.scale(.62, .62); });
+  fitasAnim(x, ef, x => { x.translate(R, 0); x.scale(-.72, .72); }); fitasAnim(x, ef, x => { x.translate(R, DH); x.rotate(Math.PI); x.scale(.62, .62); });
   titulo(x, t, { face: placa3(), sombra: null }, cx, cy);
   faixa(x, t, banda(3), cx, 412, true);
   particulas(x, t, 42, fase(t, 1, 2), 37);
@@ -443,9 +446,9 @@ const aquecer = () => { if ((C.aq ??= 0) < AQUECER.length) AQUECER[C.aq++](); };
 
 // ---------- ocioso (loop ambiente, emendável nas bordas do tile) ----------
 function fitaOnda(x, t, yc, A, th, n, w, ph, c1, c2, a) {
-  const N = 48, top = [], bot = [];
+  const N = Math.ceil(48 * NT), top = [], bot = [];
   for (let i = 0; i <= N; i++) {
-    const s = i / N * TAU, X = i / N * DW, y = yc + A * Math.sin(n * s + w * t + ph) + A * .35 * Math.sin((n + 1) * s - w * .7 * t + ph * 2), k = th * (.6 + .4 * Math.sin(n * s + w * 1.3 * t + ph + 1));
+    const X = L + i / N * PW, s = X / DW * TAU, y = yc + A * Math.sin(n * s + w * t + ph) + A * .35 * Math.sin((n + 1) * s - w * .7 * t + ph * 2), k = th * (.6 + .4 * Math.sin(n * s + w * 1.3 * t + ph + 1));
     top.push(X, y - k / 2); bot.push(X, y + k / 2);
   }
   x.beginPath(); for (let i = 0; i < top.length; i += 2) i ? x.lineTo(top[i], top[i + 1]) : x.moveTo(top[i], top[i + 1]);
@@ -456,11 +459,11 @@ function fitaOnda(x, t, yc, A, th, n, w, ph, c1, c2, a) {
   x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
 }
 function ocioso(x, t) {
-  img(x, fundo(0), 0, 0);
+  img(x, fundo(0), L, 0);
   add(x, () => {
-    for (let i = 0; i < 5; i++) { const px = ((i * 470 + t * (18 + i * 6) * (i % 2 ? 1 : -1)) % DW + DW) % DW, py = 170 + (i % 3) * 90, a = .16 + .06 * Math.sin(t * .7 + i * 2);
-      for (const o of [-DW, 0, DW]) if (Math.abs(px + o - 1024) < 1500) brilho(x, AZUL, px + o, py, 420, a, 210); }
-    for (let i = 0; i < 4; i++) desenhaFeixe(x, ((i * 512 + t * 22) % DW), -80, .35 * Math.sin(t * .23 + i * 1.6), .1, 1.2);
+    for (let i = 0, n = Math.round(5 * NT); i < n; i++) { const px = L + ((i * 470 + t * (18 + i % 5 * 6) * (i % 2 ? 1 : -1)) % PW + PW) % PW, py = 170 + (i % 3) * 90, a = .16 + .06 * Math.sin(t * .7 + i * 2);
+      for (const o of [-PW, 0, PW]) if (Math.abs(px + o - 1024) < PW / 2 + 500) brilho(x, AZUL, px + o, py, 420, a, 210); }
+    for (let i = 0, n = Math.round(4 * NT); i < n; i++) desenhaFeixe(x, L + (i * 512 + t * 22) % PW, -80, .35 * Math.sin(t * .23 + i * 1.6), .1, 1.2);
   });
   fitaOnda(x, t, 120, 26, 16, 1, .25, 2, 'rgba(0,168,80,.5)', 'rgba(120,255,170,.7)', .35);
   fitaOnda(x, t, 400, 38, 50, 1, .32, 0, '#008f45', '#2fe08a', .6);
@@ -478,14 +481,14 @@ function ocioso(x, t) {
  *  `tOc` (opcional) = relógio usado pelo quadro ocioso no dissolve final (passe o mesmo t que vai para desenharOcioso, p/ emendar sem salto). */
 export function desenharVinheta(ctx, W, H, bloco, t, tOc = t) {
   prep(W, H); bloco = CENAS[bloco] ? bloco : 1; t = Math.max(0, t || 0);
-  ctx.save(); ctx.setTransform(W / DW, 0, 0, H / DH, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ctx.save(); tf(ctx, W, H); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   const k = t > VINHETA_S ? eInOut(fase(t, VINHETA_S, VINHETA_S + DISS)) : 0;
   if (k >= 1) ocioso(ctx, tOc);
   else {
     CENAS[bloco](ctx, Math.min(t, VINHETA_S + .1));
     if (k > 0) {
       const o = m('diss', () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; }), g = o.getContext('2d');
-      g.setTransform(W / DW, 0, 0, H / DH, 0, 0); ocioso(g, tOc);
+      tf(g, W, H); ocioso(g, tOc);
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = k; ctx.drawImage(o, 0, 0);
     }
   }
@@ -493,7 +496,7 @@ export function desenharVinheta(ctx, W, H, bloco, t, tOc = t) {
 }
 /** Quadro ambiente (loop) quando não há vinheta. */
 export function desenharOcioso(ctx, W, H, t) {
-  prep(W, H); ctx.save(); ctx.setTransform(W / DW, 0, 0, H / DH, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  prep(W, H); ctx.save(); tf(ctx, W, H); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   ocioso(ctx, t || 0); ctx.restore();
 }
 

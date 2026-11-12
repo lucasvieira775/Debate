@@ -130,7 +130,7 @@ export function criarMaterialTelao(tex, repeticoes = 1) {
   const iw = tex.image?.width || 2048, ih = tex.image?.height || 576;
   const mat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, unifComuns(), {
-      rep: { value: repeticoes }, gradeForca: { value: 1 }, unico: { value: 1 }, // unico 0 = tile repetido ao longo do arco
+      rep: { value: repeticoes }, gradeForca: { value: 1 }, unico: { value: repeticoes > 1 ? 1 : 0 }, // rep 1 = canvas panorâmico 1:1 no arco; rep>1 + unico 1 = um quadro no centro; unico 0 = tile repetido
       resLed: { value: new THREE.Vector2(iw * repeticoes, ih) },   // 1 LED por pixel do canvas
       modulos: { value: new THREE.Vector2(Math.round(iw * repeticoes / 128), Math.max(1, Math.round(ih / 128))) }, // gabinetes 128×128 px
     }]),

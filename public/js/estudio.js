@@ -318,7 +318,7 @@ export class Estudio {
   // ---------- TELÃO CURVO (faixa de LED acima da plateia, abaixo da treliça) ----------
   construirTelaoCurvo() {
     const s = this.scene, R = 16.5, ini = -125 * D2R, len = 250 * D2R, y0 = 5.15, y1 = 9.6, H = y1 - y0;
-    const W = 2048, Ht = 576, N = Math.max(1, Math.round(R * len / (H * W / Ht))); // tiles com proporção ≈ do canvas
+    const Ht = 320, W = Math.min(8192, Math.round(Ht * R * len / H / 64) * 64), N = 1; // UM vídeo panorâmico na proporção do arco (~16:1), mapeado 1:1
     const geo = new THREE.CylinderGeometry(R, R, H, 160, 1, true, ini, len);
     const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setX(i, 1 - uv.getX(i)); // vista por dentro: sem espelhar
     this.tc = { ...canvasTex(W, Ht), W, H: Ht, N, bloco: 0, t0: -99, tOc: -1 };
