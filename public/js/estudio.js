@@ -977,7 +977,7 @@ export class Estudio {
     ctx.fillStyle = '#dc2626'; rr(ctx, 50, 40, 250, 80, 18); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = `54px ${FONTE}`; ctx.fillText('AO VIVO', 175, 82);
     const g = ctx.createLinearGradient(0, H - 230, 0, H); g.addColorStop(0, 'rgba(5,12,40,0)'); g.addColorStop(.35, 'rgba(5,12,40,.82)'); g.addColorStop(1, 'rgba(5,12,40,.95)');
     ctx.fillStyle = g; ctx.fillRect(0, H - 230, W, 230);
-    ctx.fillStyle = '#facc15'; rr(ctx, 120, H - 205, 760, 62, 14); ctx.fill(); ctx.fillStyle = '#0b1f6b'; ctx.font = `46px ${FONTE}`; ctx.fillText('NOVO PRESIDENTE DO BRASIL', 500, H - 172);
+    ctx.fillStyle = '#facc15'; rr(ctx, 120, H - 205, 760, 62, 14); ctx.fill(); ctx.fillStyle = '#0b1f6b'; ctx.font = `46px ${FONTE}`; ctx.fillText('NOVO PRESIDENTE DO PAÍS', 500, H - 172);
     ctx.fillStyle = p.cor; rr(ctx, 120, H - 130, 110, 100, 20); ctx.fill(); desenharSimbolo(ctx, p.simbolo, 175, H - 80, 36, '#fff');
     ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = `96px ${FONTE}`; ctx.fillText(String(cfg.nome || '').toUpperCase().slice(0, 22), 255, H - 76);
     ctx.textAlign = 'right'; ctx.fillStyle = '#facc15'; ctx.font = `64px ${FONTE}`; ctx.fillText(`${p.sigla} ${p.numero}`, W - 120, H - 76);

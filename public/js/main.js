@@ -472,7 +472,6 @@ window.__testeRevelacao = (nome = 'Fulano de Tal', partido = E.perfil.partido ||
 function celebrar(on) { clearTimeout(E.celebrarT); E.celebrar = on; if (on) E.celebrarT = setTimeout(() => celebrar(false), 15000); ajustarCamera(); E.resKey = ''; renderResultado(); }
 function aoNovoPasso(s) {
   const p = s.passo; if (!p) return;
-  if (p.tipo === 'cumprimento') { anunciar('CUMPRIMENTEM-SE!'); sfx.vez(); }
   if (p.tipo === 'intro') { anunciar(p.t2 ? (p.etapa === 2 ? '2º TURNO' : 'CONSIDERAÇÕES FINAIS') : `BLOCO ${p.etapa}`); if (p.etapa === 1) { sfx.aplausos(3, .3); est.festejarPlateia(3500); } }
   if (p.tipo === 'fala' && p.falante === E.eu) { setTimeout(() => { anunciar('SUA VEZ!'); sfx.vez(); }, s.roleta ? 2400 : 300); }
   if (p.tipo === 'escolha' && p.falante === E.eu) { anunciar('ESCOLHA SEU ADVERSÁRIO'); sfx.vez(); }
@@ -1116,7 +1115,7 @@ function renderAcao(forcar) {
   if (s.fase === 'debate' && p) {
     if (p.tipo === 'escolha') k = p.falante === E.eu && !p.escolhido ? 'escolha' : 'escolha-outro' + !!p.escolhido;
     else if (p.tipo === 'fala' && f) k = p.falante === E.eu ? `meu-${f.status}-${E.micOn}-${E.confirmando}-${!!E.micErro}-${micLiberado()}` : `outro-${p.falante}-${f.status}`;
-    else if (p.tipo === 'cumprimento') k = 'cumpr';
+    else if (p.tipo === 'cumprimento') k = 'cumpr' + !!s.autoEm;
   }
   k += s.i;
   if (k === E.hudKey && !forcar) return; E.hudKey = k;
@@ -1124,7 +1123,8 @@ function renderAcao(forcar) {
   const podeDigitar = s.cfg.permitirTexto || !temReconhecimento || !contextoSeguro;
   if (eu()?.banido && s.fase === 'debate') { if (E.hudKey !== 'banido') { E.hudKey = 'banido'; el.innerHTML = '<div class="hud-box" style="text-align:center;border-color:var(--vermelho)">🚫 Você foi retirado do debate pela moderação. Acompanhe a disputa até o fim.</div>'; } return; }
   if (k.startsWith('nada')) { el.innerHTML = ''; return; }
-  if (k.startsWith('cumpr')) { el.innerHTML = `<div class="hud-box" style="text-align:center">🤝 <b>Cumprimentem-se!</b> Microfones abertos para todos. O debate começa em <b id="h-cump">${Math.max(0, Math.ceil(((s.autoEm || 0) - agora()) / 1000))}s</b></div>`; return; }
+  if (k.startsWith('cumprfalse')) { el.innerHTML = '<div class="hud-box" style="text-align:center">🎙️ A mediação está abrindo o debate…</div>'; return; }
+  if (k.startsWith('cumpr')) { if (!forcar) { anunciar('CUMPRIMENTEM-SE!'); sfx.vez(); } el.innerHTML = `<div class="hud-box" style="text-align:center">🤝 <b>Cumprimentem-se!</b> Microfones abertos para todos. O debate começa em <b id="h-cump">${Math.max(0, Math.ceil(((s.autoEm || 0) - agora()) / 1000))}s</b></div>`; return; }
   if (k.startsWith('escolha-outro')) { el.innerHTML = `<div class="hud-box" style="text-align:center">⚔ <b>${nome(p.falante)}</b> ${p.escolhido ? `vai perguntar para <b>${nome(p.escolhido.alvo)}</b>` : 'está escolhendo o adversário…'}</div>`; return; }
   if (k.startsWith('escolha')) {
     el.innerHTML = `<div class="hud-box escolha" style="text-align:center"><b style="font-family:var(--titulo);font-weight:400;font-size:22px">⚔ ESCOLHA SEU ADVERSÁRIO</b><div class="mut" style="font-size:14px">Clique no púlpito dele (ele pisca em amarelo) ou escolha aqui:</div>

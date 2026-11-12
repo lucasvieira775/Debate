@@ -3,7 +3,8 @@
 import { TEMAS, TEMA, pick } from '../shared/regras.js';
 
 const n = nome => `${nome},`;
-const abertura = jorn => `Boa noite, Brasil! Está começando o grande Debate Presidencial! Eu sou ${jorn.nome}, e esta noite, frente a frente, estão:`;
+const abertura = jorn => `Boa noite, Brasil! Está começando o grande Debate Presidencial! Eu sou ${jorn.nome}, e vou mediar este debate.`;
+const CUMPRIMENTEM = 'Candidatos, antes de começar, vocês podem se cumprimentar.', FRENTE = 'Esta noite, frente a frente, estão:';
 export const ORDENS = [
   'Ordem, gente! Vamos manter a postura. Isso é um debate sério, não uma sala de aula de quinta série.',
   'Senhoras e senhores, vamos manter a compostura! Tem milhões de pessoas assistindo vocês agora.',
@@ -22,7 +23,7 @@ export const ADVERTENCIA = 'esta é uma advertência formal da mediação. Respe
 export const APURACAO ='Urnas fechadas! Começa agora a apuração, ao vivo. Acompanhe no telão os votos chegando de todo o Brasil!';
 export const APURACAO2 = 'Começa agora a apuração do segundo turno! Quem vai levar? Acompanhe ao vivo!';
 // frases neutras de gênero (não entregam o vencedor antes da hora)
-const SUSPENSE = 'E quem vai comandar o Brasil nos próximos quatro anos é…', VITORIA1 = 'Vitória já no primeiro turno, com a maioria absoluta dos votos válidos!', VITORIA2 = 'Vitória no segundo turno! Boa noite, Brasil, e até a próxima!';
+const SUSPENSE = 'E o novo presidente do país é…', VITORIA1 = 'Vitória já no primeiro turno, com a maioria absoluta dos votos válidos!', VITORIA2 = 'Vitória no segundo turno! Boa noite, Brasil, e até a próxima!';
 const FIM_DUELO = 'Fim do confronto.', VOLTEM = 'muito bem. Podem voltar aos seus púlpitos.';
 const SEGUNDO_TURNO = 'Começa agora o debate do segundo turno! Frente a frente:', REGRA_T2 = 'Confronto direto com tema livre. Cada um faz uma pergunta e o outro responde, sem réplica nem tréplica. Depois, as considerações finais. Tudo pode mudar!';
 const BLOCO1 = 'No primeiro bloco, cada candidato apresenta propostas sobre um tema sorteado, que pode ser de um dos vinte e sete estados ou de alcance nacional.';
@@ -30,7 +31,7 @@ const TEMA_LIVRE = 'o tema é livre.', FINAL2 = 'Fim do confronto. Agora, as con
 export const seg = s => `Você tem ${s} segundos.`;
 const COBRANCAS = ['Vá direto ao ponto, por favor.', 'O eleitor quer propostas concretas.', 'E diga de onde vai sair o dinheiro.', 'Queremos ouvir números e prazos.'];
 // cada tema vira poucos trechos fixos (gerados uma vez e guardados): a abertura e a abertura+pergunta
-const aberturaTema = t => t.uf === 'BR' ? `o tema sorteado é nacional: ${t.titulo}.` : `o tema sorteado vem ${t.de}: ${t.titulo}.`;
+const aberturaTema = t => `e o tema é: ${t.titulo}.`; // só o título (sem "nacional"/estado)
 const temaComPergunta = t => `${aberturaTema(t)} ${t.pergunta}`;
 /** Todos os trechos de tema (estaduais + nacionais), para gerar em segundo plano. */
 export const trechosTemas = () => TEMAS.flatMap(t => [temaComPergunta(t), aberturaTema(t)]);
@@ -66,8 +67,9 @@ export const FALAS_FLORES = [
 ];
 
 export const N = {
-  intro: (jorn, nomes) => [
-    abertura(jorn),
+  abertura: jorn => [abertura(jorn), CUMPRIMENTEM],
+  intro: nomes => [
+    FRENTE,
     ...nomes.map(n),
     BLOCO1,
   ],
@@ -103,7 +105,7 @@ export const N = {
 export function trechosFixos(jorn) {
   const segundos = [30, 45, 60, 90, 15, 23, 68, 34];
   return [
-    abertura(jorn),
+    abertura(jorn), CUMPRIMENTEM, FRENTE,
     ...N.bloco2(), ...N.bloco3(),
     BLOCO1,
     'Vamos aos números. O instituto divulga agora uma pesquisa relâmpago de intenção de voto.', 'Atenção para a pesquisa relâmpago: veja como está a intenção de voto neste momento.',

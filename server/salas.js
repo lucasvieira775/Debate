@@ -341,8 +341,9 @@ class Sala {
     const nome = id => this.porId(id).nome;
     // mediação: um(a) jornalista da IA sorteado(a)
     this.jorn = pick(JORNALISTAS);
-    const f = [{ tipo: 'cumprimento', etapa: 1 }]; // os candidatos se conhecem e se cumprimentam antes de o debate começar
-    f.push({ tipo: 'intro', etapa: 1, partes: N.intro(this.jorn, ids.map(nome)) });
+    // a mediação se apresenta e convida os candidatos a se cumprimentarem; depois apresenta os candidatos e abre o 1º bloco
+    const f = [{ tipo: 'cumprimento', etapa: 1, partes: N.abertura(this.jorn) }];
+    f.push({ tipo: 'intro', etapa: 1, partes: N.intro(ids.map(nome)) });
     ids.forEach(id => f.push({ tipo: 'fala', etapa: 1, kind: 'proposta', falante: id, tema: sortearTema(this.usados), var: sortearVariacao() }));
     // (sem pesquisas entre os blocos: a intenção de voto só aparece na apuração ao vivo, no fim)
     f.push({ tipo: 'intro', etapa: 2, partes: N.bloco2() });
@@ -367,7 +368,7 @@ class Sala {
     this.i = i; const p = this.passo = this.fila[i]; this.pulos?.clear();
     this.fala = null; this.roleta = null; this.autoEm = null;
     const nome = id => this.porId(id)?.nome || '';
-    if (p.tipo === 'cumprimento') { this.temaAtual = null; this.textoJ = ''; this.narrandoAte = 0; this.auto(SEGUNDOS.cumprimento * 1000); }
+    if (p.tipo === 'cumprimento') { this.temaAtual = null; this.narrar(p.partes, ms => this.later(ms + 300, () => { this.auto(SEGUNDOS.cumprimento * 1000); this.emit(); })); } // contador só começa quando a mediação termina de falar
     else if (p.tipo === 'intro') { this.temaAtual = null; this.narrar(p.partes, ms => this.auto(Math.max(ms + 1200, p.etapa === 2 ? PULPITO_MS : 0))); } // bloco 2: dá tempo da produção trazer o púlpito
     else if (p.tipo === 'pesquisa') {
       this.temaAtual = null; p.poll = apurar(this.emAtivo(), .25, false, this.abst).res;

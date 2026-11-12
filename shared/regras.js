@@ -215,7 +215,7 @@ const VICIOS = ['=ne', 'tipo assim', '=ahn', '=hum', '=eh', 'sei la', '=hmm'];
 const ATAQUE_KW = ['mentir', 'mentiroso', 'fracass', 'corrupt', 'incompeten', 'vergonh', 'escandalo', 'hipocri', 'falso', 'farsa', 'enganar', 'irresponsav', 'desastre', 'roubo', '=ladrao', 'demagog', 'populis', 'extremis', 'covard', 'omiss'];
 const MENCAO_GENERICA = ['adversari', 'oponente', '=candidato', '=candidata', 'o senhor', 'a senhora'];
 
-export const SEGUNDOS = { cumprimento: 15, proposta: 60, pergunta: 30, resposta: 60, replica: 45, treplica: 45, final: 60 };
+export const SEGUNDOS = { cumprimento: 10, proposta: 60, pergunta: 30, resposta: 60, replica: 45, treplica: 45, final: 60 };
 export const DUR_MULT = { curto: .5, normal: 1, longo: 1.5 };
 export const KIND_NOME = { proposta: 'Apresentação de proposta', pergunta: 'Pergunta', resposta: 'Resposta', replica: 'Réplica', treplica: 'Tréplica', final: 'Considerações finais' };
 export const ETAPAS = ['Propostas', 'Confronto', 'Considerações finais'];
