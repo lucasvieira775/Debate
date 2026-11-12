@@ -1154,10 +1154,10 @@
    "posts": []
   },
   "danca": "robo",
-  "abandonos": [
-   1794458488003
-  ],
-  "xp": 0
+  "abandonos": [],
+  "xp": 0,
+  "banidoAte": 1794464114429,
+  "banAbandono": 1794464114429
  },
  "ac37aa90-8eae-4162-aefc-0f6efc6239d1": {
   "uid": "ac37aa90-8eae-4162-aefc-0f6efc6239d1",
@@ -1278,5 +1278,35 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794460134614
+ },
+ "47a1dbc3-37e4-4ce3-b3dd-cbb7d874b503": {
+  "uid": "47a1dbc3-37e4-4ce3-b3dd-cbb7d874b503",
+  "nome": "Oi Cuzin",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794460302067,
+  "cadastro": {
+   "idade": 32,
+   "nome": "Oi Cuzin",
+   "user": "oioi",
+   "criadoEm": 1794460334794
+  }
+ },
+ "6f29f6cb-36a6-4388-b022-54641ace069d": {
+  "uid": "6f29f6cb-36a6-4388-b022-54641ace069d",
+  "nome": "Ease Asease",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794460537775,
+  "cadastro": {
+   "idade": 32,
+   "nome": "Ease Asease",
+   "user": "asease",
+   "criadoEm": 1794460546915
+  }
  }
 }
