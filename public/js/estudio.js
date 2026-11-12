@@ -339,7 +339,7 @@ export class Estudio {
   /** Por frame: vinheta (todo frame) ou quadro ocioso (~20 fps) + efeitos do material. */
   animarTelaoCurvo(t, dt) {
     const tc = this.tc, tv = t - tc.t0, emV = tv >= 0 && tv < VINHETA_S + .6;
-    if (emV || t - tc.tOc >= .05) { if (emV) desenharVinheta(tc.ctx, tc.W, tc.H, tc.bloco, tv, t); else { tc.tOc = t; desenharOcioso(tc.ctx, tc.W, tc.H, t); } tc.tex.needsUpdate = true; }
+    if (emV || t - tc.tOc >= (this.cfg.qualidade === 'alta' ? .05 : .1)) /* ocioso: 20 fps (alta) / 10 fps (baixa) */ { if (emV) desenharVinheta(tc.ctx, tc.W, tc.H, tc.bloco, tv, t); else { tc.tOc = t; desenharOcioso(tc.ctx, tc.W, tc.H, t); } tc.tex.needsUpdate = true; }
     atualizarTelao(tc.mat, t, dt, { vinheta: emV ? tv / VINHETA_S : -1, bloco: tc.bloco });
   }
   construirPlateia() {

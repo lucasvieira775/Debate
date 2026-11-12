@@ -473,7 +473,7 @@ function celebrar(on) { clearTimeout(E.celebrarT); E.celebrar = on; if (on) E.ce
 function aoNovoPasso(s) {
   const p = s.passo; if (!p) return;
   if (p.tipo === 'vinheta') est.vinheta(p.bloco, Math.max(0, s.agora - (p.t0 || s.agora))); // vinheta do bloco no telão curvo, sincronizada pelo relógio do servidor
-  if (p.tipo === 'intro') { anunciar(p.t2 ? (p.etapa === 2 ? '2º TURNO' : 'CONSIDERAÇÕES FINAIS') : `BLOCO ${p.etapa}`); if (p.etapa === 1) { sfx.aplausos(3, .3); est.festejarPlateia(3500); } }
+  if (p.tipo === 'intro') { if (p.t2) anunciar(p.etapa === 2 ? '2º TURNO' : 'CONSIDERAÇÕES FINAIS'); /* 1º turno: o "BLOCO N" já aparece na vinheta do telão */ if (p.etapa === 1) { sfx.aplausos(3, .3); est.festejarPlateia(3500); } }
   if (p.tipo === 'fala' && p.falante === E.eu) { setTimeout(() => { anunciar('SUA VEZ!'); sfx.vez(); }, s.roleta ? 2400 : 300); }
   if (p.tipo === 'escolha' && p.falante === E.eu) { anunciar('ESCOLHA SEU ADVERSÁRIO'); sfx.vez(); }
   if (p.tipo === 'pesquisa') sfx.sorteio();

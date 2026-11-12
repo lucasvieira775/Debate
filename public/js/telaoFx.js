@@ -20,6 +20,7 @@ const CORES = { // [topo, base] do realce por bloco (0 = ocioso)
   0: ['#3b82f6', '#22d3ee'], 1: ['#22c55e', '#facc15'], 2: ['#ef4444', '#3b82f6'], 3: ['#ef4444', '#f5b301'],
 };
 const corBloco = b => (CORES[b] || CORES[0]).map(c => new THREE.Color(c));
+const ALVO = {}; // cores-alvo por bloco (cache: nada alocado por frame)
 const sat = x => Math.min(1, Math.max(0, x));
 const suave = (a, b, x) => { const k = sat((x - a) / (b - a)); return k * k * (3 - 2 * k); };
 const pulso = (x, c, w) => Math.exp(-(((x - c) / w) ** 2));
@@ -157,7 +158,7 @@ export function atualizarTelao(mat, t, dt, estado = {}) {
   u.brilho.value = resp * (1 - a) + 1.04 * a + pico * .22;
   u.onda.value = (t * .045) % 1; u.ondaForca.value = 1 - .75 * a;
   // cor de realce do bloco (interpolada) — volta ao azul no ocioso
-  const [c1, c2] = corBloco(em || a > .05 ? estado.bloco : 0), kc = em ? 1 - Math.exp(-Math.min(dt, .1) * 6) : k;
+  const [c1, c2] = ALVO[em || a > .05 ? estado.bloco : 0] ||= corBloco(em || a > .05 ? estado.bloco : 0), kc = em ? 1 - Math.exp(-Math.min(dt, .1) * 6) : k;
   d.cor[0].lerp(c1, kc); d.cor[1].lerp(c2, kc); u.realce.value.copy(d.cor[0]); u.realce2.value.copy(d.cor[1]);
   u.realceForca.value = .12 + .55 * a + .45 * pico;
   u.tempo.value = t; u.progresso.value = p; u.atividade.value = a;
