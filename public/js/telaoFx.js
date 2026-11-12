@@ -47,10 +47,12 @@ float dCirc(float a, float b) { return abs(fract(a - b + .5) - .5); }
 `;
 
 const TELAO_F = COMUM_F + /* glsl */`
-uniform sampler2D mapa; uniform float rep, gradeForca; uniform vec2 resLed, modulos;
+uniform sampler2D mapa; uniform float rep, gradeForca, unico; uniform vec2 resLed, modulos;
 void main() {
   float ua = arcoU(), v = vUv.y;
-  vec3 c = texture2D(mapa, vec2(ua * rep, v)).rgb; // já linear (sRGB decodificado pelo hardware)
+  // unico = 1: UM só quadro do vídeo no centro do arco (proporção certa); o resto do arco estende as bordas dele, desfocado e mais escuro (sem cópias)
+  float x = ua * rep - (rep - 1.) * .5 * unico, xc = mix(x, clamp(x, .002, .998), unico), fora = abs(x - xc);
+  vec3 c = texture2D(mapa, vec2(xc, v), min(fora * 8., 6.)).rgb * mix(1., .5, smoothstep(0., 1.2, fora)); // já linear (sRGB decodificado pelo hardware)
   c *= .82; // branco do conteúdo ≈ .82 → abaixo do threshold do bloom
   // painéis/módulos: leve variação de brilho e de tom por gabinete
   vec2 md = floor(vec2(ua, v) * modulos); float hm = hash(md);
@@ -121,13 +123,13 @@ const unifComuns = () => ({
   varredura: { value: 0 }, varreduraForca: { value: 0 }, onda: { value: 0 }, ondaForca: { value: 1 }, inverterU: { value: 0 },
 });
 
-/** Material do telão: recebe a CanvasTexture do conteúdo e quantas vezes o tile se repete ao longo do arco. */
+/** Material do telão: recebe a CanvasTexture do conteúdo e quantos tiles cabem no arco (proporção). Com uniform unico=1 (padrão) mostra um só quadro no centro. */
 export function criarMaterialTelao(tex, repeticoes = 1) {
   tex.wrapS = THREE.RepeatWrapping; tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = Math.max(tex.anisotropy, 8);
   const iw = tex.image?.width || 2048, ih = tex.image?.height || 576;
   const mat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, unifComuns(), {
-      rep: { value: repeticoes }, gradeForca: { value: 1 },
+      rep: { value: repeticoes }, gradeForca: { value: 1 }, unico: { value: 1 }, // unico 0 = tile repetido ao longo do arco
       resLed: { value: new THREE.Vector2(iw * repeticoes, ih) },   // 1 LED por pixel do canvas
       modulos: { value: new THREE.Vector2(Math.round(iw * repeticoes / 128), Math.max(1, Math.round(ih / 128))) }, // gabinetes 128×128 px
     }]),
