@@ -796,15 +796,15 @@ const G = { // poses-chave [rot x, abertura z, cotovelo, giro do braço, giro da
   batAlto: [-.42, .14, -1.75, -.12, 1.15, 'fala', .12], batBaixo: [-.5, .14, -1.25, -.12, 1.15, 'fala', .1],
   expoeA: [-.42, .36, -1.35, .3, -.2, 'aberta', .12], expoeB: [-.48, .5, -1.25, .45, -.35, 'aberta', .14],
   aponta: [-1.12, .04, -.5, -.25, 0, 'aponta', .35], apontaB: [-1.2, .02, -.32, -.25, 0, 'aponta', .4],
-  umPonto: [-.3, .2, -2.15, -.3, 1.3, 'aponta', .15],
+  umPonto: [-.55, .25, -2.2, -.3, 1.3, 'aponta', .2],
   conta: [-.38, .16, -1.95, -.35, 1.3, 'aponta', .14],
-  peito: [-.12, -.2, -2.05, -1.15, .6, 'aberta', .2],
+  peito: [-.45, -.25, -1.9, -1.1, 0, 'aberta', .3],
   punhoA: [-.45, .16, -1.85, -.2, 1.2, 'punho', .12], punhoB: [-.5, .16, -1.4, -.2, 1.2, 'punho', .1],
   pinca: [-.42, .1, -1.8, -.35, 1.2, 'pinca', .12],
   acalmaA: [-.78, .32, -.85, -.35, -1.1, 'aberta', .25], acalmaB: [-.66, .32, -.75, -.35, -1.1, 'aberta', .22],
   varreDentro: [-.75, -.08, -.75, -.7, -1, 'aberta', .25], varreFora: [-.65, .75, -.6, .35, -.6, 'aberta', .2],
   gira: [-.45, .18, -1.5, -.15, .9, 'fala', .12],
-  unidas: [-.42, -.1, -1.6, -.8, .4, 'concha', .2],
+  unidas: [-.5, -.16, -1.55, -.8, .4, 'concha', .25],
 };
 const GESTOS = {
   // o gesto antigo: as duas mãos sobem e descem alternadas, palmas abertas
@@ -816,11 +816,11 @@ const GESTOS = {
   // aponta para a frente (plateia/câmera), com pequenos toques
   apontar: { d: [1.8, 2.8], en: .9, f: (u, e) => ({ dir: lerpQ(G.aponta, G.apontaB, bat(u, 1.8) * (.5 + .5 * e)) }) },
   // indicador levantado: “um ponto importante”
-  umPonto: { d: [1.8, 2.8], en: .6, f: u => ({ dir: lerpQ(G.umPonto, [-.34, .2, -2.05, -.3, 1.3, 'aponta', .17], bat(u, 1.3)) }) },
+  umPonto: { d: [1.8, 2.8], en: .6, f: u => ({ dir: lerpQ(G.umPonto, [-.6, .25, -2.1, -.3, 1.3, 'aponta', .22], bat(u, 1.3)) }) },
   // conta nos dedos: 1, 2, 3 (a outra mão aberta acompanha)
   contar: { d: [2.8, 3.6], en: .4, f: u => ({ dir: [...G.conta.slice(0, 5), u < 1 ? 'aponta' : u < 2 ? 'paz' : 'tres', G.conta[6]].map((v, i) => i === 2 ? v + bat(u, 1) * .12 : v), esq: lerpQ(Q.falaB, G.batAlto, .4) }) },
   // mão no peito: sinceridade
-  peito: { d: [2, 3], en: .15, f: u => ({ dir: lerpQ(G.peito, [-.14, -.2, -2.1, -1.15, .6, 'aberta', .22], onda(u, 1.6)) }) },
+  peito: { d: [2, 3], en: .15, f: u => ({ dir: lerpQ(G.peito, [-.47, -.25, -1.95, -1.1, 0, 'aberta', .32], onda(u, 1.6)) }) },
   // punho fechado batendo de leve no ar
   punho: { d: [1.8, 2.8], en: 1, f: (u, e) => ({ dir: lerpQ(G.punhoA, G.punhoB, bat(u, 2.3) * (.5 + .5 * e)) }) },
   // pinça (precisão): polegar e indicador juntos, toquinhos curtos
@@ -832,7 +832,7 @@ const GESTOS = {
   // mão girando “e assim por diante”
   girar: { d: [1.8, 2.8], en: .5, f: u => { const w = u * 7; return { dir: [G.gira[0] + Math.cos(w) * .07, G.gira[1] + Math.sin(w) * .05, G.gira[2] + Math.sin(w) * .18, G.gira[3], G.gira[4] + Math.cos(w) * .35, 'fala', G.gira[6]] }; } },
   // mãos unidas à frente, dedos juntos (pensativo)
-  unidas: { d: [2, 3.2], en: 0, f: u => { const p = lerpQ(G.unidas, [-.46, -.1, -1.68, -.8, .4, 'concha', .22], onda(u, 1.5)); return { dir: p, esq: p }; } },
+  unidas: { d: [2, 3.2], en: 0, f: u => { const p = lerpQ(G.unidas, [-.54, -.16, -1.62, -.8, .4, 'concha', .27], onda(u, 1.5)); return { dir: p, esq: p }; } },
 };
 const semente = txt => { let h = 1779033703; for (const c of txt) { h = Math.imul(h ^ c.charCodeAt(0), 3432918353); h = h << 13 | h >>> 19; }
   return () => { h = h + 0x6D2B79F5 | 0; let x = Math.imul(h ^ h >>> 15, 1 | h); x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x; return ((x ^ x >>> 14) >>> 0) / 4294967296; }; };
