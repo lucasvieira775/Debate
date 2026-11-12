@@ -1329,7 +1329,7 @@ export class Estudio {
     med.setOlhar(medVira ? .95 : alvoY * .5, medVira ? .12 : .05);
     if (this.medFalando) med.setFala(.55 + Math.random() * .45);
     med.gesticula = !!this.medFalando; med.update(dt, t);
-    if (this.vitrine && this.vitrine.root.visible) { this.vitrine.setOlhar(Math.sin(t * .6) * .25, .05); this.vitrine.update(dt, t); if (this.demoV) this.frameDemo(dt, t); else if (!this.vitrine.anim) this.vitrine.bracos.forEach(b => { b.rotation.x = -.12 + Math.sin(t * 1.5 + b.userData.lado) * .04; }); }
+    if (this.vitrine && this.vitrine.root.visible) { this.vitrine.setOlhar(Math.sin(t * .6) * .25, .05); this.vitrine.update(dt, t); if (this.demoV) this.frameDemo(dt, t); else if (!this.vitrine.anim) this.vitrine.bracos.forEach(b => { b.rotation.x = (b.userData.r?.x ?? -.08) - .04 + Math.sin(t * 1.5 + b.userData.lado) * .04; }); } // balanço sobre o ângulo suavizado (sem tranco no fim da dança)
     if (this.campeao && (this.campeao.root.visible || Rv)) { this.campeao.setOlhar(Math.sin(t * .5) * .2, .05); this.campeao.update(dt, t); }
     // efeitos (emojis)
     this.efeitos = this.efeitos.filter(e => { const k = (t - e.t0) / (e.dur || 1.8); if (k >= 1) { this.scene.remove(e.sp); return false; } e.sp.position.set(e.base.x, e.base.y + k * 1.1, e.base.z); e.sp.material.opacity = 1 - k * k; return true; });

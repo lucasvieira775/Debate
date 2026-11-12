@@ -554,6 +554,30 @@ export class Avatar {
   setFala(v) { this.falaAlvo = Math.max(this.falaAlvo, v); }
   ocultarCabeca(v) { this.cabeca.visible = this.pescoco.visible = !v; }
 
+  /** Gestos de fala (GESTOS): sorteia (semente por avatar, nunca o mesmo seguido), mistura o anterior com o novo
+   *  numa transição suave e entra/sai do repouso pelo peso. Devolve { esq, dir } ou null quando não gesticula. */
+  gestoFala(dt, t) {
+    const g = this.gst ||= { n: null, ini: 0, dur: 0, esp: false, ant: null, peso: 0, energia: 0, ult: -9, hist: [], rng: semente(JSON.stringify(this.cfg)) };
+    if (this.gesticula && this.fala > .05) g.ult = t;
+    const ativo = this.gesticula && t - g.ult < .8; // segura o gesto nas pausas curtas entre palavras
+    g.peso += ((ativo ? 1 : 0) - g.peso) * (1 - Math.exp(-dt * (ativo ? 3 : 1.8)));
+    g.energia += ((ativo ? this.fala : 0) - g.energia) * (1 - Math.exp(-dt * .8));
+    if (g.peso < .004) { g.n = g.ant = null; return null; }
+    const e = Math.min(1, Math.max(0, (g.energia - .15) / .55));
+    if (!g.n || t - g.ini > g.dur) { // próximo gesto: evita os 2 últimos; mais chance para quem combina com a energia
+      const nomes = Object.keys(GESTOS).filter(n => !g.hist.includes(n)), pesos = nomes.map(n => .35 + (1 - Math.abs(GESTOS[n].en - e)) ** 2 * 1.65);
+      let r = g.rng() * pesos.reduce((a, b) => a + b, 0), i = 0; while (i < nomes.length - 1 && (r -= pesos[i]) > 0) i++;
+      if (g.n) g.ant = { n: g.n, ini: g.ini, esp: g.esp };
+      const D = GESTOS[nomes[i]].d; g.n = nomes[i]; g.ini = t; g.esp = g.rng() < .5; g.dur = (D[0] + (D[1] - D[0]) * g.rng()) * (1.1 - e * .25);
+      g.hist = [g.n, ...g.hist].slice(0, 2);
+    }
+    const ver = (n, ini, esp) => { const p = GESTOS[n].f(t - ini, e); return esp ? { esq: p.dir, dir: p.esq } : p; };
+    const R = this.posePe ? REP_PE : REP, a = ver(g.n, g.ini, g.esp), k = suave(Math.min(1, (t - g.ini) / TRANS_GESTO)), b = g.ant && k < 1 ? ver(g.ant.n, g.ant.ini, g.ant.esp) : null;
+    if (k >= 1) g.ant = null;
+    const lado = l => lerpQ(R, b ? lerpQ(b[l] || R, a[l] || R, k) : a[l] || R, g.peso);
+    return { esq: lado('esq'), dir: lado('dir') };
+  }
+
   update(dt, t) {
     this.ocioso += dt;
     // cabeça segue o olhar (com limites) + leve balanço
@@ -564,7 +588,7 @@ export class Avatar {
     this.cabeca.rotation.y = this.olharAtual.y + Math.sin(this.ocioso * .7) * .03;
     this.cabeca.rotation.x = -this.olharAtual.p + Math.sin(this.ocioso * .9) * .015;
     this.cabeca.rotation.z = Math.sin(this.ocioso * .5) * .02;
-    this.torso.rotation.y = this.olharAtual.y * .18;
+    // (giro do tronco: só suavizado mais abaixo; zerar aqui todo quadro fazia o giro das danças depender do dt e tremer)
     // respiração
     this.torso.scale.y = 1 + Math.sin(this.ocioso * 2.1) * .008;
     // piscar
@@ -593,7 +617,8 @@ export class Avatar {
     this.bocaSorriso.visible = sorr > .05;
     if (sorr > .05) { this.bocaAberta.visible = this.bocaFechada.visible = false; this.bocaSorriso.scale.set(1, sorr, 1); }
     if (pose?.riso) this.olhos.scale.y = Math.min(this.olhos.scale.y, .3);
-    const kb = 1 - Math.exp(-dt * (pose ? 12 : 5));
+    const gf = this.gestoFala(dt, t); // gestos de fala (null = sem gesticular)
+    const kb = 1 - Math.exp(-dt * (pose ? 12 : gf ? 8 : 5));
     // corpo (pulos, ginga)
     // caminhada: pernas e braços balançam alternados, tronco sobe e desce a cada passo
     const an = this.andar; this.faseAndar += dt * 7.5 * an;
@@ -610,8 +635,12 @@ export class Avatar {
     this.torso.rotation.y += (alvoRotY - this.torso.rotation.y) * kb;
     this.torso.rotation.z += (alvoRotZ - this.torso.rotation.z) * kb;
     if (this.empurra !== undefined) this.torso.rotation.x += ((this.empurra ? .16 : 0) - this.torso.rotation.x) * kb; // inclina o tronco ao empurrar
-    if (pose?.cabeca !== undefined) this.cabeca.rotation.x = pose.cabeca;
-    if (pose?.cabecaZ !== undefined) this.cabeca.rotation.z = pose.cabecaZ;
+    // cabeça da pose: entra/sai com peso suavizado (antes trocava seco no 1º/último quadro da pose)
+    for (const [ch, ei] of [['cabeca', 'x'], ['cabecaZ', 'z']]) {
+      const tem = pose?.[ch] !== undefined, kk = 'k' + ch; if (tem) this['v' + ch] = pose[ch];
+      this[kk] = (this[kk] || 0) + ((tem ? 1 : 0) - (this[kk] || 0)) * kb;
+      if (this[kk] > .001) this.cabeca.rotation[ei] += (this['v' + ch] - this.cabeca.rotation[ei]) * this[kk];
+    }
     // braços
     for (const b of this.bracos) {
       const s = b.userData.lado;
@@ -620,7 +649,7 @@ export class Avatar {
       else if (an > .05 && !pose) { rx = -.15 - Math.sin(ph) * .45 * s * an; rz = .06; cot = -.35; ry = 0; gm = 0; }
       else if (this.cruza && !pose) [rx, rz, cot, ry, gm, mao, om] = s > 0 ? Q.cruzaE : Q.cruzaD; // parada de braços cruzados
       else if (pose) { const p0 = s > 0 ? pose.esq : pose.dir, p = this.posePe && p0 === REP ? REP_PE : p0; if (p) [rx, rz, cot = -.25, ry = 0, gm = 0, mao = 'relax', om = 0] = p; }
-      else if (this.gesticula && this.fala > .05) [rx, rz, cot, ry, gm, mao, om] = lerpQ(REP, lerpQ(Q.falaB, Q.falaA, (1 + Math.sin(t * 3.1 + s * 1.7)) / 2), Math.min(1, this.fala * 1.5));
+      else if (gf) [rx, rz, cot, ry, gm, mao, om] = s > 0 ? gf.esq : gf.dir;
       const bs = b.userData.base, ko = kb;
       b.position.x += (bs.x - s * .03 * om - b.position.x) * ko; b.position.y += (bs.y + .03 * om - b.position.y) * ko; b.position.z += (bs.z + .1 * om - b.position.z) * ko;
       // ângulos suavizados guardados à parte; nos emotes, o braço gira no eixo vertical para compensar a largura
@@ -680,6 +709,7 @@ const MAOS = {
   joinha: { c: [1.6, 1.6, 1.6, 1.6], f2: 1.35, p: [-1.65, -.1, 0], l: 0 },
   aponta: { c: [0, 1.6, 1.6, 1.6], f2: 1.35, p: [-.35, 1, .5], l: 0 },
   paz: { c: [0, 0, 1.6, 1.6], f2: 1.35, p: [-.35, 1, .5], l: 1.6 },
+  tres: { c: [0, 0, 0, 1.6], f2: 1.35, p: [-.35, 1, .5], l: 1.2 }, // contar nos dedos (3)
   coracao: { c: [.05, .05, .05, .05], lat: .28, p: [-1.57, 0, .05], l: 0 },
   concha: { c: [.6, .65, .7, .75], p: [-.6, .2, .1], l: .3 },
   pinca: { c: [.75, .9, 1.1, 1.25], p: [-.9, .75, .3], l: .2 },
@@ -756,6 +786,57 @@ export const ANIMACOES = Object.keys(POSES);
 export function registrarPose(nome, fn, sorriso = 0) { POSES[nome] = sorriso ? u => ({ sorriso, ...fn(u) }) : fn; }
 /** Fórmulas-chave dos braços (Q) e repouso (REP), para quem cria poses fora deste arquivo. */
 export const POSE_Q = Q;
+
+// ---------- gestos de fala (no púlpito) ----------
+// Cada gesto: d = duração [mín, máx] (s), en = ênfase (0 calmo … 1 enfático), f(u, e) → { dir, esq } (braço ausente = repouso).
+// u = segundos desde o início do gesto, e = energia da fala (0..1). Tudo contínuo em u: sem saltos.
+const bat = (u, hz, fase = 0) => { const v = onda(u, hz * 2 * Math.PI, fase); return v * v; }; // batida no ritmo (sobe devagar, desce “seca”)
+const suave = k => k * k * (3 - 2 * k);
+const G = { // poses-chave [rot x, abertura z, cotovelo, giro do braço, giro da mão, mão, avanço do ombro]
+  batAlto: [-.42, .14, -1.75, -.12, 1.15, 'fala', .12], batBaixo: [-.5, .14, -1.25, -.12, 1.15, 'fala', .1],
+  expoeA: [-.42, .36, -1.35, .3, -.2, 'aberta', .12], expoeB: [-.48, .5, -1.25, .45, -.35, 'aberta', .14],
+  aponta: [-1.12, .04, -.5, -.25, 0, 'aponta', .35], apontaB: [-1.2, .02, -.32, -.25, 0, 'aponta', .4],
+  umPonto: [-.3, .2, -2.15, -.3, 1.3, 'aponta', .15],
+  conta: [-.38, .16, -1.95, -.35, 1.3, 'aponta', .14],
+  peito: [-.12, -.2, -2.05, -1.15, .6, 'aberta', .2],
+  punhoA: [-.45, .16, -1.85, -.2, 1.2, 'punho', .12], punhoB: [-.5, .16, -1.4, -.2, 1.2, 'punho', .1],
+  pinca: [-.42, .1, -1.8, -.35, 1.2, 'pinca', .12],
+  acalmaA: [-.78, .32, -.85, -.35, -1.1, 'aberta', .25], acalmaB: [-.66, .32, -.75, -.35, -1.1, 'aberta', .22],
+  varreDentro: [-.75, -.08, -.75, -.7, -1, 'aberta', .25], varreFora: [-.65, .75, -.6, .35, -.6, 'aberta', .2],
+  gira: [-.45, .18, -1.5, -.15, .9, 'fala', .12],
+  unidas: [-.42, -.1, -1.6, -.8, .4, 'concha', .2],
+};
+const GESTOS = {
+  // o gesto antigo: as duas mãos sobem e descem alternadas, palmas abertas
+  classico: { d: [2.4, 4], en: .45, f: u => ({ dir: lerpQ(Q.falaB, Q.falaA, onda(u, 3.1)), esq: lerpQ(Q.falaB, Q.falaA, onda(u, 3.1, 1.7)) }) },
+  // mão aberta “batendo” a ênfase no ritmo da fala
+  batida: { d: [2, 3.4], en: .7, f: (u, e) => ({ dir: lerpQ(G.batAlto, G.batBaixo, bat(u, 2.1) * (.55 + .45 * e)) }) },
+  // as duas mãos abertas, palmas para cima, “expondo” a proposta
+  expondo: { d: [2.4, 3.8], en: .35, f: u => ({ dir: lerpQ(G.expoeA, G.expoeB, onda(u, 2.2)), esq: lerpQ(G.expoeA, G.expoeB, onda(u, 2.2, .6)) }) },
+  // aponta para a frente (plateia/câmera), com pequenos toques
+  apontar: { d: [1.8, 2.8], en: .9, f: (u, e) => ({ dir: lerpQ(G.aponta, G.apontaB, bat(u, 1.8) * (.5 + .5 * e)) }) },
+  // indicador levantado: “um ponto importante”
+  umPonto: { d: [1.8, 2.8], en: .6, f: u => ({ dir: lerpQ(G.umPonto, [-.34, .2, -2.05, -.3, 1.3, 'aponta', .17], bat(u, 1.3)) }) },
+  // conta nos dedos: 1, 2, 3 (a outra mão aberta acompanha)
+  contar: { d: [2.8, 3.6], en: .4, f: u => ({ dir: [...G.conta.slice(0, 5), u < 1 ? 'aponta' : u < 2 ? 'paz' : 'tres', G.conta[6]].map((v, i) => i === 2 ? v + bat(u, 1) * .12 : v), esq: lerpQ(Q.falaB, G.batAlto, .4) }) },
+  // mão no peito: sinceridade
+  peito: { d: [2, 3], en: .15, f: u => ({ dir: lerpQ(G.peito, [-.14, -.2, -2.1, -1.15, .6, 'aberta', .22], onda(u, 1.6)) }) },
+  // punho fechado batendo de leve no ar
+  punho: { d: [1.8, 2.8], en: 1, f: (u, e) => ({ dir: lerpQ(G.punhoA, G.punhoB, bat(u, 2.3) * (.5 + .5 * e)) }) },
+  // pinça (precisão): polegar e indicador juntos, toquinhos curtos
+  pinca: { d: [2, 3], en: .3, f: u => ({ dir: lerpQ(G.pinca, [-.46, .1, -1.6, -.35, 1.2, 'pinca', .12], bat(u, 2.4)) }) },
+  // palmas para baixo “acalmando” os ânimos
+  acalmar: { d: [2.2, 3.2], en: .1, f: u => ({ dir: lerpQ(G.acalmaA, G.acalmaB, onda(u, 3)), esq: lerpQ(G.acalmaA, G.acalmaB, onda(u, 3)) }) },
+  // braço varre o espaço de dentro para fora (“todo o país”)
+  varrer: { d: [2, 2.8], en: .65, f: u => ({ dir: lerpQ(G.varreDentro, G.varreFora, suave(Math.min(1, Math.max(0, (u - .35) / 1.1)))) }) },
+  // mão girando “e assim por diante”
+  girar: { d: [1.8, 2.8], en: .5, f: u => { const w = u * 7; return { dir: [G.gira[0] + Math.cos(w) * .07, G.gira[1] + Math.sin(w) * .05, G.gira[2] + Math.sin(w) * .18, G.gira[3], G.gira[4] + Math.cos(w) * .35, 'fala', G.gira[6]] }; } },
+  // mãos unidas à frente, dedos juntos (pensativo)
+  unidas: { d: [2, 3.2], en: 0, f: u => { const p = lerpQ(G.unidas, [-.46, -.1, -1.68, -.8, .4, 'concha', .22], onda(u, 1.5)); return { dir: p, esq: p }; } },
+};
+const semente = txt => { let h = 1779033703; for (const c of txt) { h = Math.imul(h ^ c.charCodeAt(0), 3432918353); h = h << 13 | h >>> 19; }
+  return () => { h = h + 0x6D2B79F5 | 0; let x = Math.imul(h ^ h >>> 15, 1 | h); x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x; return ((x ^ x >>> 14) >>> 0) / 4294967296; }; };
+const TRANS_GESTO = .55; // s de transição entre um gesto e o próximo
 
 // ---------- retratos (imagem 2D do rosto para a interface) ----------
 let rRenderer = null, rScene = null, rCam = null;

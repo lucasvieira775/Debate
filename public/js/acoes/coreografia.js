@@ -209,7 +209,7 @@ export class Acoes {
       if (a.passoN !== undefined && n !== a.passoN) this.som(a, 'carrega', .5);
       a.passoN = n;
     }
-    return u >= 1 && (Math.abs(dy) < .02 || c.t > c.dur + .5);
+    return u >= 1 && (Math.abs(dy) < .004 || c.t > c.dur + 1); // .02 / +.5 s deixavam um tranco visível ao encaixar no lugar
   }
 
   // ---------- objeto ----------

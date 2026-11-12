@@ -25,7 +25,7 @@ function corpo(u) {
     return { b, py: .18 * k * k + q, pz: 0, q: -.35 * sen(k * PI), j: .4 * sen(k * PI) };
   }
   if (u < N_FIM) {
-    const k = suave((u - 1.1) / .6), b = PI / 2 + (SENTA - PI / 2) * k + (k >= 1 ? sen((u - 1.7) * 1.3) * .04 : 0);
+    const k = suave((u - 1.1) / .6), b = PI / 2 + (SENTA - PI / 2) * k + (k >= 1 ? sen((u - 1.7) * 1.3) * .04 * (1 - suave((u - N_FIM + .4) / .4)) : 0); // balanço some antes de levantar (sem salto)
     return { b, py: .18 - .88 * cos(b), pz: -.88 + .88 * sen(b), q: b - PI / 2, j: 0 };
   }
   const k = suave((u - N_FIM) / LEVANTA), b0 = SENTA, y0 = .18 - .88 * cos(b0), z0 = -.88 + .88 * sen(b0);
@@ -39,9 +39,9 @@ registrarPose('vitNocaute', u => {
   if (u < QUEDA) { const k = clamp(u / .5, 0, 1), br = [-1.4 - k * .8, .9, -.35, 0, 0, 'aberta'];
     return { esq: br, dir: br, pernaE: [c.q - .25 * sen(k * PI), c.j + .3, .06], pernaD: pe, cabeca: .35 * k, olhosFechados: k > .6, boca: .6 }; }
   if (u < N_FIM) {
-    const v = u - QUEDA, gira = v * 5.5, apoio = suave((u - 1.1) / .6);
+    const v = u - QUEDA, gira = v * 5.5, apoio = suave((u - 1.1) / .6), ent = suave(v / .3), sai = 1 - suave((u - N_FIM + .4) / .4); // entra/sai do zonzo sem salto da cabeça
     const br = mix([-.2, .55, -.1, 0, 0, 'aberta'], [.42, .3, -.12, 0, 0, 'aberta'], apoio); // deitado: braços abertos; sentado: apoiado atrás
-    return { esq: br, dir: br, pernaE: pe, pernaD: [c.q, .08, .1], cabeca: .12 + sen(gira) * .24, cabecaZ: cos(gira) * .24, inclina: cos(gira) * .05 * apoio, olhosFechados: true, boca: .14 };
+    return { esq: br, dir: br, pernaE: pe, pernaD: [c.q, .08, .1], cabeca: .12 + sen(gira) * .24 * ent * sai + .23 * (1 - ent),cabecaZ: cos(gira) * .24 * ent * sai, inclina: cos(gira) * .05 * apoio * sai,olhosFechados: true, boca: .14 };
   }
   const k = suave((u - N_FIM) / LEVANTA), br = mix([.42, .3, -.12, 0, 0, 'aberta'], REP, k);
   return { esq: br, dir: br, pernaE: pe, pernaD: pe, cabeca: .12 * (1 - k), cabecaZ: sen(k * PI * 2) * .1 };
