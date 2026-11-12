@@ -1184,32 +1184,46 @@ export class Estudio {
     ctx.beginPath(); ctx.arc(bx - 190, by - 30, 90, Math.PI, 0); ctx.fill();
     ctx.beginPath(); ctx.moveTo(bx + 90, by - 120); ctx.quadraticCurveTo(bx + 190, by - 10, bx + 290, by - 120); ctx.lineTo(bx + 250, by - 30); ctx.lineTo(bx + 130, by - 30); ctx.fill();
   }
-  titulo(ctx, x, y, esc2 = 1) {
-    ctx.save(); ctx.translate(x, y); ctx.scale(esc2, esc2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = `150px ${FONTE}`; ctx.lineWidth = 18; ctx.strokeStyle = '#0b1f6b'; ctx.strokeText('DEBATE', 0, -70); ctx.fillStyle = '#f1f5ff'; ctx.fillText('DEBATE', 0, -70);
-    ctx.rotate(-.04); rr(ctx, -360, 10, 720, 130, 24); ctx.fillStyle = '#facc15'; ctx.fill(); ctx.lineWidth = 8; ctx.strokeStyle = '#a16207'; ctx.stroke();
-    ctx.font = `105px ${FONTE}`; ctx.fillStyle = '#0b1f6b'; ctx.fillText('PRESIDENCIAL', 0, 80); ctx.restore();
+  /** Logo "DEBATE / PRESIDENCIAL" centrado em (x, y), ocupando exatamente `larg` px de largura (altMax limita a altura). Retorna a altura. */
+  titulo(ctx, x, y, larg, altMax = 0) {
+    const medir = txt => { ctx.font = `100px ${FONTE}`; return ctx.measureText(txt).width; };
+    const pad = larg * .035, tD = 100 * larg / medir('DEBATE'), tP = 100 * (larg - 2 * pad) / medir('PRESIDENCIAL');
+    const hD = tD * .7, hP = tP * .7 + pad * 1.6, gap = larg * .03, total = hD + gap + hP, y0 = y - total / 2, yp = y0 + hD + gap;
+    if (altMax && total > altMax) return this.titulo(ctx, x, y, larg * altMax / total);
+    ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
+    const sombra = on => { ctx.shadowColor = on ? 'rgba(2,8,35,.55)' : 'transparent'; ctx.shadowBlur = larg * .02; ctx.shadowOffsetY = larg * .006; };
+    ctx.font = `${tD}px ${FONTE}`; sombra(true); ctx.lineWidth = larg * .014; ctx.strokeStyle = '#0b1f6b'; ctx.strokeText('DEBATE', x, y0 + hD); sombra(false);
+    let g = ctx.createLinearGradient(0, y0, 0, y0 + hD); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#d5e1ff'); ctx.fillStyle = g; ctx.fillText('DEBATE', x, y0 + hD);
+    g = ctx.createLinearGradient(0, yp, 0, yp + hP); g.addColorStop(0, '#fde047'); g.addColorStop(1, '#f5b40b');
+    rr(ctx, x - larg / 2, yp, larg, hP, hP * .16); sombra(true); ctx.fillStyle = g; ctx.fill(); sombra(false); ctx.lineWidth = larg * .006; ctx.strokeStyle = '#a16207'; ctx.stroke();
+    ctx.font = `${tP}px ${FONTE}`; ctx.fillStyle = '#0b1f6b'; ctx.fillText('PRESIDENCIAL', x, yp + hP / 2 + tP * .35); ctx.restore();
+    return total;
+  }
+  /** Define a maior fonte (até `max` px) em que `txt` cabe em `larg` px. */
+  caber(ctx, txt, larg, max, fonte = FONTE, peso = '') {
+    ctx.font = `${peso}${max}px ${fonte}`; const w = ctx.measureText(txt).width;
+    if (w > larg) ctx.font = `${peso}${max * larg / w}px ${fonte}`;
   }
   desenharLED() {
     const { ctx, tex } = this.led, W = 2048, H = 768, d = this.ledDados || { modo: 'titulo' };
     this.fundoLED(ctx, W, H);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const faixaTopo = (txt) => { this.titulo(ctx, 300, 120, .42); ctx.fillStyle = 'rgba(5,12,40,.55)'; rr(ctx, 600, 40, 1400, 110, 26); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = `70px ${FONTE}`; ctx.fillText(txt, 1300, 97); };
+    const faixaTopo = (txt) => { this.titulo(ctx, 300, 100, 320); ctx.fillStyle = 'rgba(5,12,40,.6)'; rr(ctx, 560, 30, 1440, 140, 28); ctx.fill(); ctx.fillStyle = '#fff'; this.caber(ctx, txt, 1360, 96); ctx.fillText(txt, 1280, 104); };
     const cartaoTema = (t, rotulo, girando) => {
       ctx.fillStyle = 'rgba(5,12,40,.72)'; rr(ctx, 220, 220, 1608, 380, 40); ctx.fill();
       ctx.lineWidth = 8; ctx.strokeStyle = girando ? '#facc15' : '#60a5fa'; ctx.stroke();
       rr(ctx, 280, 290, 240, 240, 36); ctx.fillStyle = '#facc15'; ctx.fill();
       ctx.fillStyle = '#0b1f6b'; ctx.font = `150px ${FONTE}`; ctx.fillText(t.uf, 400, 415);
-      ctx.textAlign = 'left'; ctx.fillStyle = '#93c5fd'; ctx.font = `bold 52px ${FONTE_TXT}`; ctx.fillText((rotulo + ' · ' + t.estado).toUpperCase(), 580, 300);
-      ctx.fillStyle = '#fff'; ctx.font = `92px ${FONTE}`; quebrar(ctx, t.titulo, 1180).slice(0, 2).forEach((l, i) => ctx.fillText(l, 580, 400 + i * 100));
+      ctx.textAlign = 'left'; ctx.fillStyle = '#93c5fd'; ctx.font = `bold 58px ${FONTE_TXT}`; ctx.fillText((rotulo + ' · ' + t.estado).toUpperCase(), 580, 290);
+      ctx.fillStyle = '#fff'; ctx.font = `112px ${FONTE}`; quebrar(ctx, t.titulo, 1200).slice(0, 2).forEach((l, i) => ctx.fillText(l, 580, 400 + i * 116));
       ctx.textAlign = 'center';
     };
     switch (d.modo) {
-      case 'titulo': this.titulo(ctx, W / 2, H / 2 - 40, 1.25); ctx.fillStyle = '#e0e7ff'; ctx.font = `bold 54px ${FONTE_TXT}`; ctx.fillText(d.sub || 'ELEIÇÕES 2026', W / 2, H - 120); break;
+      case 'titulo': this.titulo(ctx, W / 2, 322, W * .7, 580); ctx.fillStyle = '#e0e7ff'; this.caber(ctx, d.sub || 'ELEIÇÕES 2026', W * .7, 74, FONTE_TXT, 'bold '); ctx.fillText(d.sub || 'ELEIÇÕES 2026', W / 2, 692); break;
       case 'tema': faixaTopo(d.cabecalho || ''); cartaoTema(TEMA[d.tema], 'Tema', false); break;
       case 'roleta': faixaTopo('SORTEANDO O TEMA…'); cartaoTema(TEMAS[Math.random() * TEMAS.length | 0], 'Sorteio', true); break;
       case 'texto': faixaTopo(d.cabecalho || ''); ctx.fillStyle = 'rgba(5,12,40,.72)'; rr(ctx, 220, 220, 1608, 400, 40); ctx.fill();
-        ctx.fillStyle = '#fff'; ctx.font = `76px ${FONTE}`; quebrar(ctx, d.texto, 1480).slice(0, 4).forEach((l, i, a) => ctx.fillText(l, W / 2, 420 - (a.length - 1) * 45 + i * 90)); break;
+        ctx.fillStyle = '#fff'; ctx.font = `104px ${FONTE}`; quebrar(ctx, d.texto, 1480).slice(0, 3).forEach((l, i, a) => ctx.fillText(l, W / 2, 422 - (a.length - 1) * 59 + i * 118)); break;
       case 'fala': {
         const p = PARTIDO[d.partido] || PARTIDO.PUN;
         ctx.fillStyle = p.cor; rr(ctx, 60, 40, 1500, 130, 30); ctx.fill();
@@ -1219,10 +1233,10 @@ export class Estudio {
         ctx.textAlign = 'center';
         rr(ctx, 1600, 40, 390, 130, 30); ctx.fillStyle = d.alerta ? '#b91c1c' : '#0b1640'; ctx.fill();
         ctx.fillStyle = '#fff'; ctx.font = `100px ${FONTE}`; ctx.fillText(d.tempo || '', 1795, 112);
-        if (d.rotulo) { ctx.fillStyle = '#facc15'; ctx.font = `bold 46px ${FONTE_TXT}`; ctx.fillText(d.rotulo.toUpperCase(), W / 2, 230); }
-        ctx.fillStyle = 'rgba(5,12,40,.75)'; rr(ctx, 120, 280, 1808, 400, 36); ctx.fill();
-        ctx.fillStyle = '#fff'; ctx.font = `64px ${FONTE_TXT}`; ctx.font = `bold 64px ${FONTE_TXT}`;
-        const linhas = quebrar(ctx, d.texto || '…', 1700); linhas.slice(-4).forEach((l, i) => ctx.fillText(l, W / 2, 360 + i * 84));
+        if (d.rotulo) { ctx.fillStyle = '#facc15'; this.caber(ctx, d.rotulo.toUpperCase(), 1800, 56, FONTE_TXT, 'bold '); ctx.fillText(d.rotulo.toUpperCase(), W / 2, 226); }
+        ctx.fillStyle = 'rgba(5,12,40,.75)'; rr(ctx, 100, 272, 1848, 456, 36); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = `bold 84px ${FONTE_TXT}`;
+        const linhas = quebrar(ctx, d.texto || '…', 1740); linhas.slice(-4).forEach((l, i) => ctx.fillText(l, W / 2, 344 + i * 104));
         break;
       }
       case 'poll': case 'resultado': {
@@ -1254,7 +1268,7 @@ export class Estudio {
       ctx.fillStyle = p.cor; rr(ctx, 60, 180, 904, 150, 28); ctx.fill();
       ctx.fillStyle = '#fff'; ctx.font = `80px ${FONTE}`; ctx.fillText(d.nome.toUpperCase().slice(0, 16), 512, 258);
       ctx.fillStyle = d.alerta ? '#fecaca' : '#fff'; ctx.font = `120px ${FONTE}`; ctx.fillText(d.tempo || '', 512, 430);
-    } else this.titulo(ctx, 512, 300, .62);
+    } else this.titulo(ctx, 512, 320, W * .7);
     tex.needsUpdate = true;
   }
 
