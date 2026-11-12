@@ -11,6 +11,7 @@ import { PARTIDO, TEMAS, TEMA, AV_MEDIADORA, ETAPAS, avatarAleatorio } from '/sh
 import { desenharSimbolo, escurecer, fmtT, clamp } from './util.js';
 import { brasao } from '/shared/niveis.js';
 import { Acoes } from './acoes/coreografia.js';
+import { limparTela } from './acoes/tela.js';
 import { criarMaterialTelao, atualizarTelao, criarMolduraLuz } from './telaoFx.js';
 import { desenharVinheta, desenharOcioso, tocarSomVinheta, VINHETA_S } from './vinhetas.js';
 
@@ -1076,6 +1077,7 @@ export class Estudio {
     this.vitrine.root.getWorldPosition(v).project(this.camera); const r = this.canvas.getBoundingClientRect(); return r.left + (v.x + 1) / 2 * r.width; }
   folhear(id) { this.podios.get(id)?.avatar.animar('folhear', id === this.meuId && this.lendo ? 9999 : 3.4); }
   /** Lendo a anotação da assessoria: a câmera desce suave até o papel do púlpito e o avatar fica folheando até guardar. */
+  guiarMic(mic, ok) { this.guia = { mic, ok }; }
   lerDica(on) {
     if (!!on === !!this.lendo) return; this.lendo = !!on;
     // não trava o olhar: só muda o alvo (o mouse/setas continuam valendo) e usa a acomodação lenta já existente (suaveAte)
@@ -1126,6 +1128,7 @@ export class Estudio {
   posCamFP() { const c = this.camera, t = this.terceira; c.position.set(t ? .35 : 0, t ? .4 : 0, t ? 2.3 : 0); c.rotation.set(t ? -.12 : 0, 0, 0); c.fov = t ? 60 : 68; c.updateProjectionMatrix(); }
   alternarVisao() { // tecla V
     this.terceira = !this.terceira;
+    if (this.terceira) limparTela(); // efeito de tela (apagão/meleca) só vale em 1ª pessoa
     if (this.camera.parent === this.camFP) this.posCamFP(); // (durante um golpe a câmera está solta: só vale quando voltar)
     this.podios.get(this.meuId)?.avatar.ocultarCabeca(this.cabecaOculta());
   }
@@ -1302,6 +1305,10 @@ export class Estudio {
       p.avatar.update(dt, t);
       if (this.selecionaveis) { const sel = this.selecionaveis.has(p.id); p.faixaLuz.material.color.set(sel ? (Math.sin(t * 6) > 0 ? '#facc15' : '#ffffff') : p.partido.cor); }
       else p.faixaLuz.material.color.set(p.partido.cor);
+      if (p.id === this.meuId) { // guia p/ novatos: botão do próximo passo brilha devagar
+        const g = .5 + 1.3 * (.5 - .5 * Math.cos(t * 2.4)), gm = this.guia || {};
+        p.bMic.material.emissiveIntensity = gm.mic ? g : .5; p.bOk.material.emissiveIntensity = gm.ok ? g : .5;
+      }
     }
     // mediadora olha para quem fala
     const med = this.mediadora; let alvoY = 0;

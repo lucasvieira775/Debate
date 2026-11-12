@@ -8,7 +8,7 @@ const R = (a, b) => a + Math.random() * (b - a);
 const APAGAO = { cadeirada: { preto: 2.4, volta: 2.6, blur: 9 }, paulada: { preto: 2.4, volta: 2.6, blur: 9 } };
 const MELECA = { // cores da massa (luz → sombra), duração, cobertura
   torta: { cor: ['#fffdf6', '#f6ecd6', '#d9c7a2'], dur: 5.5, n: 9, gotas: 26 },
-  tomate: { cor: ['#ff5a3c', '#d1200f', '#7a0a05'], dur: 5, n: 7, gotas: 40, sementes: 1 },
+  tomate: { cor: ['#ff6a3c', '#e0391a', '#9a2a0c'], dur: 5, n: 7, gotas: 40, sementes: 1, escMax: .18 }, // laranja-avermelhado e escorrido curto (não parecer sangue)
 };
 let atual = null;
 
@@ -79,7 +79,7 @@ function meleca(el, c) {
     if (o.gota) for (let k = 0; k < 3; k++) { const a = R(0, 6.3), d = o.r * R(1.4, 2.4); b.beginPath(); b.arc(o.x + Math.cos(a) * d, o.y + Math.sin(a) * d, o.r * R(.12, .3), 0, 7); b.fill(); } // respingos em volta
     b.shadowColor = 'transparent';
     if (!o.gota) { // escorridos saindo da base da mancha
-      for (let k = 0; k < 2 + (o.r / M * 10 | 0); k++) escorre.push({ x: o.x + R(-.7, .7) * o.r, y: o.y + o.r * R(.45, .75), w: Math.min(26, R(.05, .1) * o.r + 5), v: R(.05, .12) * H, atraso: R(0, 1), max: R(.1, .32) * H });
+      for (let k = 0; k < 2 + (o.r / M * 10 | 0); k++) escorre.push({ x: o.x + R(-.7, .7) * o.r, y: o.y + o.r * R(.45, .75), w: Math.min(26, R(.05, .1) * o.r + 5), v: R(.05, .12) * H, atraso: R(0, 1), max: R(.1, c.escMax || .32) * H });
       // brilho úmido (reflexo suave)
       const br = b.createRadialGradient(o.x - o.r * .35, o.y - o.r * .4, 0, o.x - o.r * .35, o.y - o.r * .4, o.r * .3);
       br.addColorStop(0, 'rgba(255,255,255,.75)'); br.addColorStop(1, 'rgba(255,255,255,0)'); b.fillStyle = br; b.beginPath(); b.arc(o.x - o.r * .35, o.y - o.r * .4, o.r * .3, 0, 7); b.fill();

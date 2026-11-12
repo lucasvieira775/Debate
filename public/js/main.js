@@ -90,7 +90,7 @@ function bots() {
 // ======================= microfone =======================
 let envT = 0, envTimer = null, nivelT = 0;
 function enviarTexto(t, conf = t) { // conf = parte já confirmada pelo reconhecimento (só ela pode punir durante a fala)
-  E.meuTexto = t; E.meuConf = conf;
+  E.meuTexto = t; E.meuConf = conf; guiarBotoes();
   const enviar = () => { envT = Date.now(); socket.emit('texto', { t: E.meuTexto, conf: E.meuConf }); };
   clearTimeout(envTimer);
   if (Date.now() - envT > 220) enviar(); else envTimer = setTimeout(enviar, 220);
@@ -1057,7 +1057,7 @@ function renderPerguntas() {
     const praMim = x.para === E.eu, para = jog(x.para)?.nome || '';
     const tit = x.mediador ? `🎙 ${esc(x.de)} → ${esc(para)} · ${rot[x.kind] || ''}` : `⚔ ${esc(x.de)} → ${esc(para)} · ${x.kind === 'replica' ? 'Réplica' : 'Pergunta'}`;
     const t = x.tema && TEMA[x.tema], id = x.n + x.kind + x.para, res = x.mediador && t?.resumo;
-    const ajuda = res ? `<button class="perg-ajuda ${aj.has(id) ? 'on' : ''}" data-aj="${esc(id)}" title="Resumo do tema">?</button>` : '';
+    const ajuda = res ? `<button class="perg-ajuda ${aj.has(id) ? 'on' : praMim ? 'guia' : ''}" data-aj="${esc(id)}" title="Resumo do tema">?</button>` : '';
     return `<div class="perg ${praMim ? 'minha' : ''} ${x.mediador ? '' : 'adv'}">${ajuda}<small>${tit}${t ? ` · ${t.uf}` : ''}</small><div>${esc(x.texto)}</div>${res && aj.has(id) ? `<div class="perg-resumo"><b>${esc(t.titulo)}</b> ${esc(t.resumo)}</div>` : ''}</div>`;
   }).join('');
   const rol = $('.perg-lista', el)?.scrollTop || 0; // mantém a rolagem ao atualizar
@@ -1119,7 +1119,7 @@ function renderAcao(forcar) {
     else if (p.tipo === 'cumprimento') k = 'cumpr' + !!s.autoEm;
   }
   k += s.i;
-  if (k === E.hudKey && !forcar) return; E.hudKey = k;
+  if (k === E.hudKey && !forcar) return; E.hudKey = k; est.guiarMic?.(false, false);
   const nome = id => esc(jog(id)?.nome || '');
   const podeDigitar = s.cfg.permitirTexto || !temReconhecimento || !contextoSeguro;
   if (eu()?.banido && s.fase === 'debate') { if (E.hudKey !== 'banido') { E.hudKey = 'banido'; el.innerHTML = '<div class="hud-box" style="text-align:center;border-color:var(--vermelho)">🚫 Você foi retirado do debate pela moderação. Acompanhe a disputa até o fim.</div>'; } return; }
@@ -1155,6 +1155,7 @@ function renderAcao(forcar) {
     </div>
     <small class="mut">Depois de confirmar, não é possível editar · ${CELULAR ? '' : 'Ctrl+Enter confirma · '}botões vermelho/verde do púlpito também funcionam</small></div>`;
   $('#h-mic').onclick = alternarMic; $('#h-ok').onclick = confirmarFala; $('#h-dica-b').onclick = () => pedirDica(false);
+  guiarBotoes();
   const ta = $('#h-ta');
   if (ta) {
     ta.oninput = () => { if (ta.readOnly) return; if (!micLiberado() && E.sala.fala?.status === 'pronto') avisoBloqueado(); if (E.sala.fala?.status === 'pronto' && ta.value.length) comecarFala(false); enviarTexto(ta.value); socket.emit('nivel', .6); };
@@ -1166,13 +1167,22 @@ function renderAcao(forcar) {
     if (ativo && !E.micOn) focarTexto();
   }
 }
+// guia para novatos: o botão do próximo passo brilha devagar (mic → dica → confirmar)
+function guiarBotoes() {
+  const mic = $('#h-mic'), ok = $('#h-ok'), dica = $('#h-dica-b'); if (!mic) return;
+  const texto = (E.meuTexto || '').trim().length, ativo = E.sala?.fala?.status === 'ativo';
+  mic.classList.toggle('guia', !E.micOn && !mic.disabled && !texto);
+  ok?.classList.toggle('guia', ativo && texto >= 25);
+  dica?.classList.toggle('guia', E.dicasGratis > 0 && !$('#papel-dica') && !texto);
+  est.guiarMic?.(!E.micOn && !mic.disabled && !texto, ativo && texto >= 25);
+}
 // ---------- dica da assessoria ----------
 // a anotação fica aberta enquanto você fala/digita; só é guardada no fim da sua resposta (ou pelo botão "Guardar anotação")
 aoLerDica(on => est.lerDica(on));
 function fimDaResposta() { if (E.dicaFimI === E.sala?.i) return; E.dicaFimI = E.sala?.i; recolherDica(); }
 function pedirDica(comprar) {
   if (E.pedindoDica) return; E.pedindoDica = true;
-  const b = $('#h-dica-b'); if (b) b.textContent = '📝 Procurando nas anotações…';
+  const b = $('#h-dica-b'); if (b) { b.textContent = '📝 Procurando nas anotações…'; b.classList.remove('guia'); }
   socket.emit('pedirDica', { comprar }, r => {
     E.pedindoDica = false;
     if (r?.semDicas) {
