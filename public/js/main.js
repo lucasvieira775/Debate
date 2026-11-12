@@ -1455,6 +1455,7 @@ if (demo) setTimeout(() => {
     est.setJogadores(bots(), eu); est.setModo(q.get('tv') ? 'tv' : 'fp'); est.setFalante(null); est.olhar = { y: 0, p: -.1 };
     if (q.get('duelo')) { est.setPulpito(true, true); est.setDuelo({ a: q.get('alvo') || 'bot2', b: q.get('de') || 'bot4', fase: 'no' }); }
     est.onAcao = (ev, d) => console.log('[acao]', ev, d?.item);
+    if (q.get('efeito')) return import('./acoes/tela.js').then(m => m.efeitoTela(q.get('efeito'), Number(q.get('efeitot')) || 0, !!q.get('fixo'))); // &efeito=torta&efeitot=1.5[&fixo=1]: só o efeito de tela, s após o impacto (fixo: congelado, p/ print)
     setTimeout(() => est.acao({ n: 1, id: q.get('de') || 'bot4', alvo: q.get('alvo') || 'bot2', item: q.get('item') || 'cadeirada' }), (Number(q.get('espera')) || .5) * 1000);
     return;
   }

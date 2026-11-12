@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { ITEM } from '/shared/loja.js';
 import { Vitima } from './vitima.js';
+import { limparTela } from './tela.js';
 import { registrarPose } from '../avatar.js';
 
 let PROPS = {}; // carregado à parte: um erro em props.js não derruba o estúdio
@@ -371,7 +372,7 @@ export class Acoes {
     if (a.atkVivo && (a.demo || this.est.podios.get(a.d.id) === a.atk)) this.terminarAtk(a); else a.atkVivo = false;
   }
 
-  /** true = a câmera foi posicionada aqui (você é o alvo: 3ª pessoa). */
+  /** true = a câmera foi posicionada aqui (você é o alvo e está em 3ª pessoa — tecla V; em 1ª pessoa a câmera não sai do olho). */
   camera(dt, t) {
     if (CAM_DEBUG && this.lista.length) return this.camDebug();
     return this.lista.some(a => { if (!a.vitViva || a.semCam) return false; try { return a.vit.camera?.(dt, t); } catch (er) { console.warn(er); a.semCam = true; a.vit.camFim = true; this.est.setModo('fp'); return false; } });
@@ -392,6 +393,7 @@ export class Acoes {
   limpar() {
     for (const a of this.lista) { this.soltar(a, false); try { a.vit.limpar?.(); } catch {} }
     for (const e of this.efeitos) try { e.limpar?.(); } catch {}
+    limparTela();
     this.lista = []; this.efeitos = []; this.fila = [];
   }
 }

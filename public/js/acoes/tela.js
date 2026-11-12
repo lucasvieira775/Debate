@@ -5,7 +5,7 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const sm = u => { u = clamp(u, 0, 1); return u * u * (3 - 2 * u); };
 const R = (a, b) => a + Math.random() * (b - a);
 // preto: s totalmente preto, s até voltar, desfoque máx.
-const APAGAO = { cadeirada: { preto: 2.4, volta: 2.6, blur: 9 }, paulada: { preto: 1.1, volta: 2, blur: 5 } };
+const APAGAO = { cadeirada: { preto: 2.4, volta: 2.6, blur: 9 }, paulada: { preto: 2.4, volta: 2.6, blur: 9 } };
 const MELECA = { // cores da massa (luz → sombra), duração, cobertura
   torta: { cor: ['#fffdf6', '#f6ecd6', '#d9c7a2'], dur: 5.5, n: 9, gotas: 26 },
   tomate: { cor: ['#ff5a3c', '#d1200f', '#7a0a05'], dur: 5, n: 7, gotas: 40, sementes: 1 },
@@ -15,13 +15,14 @@ let atual = null;
 export function limparTela() { if (atual) { cancelAnimationFrame(atual.raf); atual.el.remove(); atual = null; } }
 
 /** Dispara o efeito do item. t0 = segundos já passados (para testes: ?efeito=…&efeitot=s). */
-export function efeitoTela(id, t0 = 0) {
+export function efeitoTela(id, t0 = 0, fixo = false) { // fixo (testes): congela em t0
   limparTela();
   const el = document.createElement('div'); el.className = 'efeito-tela'; document.body.appendChild(el);
-  const ini = performance.now() - t0 * 1000, ef = { el, raf: 0 }; atual = ef;
+  const p0 = performance.now(), ef = { el, raf: 0 }; atual = ef;
+  const seg = () => fixo ? t0 : t0 + (performance.now() - p0) / 1000;
   const passo = APAGAO[id] ? apagao(el, APAGAO[id]) : MELECA[id] ? meleca(el, MELECA[id]) : id === 'balde' ? agua(el) : id === 'flores' ? flores(el) : null;
   if (!passo) return limparTela();
-  const loop = () => { if (atual !== ef) return; if (!passo((performance.now() - ini) / 1000)) return limparTela(); ef.raf = requestAnimationFrame(loop); };
+  const loop = () => { if (atual !== ef) return; if (!passo(seg())) return limparTela(); ef.raf = requestAnimationFrame(loop); };
   loop();
 }
 
@@ -47,15 +48,16 @@ function tela(el) {
   cv.style.cssText = 'width:100%;height:100%;display:block'; el.appendChild(cv);
   return { cv, g: cv.getContext('2d'), W, H };
 }
-/** contorno irregular (polar com ruído) */
-function mancha(g, x, y, r, irr = .35, pontas = 0) {
-  const n = 22 + (pontas ? 10 : 0), f = [R(0, 6), R(0, 6), R(0, 6)];
-  g.beginPath();
-  for (let i = 0; i <= n; i++) {
-    const a = i / n * Math.PI * 2, s = 1 + irr * (.5 * Math.sin(a * 3 + f[0]) + .3 * Math.sin(a * 5 + f[1]) + .2 * Math.sin(a * 9 + f[2])) + (pontas && i % 3 === 0 ? R(0, pontas) : 0);
-    const px = x + Math.cos(a) * r * s, py = y + Math.sin(a) * r * s * .9;
-    i ? g.lineTo(px, py) : g.moveTo(px, py);
+/** contorno irregular e arredondado (polar com ruído, curva suave pelos pontos médios) */
+function mancha(g, x, y, r, irr = .35) {
+  const n = 48, f = [R(0, 6), R(0, 6), R(0, 6)], p = [];
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2, s = 1 + irr * (.55 * Math.sin(a * 3 + f[0]) + .3 * Math.sin(a * 5 + f[1]) + .15 * Math.sin(a * 8 + f[2]));
+    p.push([x + Math.cos(a) * r * s, y + Math.sin(a) * r * s * .9]);
   }
+  const m = (i, j) => [(p[i][0] + p[j][0]) / 2, (p[i][1] + p[j][1]) / 2];
+  g.beginPath(); let q = m(n - 1, 0); g.moveTo(q[0], q[1]);
+  for (let i = 0; i < n; i++) { q = m(i, (i + 1) % n); g.quadraticCurveTo(p[i][0], p[i][1], q[0], q[1]); }
   g.closePath();
 }
 
@@ -70,14 +72,17 @@ function meleca(el, c) {
   }
   for (let i = 0; i < c.gotas; i++) { const ang = R(0, Math.PI * 2), d = R(.35, .75) * Math.max(W, H) * .6; blobs.push({ x: W / 2 + Math.cos(ang) * d, y: H * .46 + Math.sin(ang) * d * .7, r: R(.012, .05) * M, gota: 1 }); }
   for (const o of blobs) {
-    mancha(b, o.x, o.y, o.r, o.gota ? .25 : .4, o.gota ? .9 : .25);
     const gr = b.createRadialGradient(o.x - o.r * .3, o.y - o.r * .35, o.r * .05, o.x, o.y, o.r * 1.25);
     gr.addColorStop(0, c.cor[0]); gr.addColorStop(.6, c.cor[1]); gr.addColorStop(1, c.cor[2]);
-    b.fillStyle = gr; b.fill();
+    b.fillStyle = gr; b.shadowColor = 'rgba(0,0,0,.35)'; b.shadowBlur = o.gota ? 3 : 14; b.shadowOffsetY = o.gota ? 1 : 5;
+    mancha(b, o.x, o.y, o.r, o.gota ? .18 : .32); b.fill();
+    if (o.gota) for (let k = 0; k < 3; k++) { const a = R(0, 6.3), d = o.r * R(1.4, 2.4); b.beginPath(); b.arc(o.x + Math.cos(a) * d, o.y + Math.sin(a) * d, o.r * R(.12, .3), 0, 7); b.fill(); } // respingos em volta
+    b.shadowColor = 'transparent';
     if (!o.gota) { // escorridos saindo da base da mancha
-      for (let k = 0; k < 2 + (o.r / M * 10 | 0); k++) escorre.push({ x: o.x + R(-.7, .7) * o.r, y: o.y + o.r * R(.45, .75), w: R(.025, .07) * o.r + 4, v: R(.04, .12) * H, atraso: R(0, 1.2), max: R(.15, .45) * H });
-      // brilho úmido
-      b.globalAlpha = .55; mancha(b, o.x - o.r * .35, o.y - o.r * .4, o.r * .18, .3); b.fillStyle = '#fff'; b.fill(); b.globalAlpha = 1;
+      for (let k = 0; k < 2 + (o.r / M * 10 | 0); k++) escorre.push({ x: o.x + R(-.7, .7) * o.r, y: o.y + o.r * R(.45, .75), w: Math.min(26, R(.05, .1) * o.r + 5), v: R(.05, .12) * H, atraso: R(0, 1), max: R(.1, .32) * H });
+      // brilho úmido (reflexo suave)
+      const br = b.createRadialGradient(o.x - o.r * .35, o.y - o.r * .4, 0, o.x - o.r * .35, o.y - o.r * .4, o.r * .3);
+      br.addColorStop(0, 'rgba(255,255,255,.75)'); br.addColorStop(1, 'rgba(255,255,255,0)'); b.fillStyle = br; b.beginPath(); b.arc(o.x - o.r * .35, o.y - o.r * .4, o.r * .3, 0, 7); b.fill();
     }
   }
   if (c.sementes) for (const o of blobs) if (!o.gota) for (let k = 0; k < 7; k++) { // sementes e pedaços de pele do tomate
@@ -91,8 +96,12 @@ function meleca(el, c) {
     g.clearRect(0, 0, W, H); g.globalAlpha = a; g.drawImage(base, 0, desce);
     for (const e of escorre) { // fios escorrendo, com gota redonda na ponta
       const L = Math.min(e.max, Math.max(0, u - e.atraso) * e.v * (1 + u * .4)); if (L <= 1) continue;
-      const y0 = e.y + desce, gr = g.createLinearGradient(0, y0, 0, y0 + L); gr.addColorStop(0, cor[1]); gr.addColorStop(1, cor[2]);
-      g.fillStyle = gr; g.beginPath(); g.moveTo(e.x - e.w / 2, y0); g.lineTo(e.x - e.w * .35, y0 + L); g.arc(e.x, y0 + L, e.w * .45, Math.PI, 0, true); g.lineTo(e.x + e.w / 2, y0); g.fill();
+      const y0 = e.y + desce, y1 = y0 + L, w = e.w, x1 = e.x + Math.sin(e.y + L * .02) * w * .3, gr = g.createLinearGradient(e.x - w, 0, e.x + w, 0);
+      gr.addColorStop(0, cor[2]); gr.addColorStop(.35, cor[0]); gr.addColorStop(1, cor[2]); g.fillStyle = gr;
+      g.beginPath(); g.moveTo(e.x - w * .6, y0); // fio que afina e faz uma curvinha, com a gota mais gorda na ponta
+      g.bezierCurveTo(e.x - w * .3, y0 + L * .4, x1 - w * .2, y1 - L * .3, x1 - w * .28, y1); g.lineTo(x1 + w * .28, y1);
+      g.bezierCurveTo(x1 + w * .2, y1 - L * .3, e.x + w * .3, y0 + L * .4, e.x + w * .6, y0); g.fill();
+      g.beginPath(); g.ellipse(x1, y1, w * .42, w * .55, 0, 0, 7); g.fill();
     }
     g.globalAlpha = 1;
     el.style.backdropFilter = el.style.webkitBackdropFilter = `blur(${(2.5 * (1 - sm(u / 2))).toFixed(1)}px)`;

@@ -1,8 +1,9 @@
 // Reação de quem recebe a ação: 'nocaute' (cai, fica zonzo com ZzZ e passarinhos, levanta), 'sujo' (recua e limpa o rosto),
 // 'molhado' (susto e tremedeira de frio), 'amor' (sorri encabulado(a), mão no peito, corações)
-// + câmera em 3ª pessoa quando o alvo é você. Funciona no púlpito e no púlpito central do 1x1 (ator solto na cena).
+// + câmera em 3ª pessoa quando o alvo é você e já está em 3ª pessoa (tecla V); em 1ª pessoa, efeito na tela (tela.js). Funciona no púlpito e no púlpito central do 1x1 (ator solto na cena).
 import * as THREE from 'three';
 import { registrarPose, POSE_Q } from '../avatar.js';
+import { efeitoTela } from './tela.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), PI = Math.PI;
 const sen = Math.sin, cos = Math.cos, abs = Math.abs, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -125,6 +126,7 @@ export class Vitima {
     const av = this.p.avatar; av.animar(POSE[this.tipo], this.dur); this.olhar(this.tipo === 'sujo' ? av.olhar.y * .5 : 0, 0); // sujo: o rosto fica meio virado para quem jogou
     if (this.tipo === 'nocaute') this.olhosEspiral();
     if (this.tipo === 'amor') this.rubor();
+    if (this.minha && this.est.modo === 'fp' && !this.est.terceira) try { efeitoTela(this.it.id); } catch (e) { console.warn(e); } // você é o alvo, em 1ª pessoa: efeito na tela (a câmera não sai do olho)
   }
 
   /** false = terminou (a coreografia chama limpar). */
@@ -203,7 +205,7 @@ export class Vitima {
   /** Você é o alvo: posiciona est.camera em 3ª pessoa e devolve true. */
   camera(dt, t) {
     const est = this.est, cam = est.camera;
-    if (!this.minha || this.camFim) return false;
+    if (!this.minha || this.camFim || (!this.camMovida && !est.terceira)) return false; // em 1ª pessoa a câmera fica no olho (efeito na tela: tela.js)
     const A = this.p.ator; A.updateMatrixWorld();
     const eu = A.localToWorld(V()), fwd = V(0, 0, 1).transformDirection(A.matrixWorld).setY(0).normalize(), dir = V(0, 1, 0).cross(fwd).normalize();
     const atk = this.atk(), atkCab = atk ? atk.ator.localToWorld(V(0, 1.7, 0)) : eu.clone().addScaledVector(fwd, 3);
