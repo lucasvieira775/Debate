@@ -52,7 +52,8 @@ void main() {
   float ua = arcoU(), v = vUv.y;
   // unico = 1: UM só quadro do vídeo no centro do arco (proporção certa); o resto do arco estende as bordas dele, desfocado e mais escuro (sem cópias)
   float x = ua * rep - (rep - 1.) * .5 * unico, xc = mix(x, clamp(x, .002, .998), unico), fora = abs(x - xc);
-  vec3 c = texture2D(mapa, vec2(xc, v), min(fora * 8., 6.)).rgb * mix(1., .5, smoothstep(0., 1.2, fora)); // já linear (sRGB decodificado pelo hardware)
+  vec3 borda = texture2D(mapa, vec2(xc, v), min(fora * 30., 9.)).rgb, media = texture2D(mapa, vec2(.5, v), 10.).rgb; // média do quadro (mip alto): igual dos dois lados
+  vec3 c = mix(borda, media, smoothstep(0., .25, fora)) * mix(1., .4, smoothstep(0., 1.6, fora)); // brilho difuso, escurecendo nas pontas; já linear (sRGB decodificado pelo hardware)
   c *= .82; // branco do conteúdo ≈ .82 → abaixo do threshold do bloom
   // painéis/módulos: leve variação de brilho e de tom por gabinete
   vec2 md = floor(vec2(ua, v) * modulos); float hm = hash(md);
