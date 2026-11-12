@@ -1,6 +1,6 @@
 // Peças de interface: feed da Xzona, anotação da assessoria (papel), janelas (denúncia) e loja.
 import { $, $$, esc, fmtN, toast } from './util.js';
-import { ITENS, PACOTES_MOEDAS } from '/shared/loja.js';
+import { ITENS, PACOTES_MOEDAS, GRATIS } from '/shared/loja.js';
 import { CARGOS, htmlBrasao } from '/shared/niveis.js';
 
 // ---------------- Xzona ----------------
@@ -126,7 +126,7 @@ export function janelaDenuncia(jogadores, enviar) {
 const TIPOS = { moedas: '🪙 Moedas', assessoria: '📝 Assessoria', danca: '💃 Danças', emote: '😀 Emotes', provocacao: '😈 Provocações', acao: '💥 Ações', acessorio: '👓 Acessórios', conjunto: '🎩 Conjuntos' };
 export const reais = v => 'R$ ' + v.toFixed(2).replace('.', ',');
 export function telaLoja(ui, { conta, info, aba, topo, comprarPacote, comprarItem, comprarMoedas, equipar, mudarAba, testar, avatar, vestir }) {
-  const tem = id => conta?.itens?.includes(id);
+  const tem = id => GRATIS.includes(id) || conta?.itens?.includes(id);
   const usando = i => i.av && Object.entries(i.av).every(([c, v]) => avatar?.[c] === v);
   const acaoTem = i => i.tipo === 'danca' ? (conta?.danca === i.id ? '<span class="chip verde">Equipada</span>' : `<button class="btn peq verde" data-eq="${i.id}">Equipar</button>`)
     : i.av ? (usando(i) ? '<span class="chip verde">Usando</span>' : `<button class="btn peq verde" data-vestir="${i.id}">${i.tipo === 'conjunto' ? 'Vestir' : 'Usar'}</button>`) : '<span class="chip verde">✔ Seu</span>';

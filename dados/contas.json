@@ -1130,5 +1130,28 @@
    "user": "pintoduro",
    "criadoEm": 1794455324632
   }
+ },
+ "0378b101-18bf-4be0-bb3f-b85804dad83f": {
+  "uid": "0378b101-18bf-4be0-bb3f-b85804dad83f",
+  "nome": "Lucas Kakaroto",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794455492623,
+  "cadastro": {
+   "idade": 32,
+   "nome": "Lucas Kakaroto",
+   "user": "lucaskakaroto",
+   "criadoEm": 1794455509960
+  },
+  "fanpage": {
+   "nome": "Lucas Kakaroto",
+   "user": "lucaskakaroto",
+   "bio": "",
+   "seguidores": 0,
+   "criadaEm": 1794455512243,
+   "posts": []
+  }
  }
 }

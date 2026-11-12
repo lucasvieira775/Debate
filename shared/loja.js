@@ -68,6 +68,8 @@ export const PACOTES_MOEDAS = [
   { id: 'tesouro', nome: 'Desvio do Fundão', emoji: '🏦', moedas: 3500, bonus: 1500, reais: 59.90 },
 ];
 export const ITEM = Object.fromEntries(ITENS.map(i => [i.id, i]));
-export const GRATIS = ITENS.filter(i => i.preco === 0).map(i => i.id);
+// TESTES: tudo liberado (ações, roupas, danças...). VOLTAR PARA false AO HOSPEDAR (junto com MOEDAS_TESTE em server/contas.js).
+export const TUDO_LIBERADO = true;
+export const GRATIS = ITENS.filter(i => TUDO_LIBERADO || i.preco === 0).map(i => i.id);
 // Ações: depois de usar uma, espera 5 min para usar outra; cada ação só pode ser usada uma vez por debate.
 export const ACAO_ESPERA_MS = 5 * 60000;

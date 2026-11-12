@@ -8,7 +8,7 @@ import { SONS_ACAO } from './acoes/sons.js';
 import { termosAceitos, mostrarTermos } from './termos.js';
 import { PUNICAO, REGRAS_DEBATE } from '/shared/moderacao.js';
 import { postXzona, limparXzona, mostrarDica, esconderDica, recolherDica, aoLerDica,janela, janelaDenuncia, telaLoja, avisoGanhos, reais, htmlFanpage, janelaFanpage } from './extras.js';
-import { ITENS, ITEM, PACOTES_MOEDAS, itensDe, ACAO_ESPERA_MS } from '/shared/loja.js';
+import { ITENS, ITEM, PACOTES_MOEDAS, itensDe, ACAO_ESPERA_MS, GRATIS } from '/shared/loja.js';
 import { CARGOS, XP, XP_PUNICAO, cargo, brasao, htmlBrasao } from '/shared/niveis.js';
 import { animarPromocao } from './promocao.js';
 import { CADASTRO, validarNome, validarUser, validarIdade, formatarNome, formatarUser } from '/shared/cadastro.js';
@@ -653,7 +653,7 @@ function telaDaLoja(ui) {
     equipar: id => socket.emit('equiparDanca', { uid: UID, item: id }, r => { if (r?.erro) return toast(r.erro, 'erro'); atualizarConta(r.conta); toast('Dança equipada para a sua vitória!', 'ok'); renderUI(); }),
     testar: id => {
       const it = ITEM[id], tela = $('#ui .tela'); tela.style.transition = 'opacity .3s'; tela.style.opacity = 0; tela.style.pointerEvents = 'none';
-      const compra = it.preco > 0 && !E.conta?.itens?.includes(id);
+      const compra = it.preco > 0 && !(GRATIS.includes(id) || E.conta?.itens?.includes(id));
       const bt = sobAvatar(`<button class="btn" data-x>✕ Parar</button>${compra ? `<button class="btn amarelo" data-ok>🛒 Comprar · 🪙 ${fmtN(it.preco)}</button>` : ''}`);
       const roupa = !!it.av; if (roupa) est.setVitrine({ ...E.perfil.avatar, ...it.av, ...it.cores }); // prova o acessório/conjunto
       let tm; const som = roupa ? null : somItem(id); const fim = () => { clearTimeout(tm); som?.pause?.(); bt.remove(); est.pararVitrine(); if (roupa) est.setVitrine(E.perfil.avatar); tela.style.opacity = 1; tela.style.pointerEvents = ''; };
@@ -846,7 +846,7 @@ function telaSala(ui) {
 // ---------- personalização ----------
 const ABAS = { aparencia: '👤 Aparência', roupas: '👔 Roupas', acessorios: '👓 Acessórios', expressoes: '🙂 Expressões', partido: '🏛 Partido' };
 /** Item mais barato da loja que libera avatar[campo] = valor, se o jogador ainda não o tem (senão undefined). */
-const bloqueio = (campo, valor) => { const ids = itensDe(campo, valor); if (!ids.length || ids.some(id => E.conta?.itens?.includes(id))) return; return ids.map(id => ITEM[id]).sort((x, y) => x.preco - y.preco)[0]; };
+const bloqueio = (campo, valor) => { const ids = itensDe(campo, valor); if (!ids.length || ids.some(id => (GRATIS.includes(id) || E.conta?.itens?.includes(id)))) return; return ids.map(id => ITEM[id]).sort((x, y) => x.preco - y.preco)[0]; };
 const ICONE_ROUPA = { terno: '🤵', terno_aberto: '🧥', blazer: '💼', saia: '👗', social: '👔', colete: '🦺', polo: '👕', batina: '⛪', pastor: '📖' };
 /** O que a prova veste por cima do avatar salvo (conjunto = peça inteira; acessório = só o campo). */
 const provaAv = p => p.it.tipo === 'conjunto' ? { ...p.it.av, ...p.it.cores } : { [p.campo]: p.valor };
@@ -965,7 +965,7 @@ function renderHUD() {
     const EM_ABAS = [['acao', '💥', 'Ações'], ['emote', '😀', 'Emotes'], ['danca', '💃', 'Danças'], ['provocacao', '😈', 'Provocar']];
     $('#h-emotes-b').onclick = (ev, manter) => {
       const p = $('#h-emotes'); if (!manter) p.hidden = !p.hidden; if (p.hidden) return;
-      const tem = id => E.conta?.itens?.includes(id), aba = E.emAba ||= 'emote';
+      const tem = id => (GRATIS.includes(id) || E.conta?.itens?.includes(id)), aba = E.emAba ||= 'emote';
       const bt = (i, at) => `<button ${at}="${i.id}" class="${tem(i.id) ? '' : 'bloq'}${E.acoesUsadas?.has(i.id) ? ' usada' : ''}" title="${esc(i.nome)}${tem(i.id) ? '' : ' (compre na loja)'}"><span>${i.emoji}</span><small>${esc(i.nome)}</small>${tem(i.id) ? '' : `<span class="em-preco">🔒 ${fmtN(i.preco)}</span>`}</button>`;
       const espera = Math.max(0, ACAO_ESPERA_MS - (Date.now() - (E.ultAcao || 0))), sEsp = Math.ceil(espera / 1000), mmss = `${sEsp / 60 | 0}:${String(sEsp % 60).padStart(2, '0')}`;
       const lista = ITENS.filter(i => i.tipo === aba).sort((a, b) => tem(b.id) - tem(a.id) || a.preco - b.preco), meus = lista.filter(i => tem(i.id)).length;
