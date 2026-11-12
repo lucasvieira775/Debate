@@ -362,6 +362,7 @@ export class Estudio {
       const passo = .72 / r;
       for (let a = ini + passo; a < fim - passo / 2; a += passo) {
         const graus = a / D2R; if (Math.abs(((graus + 200) % 50) - 25) < 2.2) continue; // corredores
+        if (Math.abs(graus) > 98) continue; // atrás das telas laterais (±104°..122°) ninguém vê o palco: sem público
         pessoas.push({ x: Ca.x + Math.sin(a) * r, z: Ca.z + Math.cos(a) * r, y: .45 * (k + 1), ry: a + Math.PI, fase: Math.random() * 10, f: .8 + Math.random() * .8 });
       }
     }
