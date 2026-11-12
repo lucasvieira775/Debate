@@ -96,11 +96,11 @@ export function nomeImproprio(s) {
 // com gênero: 'masculino|feminino|neutro' — flexGrito escolhe pelo gênero de quem está sendo vaiado(a)
 export const GRITOS = {
   vaia: ['Burro!|Burra!|Que burrice!', 'Fora!', 'Que vergonha!', 'Volta pra escola!', 'Enrolação!', 'Responde a pergunta!', 'Sai daí!', 'Fraco!|Fraca!|Fraquinho isso!',
-    'Vagabundo!|Vagabunda!|Sem vergonha!', 'Ladrão!|Ladrona!|Devolve o dinheiro!', 'Safado!|Safada!|Safadeza!', 'Corrupto!|Corrupta!|Corrupção!', 'Pilantra!'],
+    'Vai catar caqui!', 'Corno!|Corna!', 'Sem vergonha!', 'Canalha!', 'Ladrão!|Ladrona!|Devolve o dinheiro!', 'Safado!|Safada!|Safadeza!', 'Corrupto!|Corrupta!|Corrupção!', 'Pilantra!'],
   vibra: ['Já ganhou!', 'É isso aí!', 'Presidente!|Presidenta!|Presidência!', 'Muito bem!', 'Arrasou!', 'Esse é o cara!|Essa é a mulher!|É isso, candidatura!'],
   ih: ['Ihhhh!', 'Uhhhh!', 'Toma!', 'Ui!'],
-  confusao: ['Respeito!', 'Ordem!', 'Absurdo!', 'Que baixaria!', 'Vagabundo!|Vagabunda!|Sem vergonha!', 'Mal-educado!|Mal-educada!|Falta de educação!'],
-  duelo: ['Isso é fake news!', 'Vagabundo!|Vagabunda!|Sem vergonha!', 'Mentiroso!|Mentirosa!|Mentira!', 'Mentira!', 'Cara de pau!', 'Conversa fiada!', 'Fake news!', 'Ladrão!|Ladrona!|Devolve o dinheiro!', 'Corrupto!|Corrupta!|Corrupção!'], // confronto 1x1 do bloco 2
+  confusao: ['Respeito!', 'Ordem!', 'Absurdo!', 'Que baixaria!', 'Vai catar caqui!', 'Corno!|Corna!', 'Sem vergonha!', 'Canalha!', 'Mal-educado!|Mal-educada!|Falta de educação!'],
+  duelo: ['Isso é fake news!', 'Vai catar caqui!', 'Corno!|Corna!', 'Sem vergonha!', 'Canalha!', 'Mentiroso!|Mentirosa!|Mentira!', 'Mentira!', 'Cara de pau!', 'Conversa fiada!', 'Fake news!', 'Ladrão!|Ladrona!|Devolve o dinheiro!', 'Corrupto!|Corrupta!|Corrupção!'], // confronto 1x1 do bloco 2
 };
 /** Grito no gênero de quem é vaiado(a): 'masc|fem|neutro' (sem neutro, usa o masculino). */
 export const flexGrito = (t, g) => { if (!t.includes('|')) return t; const [m, f, n] = t.split('|'); return g === 'feminino' ? f : g === 'masculino' ? m : (n || m); };

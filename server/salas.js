@@ -11,8 +11,8 @@ const TEMPO_EXTRA_MS = 15000; // vítima de agressão durante a própria fala ga
 const VAIA_AGRESSOR = .4; // nota a menos na próxima fala de quem agrediu (a plateia vaia)
 const GRITOS_AGRESSOR = {
   tomate: ['Tomate não é proposta!', 'Respeita o adversário!'], torta: ['Torta não é proposta!', 'Isso é debate, não circo!'],
-  balde: ['Balde não é argumento!', 'Isso é debate, não circo!'], paulada: ['Pancada não é argumento!', 'Violento!|Violenta!|Violência não!', 'Vagabundo!|Vagabunda!|Sem vergonha!'],
-  cadeirada: ['Cadeirada não é proposta!', 'Violento!|Violenta!|Violência não!', 'Vagabundo!|Vagabunda!|Sem vergonha!', 'Bandido!|Bandida!|Bandidagem!'],
+  balde: ['Balde não é argumento!', 'Isso é debate, não circo!'], paulada: ['Pancada não é argumento!', 'Violento!|Violenta!|Violência não!', 'Vai catar caqui!', 'Corno!|Corna!', 'Sem vergonha!', 'Canalha!'],
+  cadeirada: ['Cadeirada não é proposta!', 'Violento!|Violenta!|Violência não!', 'Vai catar caqui!', 'Corno!|Corna!', 'Sem vergonha!', 'Canalha!', 'Bandido!|Bandida!|Bandidagem!'],
 };
 const CAMINHADA_MS = 5500; // tempo da caminhada automática até o púlpito central (e de volta); o cliente anima em até 5 s
 import { gerarFala, nomeIA } from '../shared/ia.js';
@@ -30,7 +30,7 @@ import { postsDaFala, postsDe } from '../shared/xzona.js';
 import * as xz from '../shared/xzona.js'; // xz.postsDaAcao (repercussão das ações), se existir
 const VOZES_GRITO = ['Fenrir', 'Leda']; // um homem e uma mulher gritando na plateia
 // "coro" da plateia: várias vozes tocadas juntas, com pequenas diferenças, soam como uma multidão
-const CORO = { vaia: ['Buuuuuuuuu!', 'Uuuuuuuuuh!', 'Fooora!'], vibra: ['Uhuuuuuuu!', 'Éééééééé!', 'Isso aíííí!'], duelo: ['Isso é fake news!', 'Vagabundo!|Vagabunda!|Sem vergonha!', 'Mentiroso!|Mentirosa!|Mentira!'] }; // duelo: torcida rival no fim de cada resposta do 1x1
+const CORO = { vaia: ['Buuuuuuuuu!', 'Uuuuuuuuuh!', 'Fooora!'], vibra: ['Uhuuuuuuu!', 'Éééééééé!', 'Isso aíííí!'], duelo: ['Isso é fake news!', 'Vai catar caqui!', 'Corno!|Corna!', 'Sem vergonha!', 'Canalha!', 'Mentiroso!|Mentirosa!|Mentira!'] }; // duelo: torcida rival no fim de cada resposta do 1x1
 const VOZES_CORO = ['Fenrir', 'Leda', 'Charon', 'Kore', 'Puck', 'Aoede'];
 const OPC_PLATEIA = { conferir: false, dir: DIR_PLATEIA };
 
