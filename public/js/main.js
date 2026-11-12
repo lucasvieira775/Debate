@@ -2,7 +2,7 @@ import { Estudio } from './estudio.js';
 import { retrato } from './avatar.js';
 import { Microfone, falar, calar, sfx, somItem, nivelDoAudio, setVolume, testarMicrofone, temReconhecimento, contextoSeguro, configurarAmbiente, ajustarAmbiente, setVolumeAmbiente, setVolumeMusica, abafarAmbiente, pararSonsRevelacao } from './voz.js';
 import { PARTIDOS, PARTIDO, IDEO, AV, TEMA, TEMAS, KIND_NOME, ETAPAS, JORN, DIFICULDADES, avatarAleatorio, textoVitoria } from '/shared/regras.js';
-import { $, $$, esc, fmtN, fmtP, fmtT, lerPerfil, salvarPerfil, lerConfig, salvarConfig, lerSessao, salvarSessao, logoPartido, toast, tutorialVisto, marcarTutorial } from './util.js';
+import { $, $$, esc, fmtN, fmtP, fmtT, lerPerfil, salvarPerfil, lerConfig, salvarConfig, lerSessao, salvarSessao, logoPartido, toast, tutorialVisto, marcarTutorial, locutorOuvido, marcarLocutor } from './util.js';
 import { tocarTutorial } from './tutorial.js';
 import { Voip } from './voip.js';
 import { SONS_ACAO } from './acoes/sons.js';
@@ -522,7 +522,7 @@ function sincronizarPerfil() { if (!E.sala || E.sala.fase !== 'lobby') return; c
 function ir(tela) { sfx.clique(); E.tela = tela; E.prova = null; $$('.sob-av').forEach(b => b.remove()); if (tela === 'personalizar' || tela === 'loja') { est.setVitrine(E.perfil.avatar); est.setModo('vitrine'); } else if (!emJogo()) est.setModo('menu'); renderUI(); }
 /** Tutorial (cinemática 3D, public/js/tutorial.js): toca, marca como visto (também ao pular) e segue para `depois`. */
 function verTutorial(depois) {
-  if (E.tutorial) return; E.tutorial = true; sfx.clique();
+  if (E.tutorial) return; E.tutorial = true; sfx.clique(); pararAbertura(); // vídeo sem a música/locutor da entrada por baixo
   tocarTutorial(est, { avatar: E.perfil.avatar, nome: E.perfil.nome, partido: E.perfil.partido }).then(() => { marcarTutorial(); E.tutorial = false; if (depois) ir(depois); else renderUI(); });
 }
 function renderUI() {
@@ -1409,6 +1409,9 @@ addEventListener('keydown', e => {
 });
 
 // ======================= início =======================
+const ABERTURA = { audios: [], timers: [], parada: false };
+function pararAbertura() { ABERTURA.parada = true; ABERTURA.timers.forEach(clearTimeout); ABERTURA.audios.forEach(a => { try { a.pause(); } catch { /* */ } }); }
+const tAbertura = (f, ms) => ABERTURA.timers.push(setTimeout(() => { if (!ABERTURA.parada) f(); }, ms));
 est.setJogadores(bots(), null);
 renderUI();
 (async () => {
@@ -1421,15 +1424,18 @@ renderUI();
     const aplaudir = () => { sfx.aplausos(2.8, .2); est.festejarPlateia(3500); };
     socket.emit('boasVindas', null, r => {
       configurarAmbiente(r || {}); // burburinho de fundo fixo + palmas reais
+      if (ABERTURA.parada) return; // já abriu o tutorial
       let musica = null; const vm = Math.min(1, E.cfg.musica / .9); // volume da música (config) — 90% = original
-      const rampa = (alvo, ms, depois) => { if (!musica) return; alvo *= vm; const ini = musica.volume, t0 = performance.now(); const p = () => { const k = Math.min(1, (performance.now() - t0) / ms); musica.volume = ini + (alvo - ini) * k; if (k < 1) requestAnimationFrame(p); else depois?.(); }; p(); };
-      if (r?.vinheta) { musica = new Audio(r.vinheta); musica.volume = .9 * vm; musica.play().catch(() => { musica = null; sfx.vinheta(); }); }
+      const rampa = (alvo, ms, depois) => { if (!musica) return; alvo *= vm; const ini = musica.volume, t0 = performance.now(); const p = () => { if (ABERTURA.parada) return; const k = Math.min(1, (performance.now() - t0) / ms); musica.volume = ini + (alvo - ini) * k; if (k < 1) requestAnimationFrame(p); else depois?.(); }; p(); };
+      if (r?.vinheta) { musica = new Audio(r.vinheta); ABERTURA.audios.push(musica); musica.volume = .9 * vm; musica.play().catch(() => { musica = null; sfx.vinheta(); }); }
       else sfx.vinheta();
-      const fim = () => { aplaudir(); if (musica) setTimeout(() => { rampa(.75, 600); setTimeout(() => rampa(0, 3500, () => musica?.pause()), 3500); }, 300); };
-      setTimeout(() => {
+      const fim = () => { if (ABERTURA.parada) return; aplaudir(); if (musica) tAbertura(() => { rampa(.75, 600); tAbertura(() => rampa(0, 3500, () => musica?.pause()), 3500); }, 300); };
+      const locutor = !locutorOuvido(); // locutor só na 1ª entrada; depois, só a música
+      tAbertura(() => {
+        if (!locutor) return; // sem locutor: a música toca inteira
         rampa(.3, 400); // abaixa a música para a voz
-        if (r?.url && E.cfg.voz) { const a = new Audio(r.url); a.volume = 1; a.onended = fim; a.play().catch(fim); }
-        else setTimeout(fim, 1200); // sem locutor gravado: sem voz robótica
+        if (r?.url && E.cfg.voz) { marcarLocutor(); const a = new Audio(r.url); ABERTURA.audios.push(a); a.volume = 1; a.onended = fim; a.play().catch(fim); }
+        else tAbertura(fim, 1200); // sem locutor gravado: sem voz robótica
       }, r?.vinheta ? 2400 : 1100);
     });
   };
