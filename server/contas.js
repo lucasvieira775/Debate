@@ -14,7 +14,8 @@ export const SEGUIDORES = {
   segundoTurno: 60, eleito: 300, banido: -300, ataque: 5, fuga: -15,
   acao: { agressor: -80, vitima: 50, simpatia: 60 }, // × peso do item (agr/simp em shared/loja.js): cadeirada ≈ −64 / +40, tomate ≈ −20 / +12, flores ≈ +18
 };
-export const ABANDONO = { limite: 2, janelaMs: 24 * 3600000, banMs: 3600000, seguidores: 200, votos: 5 }; // votos: denúncias de jogadores diferentes em 24 h (mais de 4) → 1 h de suspensão
+// banAtivo: suspensão por abandono DESATIVADA até o jogo ser hospedado — ao hospedar, trocar para true
+export const ABANDONO = { banAtivo: false, limite: 2, janelaMs: 24 * 3600000, banMs: 3600000, seguidores: 200, votos: 5 }; // votos: denúncias de jogadores diferentes em 24 h (mais de 4) → 1 h de suspensão
 // TESTES: todas as contas ficam com pelo menos 10 mil moedas. VOLTAR PARA null (e ECONOMIA.inicial = 100) AO FINALIZAR O JOGO.
 export const MOEDAS_TESTE = 10000;
 const limparTxt =(t, n) => String(t || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
@@ -158,7 +159,7 @@ export class Contas {
     return null;
   }
   usarDicaExtra(c) { if (!c || !(c.dicasExtra > 0)) return false; c.dicasExtra--; this.salvar(); return true; }
-  banido(c) { return !!(c && (c.banPerm || (c.banidoAte && c.banidoAte > Date.now()))); }
+  banido(c) { return !!(c && (c.banPerm || (c.banidoAte && c.banidoAte > Date.now() && (ABANDONO.banAtivo || (c.banidoAte !== c.banAbandono && c.banidoAte !== c.banVotos))))); } // ban por abandono desativado: ignora suspensões vindas de abandono
   /** Banido de uma sala: aplica a escada do PUNICAO. Retorna { salas, semanais, mensais, susp: null|7|30|'perm' }. */
   registrarBanSala(c, motivo) {
     if (!c) return null;
@@ -181,7 +182,7 @@ export class Contas {
     if (!c) return null;
     const agora = Date.now(), A = ABANDONO; c.abandonos = (c.abandonos || []).filter(t => agora - t < A.janelaMs); c.abandonos.push(agora);
     let ban = false, perda = 0;
-    if (c.abandonos.length >= A.limite) {
+    if (A.banAtivo && c.abandonos.length >= A.limite) {
       ban = true; c.abandonos = []; c.banidoAte = Math.max(c.banidoAte || 0, agora + A.banMs); c.banAbandono = c.banidoAte;
       if (c.fanpage) { perda = Math.min(c.fanpage.seguidores, A.seguidores); c.fanpage.seguidores -= perda; }
     }
@@ -195,7 +196,7 @@ export class Contas {
     if (c.votosAbandono.some(v => v.de === deUid)) return 'Você já denunciou este jogador por abandono hoje.';
     c.votosAbandono.push({ t: agora, de: deUid });
     let ban = false;
-    if (c.votosAbandono.length >= A.votos) { ban = true; c.votosAbandono = []; c.banidoAte = Math.max(c.banidoAte || 0, agora + A.banMs); c.banVotos = c.banidoAte; }
+    if (A.banAtivo && c.votosAbandono.length >= A.votos) { ban = true; c.votosAbandono = []; c.banidoAte = Math.max(c.banidoAte || 0, agora + A.banMs); c.banVotos = c.banidoAte; }
     this.salvar(); return { n: c.votosAbandono.length, ban };
   }
   denunciar(d) { this.denuncias.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), data: Date.now(), status: 'aberta', ...d }); this.salvarDen(); }

@@ -19,7 +19,7 @@ import { gerarFala, nomeIA } from '../shared/ia.js';
 import { Dublagem, VOZES_IA, DIR_PLATEIA } from './voz.js';
 import { N, trechosFixos, trechosTemas, sortearVariacao, FALAS_ACAO, FALAS_LEVE, FALAS_FLORES } from './narracao.js';
 import { moderar, GRITOS, PUNICAO, flexGrito, formasGrito } from '../shared/moderacao.js';
-import { Contas, ECONOMIA, SEGUIDORES } from './contas.js';
+import { Contas, ECONOMIA, SEGUIDORES, ABANDONO } from './contas.js';
 import { XP, XP_PUNICAO, cargo } from '../shared/niveis.js';
 import { Pagamentos } from './pagamentos.js';
 import { PACOTES_MOEDAS } from '../shared/loja.js';
@@ -918,7 +918,7 @@ class Sala {
   }
 }
 
-export const textoAbandono = a => !a ? '' : a.ban ? `Você abandonou 2 partidas em 24 horas: suspenso(a) por 1 hora, perdeu ${XP_PUNICAO.abandono + XP_PUNICAO.suspensaoAbandono} XP${a.perda ? ` e ${a.perda} seguidores na Xzona` : ''}.${a.xp?.depois < a.xp?.antes ? ` Você caiu para ${cargo(a.xp.xp).nome}.` : ''}` : `Abandono registrado (1 de 2 em 24 h): -${XP_PUNICAO.abandono} XP. Mais um e você fica suspenso(a) por 1 hora, perde mais XP e seguidores na Xzona.`;
+export const textoAbandono = a => !a ? '' : a.ban ? `Você abandonou 2 partidas em 24 horas: suspenso(a) por 1 hora, perdeu ${XP_PUNICAO.abandono + XP_PUNICAO.suspensaoAbandono} XP${a.perda ? ` e ${a.perda} seguidores na Xzona` : ''}.${a.xp?.depois < a.xp?.antes ? ` Você caiu para ${cargo(a.xp.xp).nome}.` : ''}` : !ABANDONO.banAtivo ? `Abandono registrado: -${XP_PUNICAO.abandono} XP.` : `Abandono registrado (1 de 2 em 24 h): -${XP_PUNICAO.abandono} XP. Mais um e você fica suspenso(a) por 1 hora, perde mais XP e seguidores na Xzona.`;
 
 export class Salas {
   constructor(io, raiz) {
