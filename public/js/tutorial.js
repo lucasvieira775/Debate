@@ -20,8 +20,9 @@ const COR_SELO = [['✅', 'verde'], ['❌', 'vermelho'], ['🟡', 'amarelo'], ['
 
 /** Duração real do áudio (metadata); falhou/demorou: null + duração estimada. */
 const medir = b => new Promise(res => {
+  if (b.id[0] === '_') return res({ audio: null, d: estimar(b) }); // cena de teste (?demo=tutorial&cena=estudio): sem áudio
   const a = new Audio(); a.preload = 'auto'; let ok = false;
-  if (b.ms) { a.onerror = () => { b.semAudio = true; }; a.src = `/audio/tutorial/${b.id}.wav?v=${b.ms}`; return res({ audio: a, d: b.ms / 1000 }); } // roteiro já traz a duração: não espera o download
+  if (b.ms) { a.src = `/audio/tutorial/${b.id}.wav?v=${b.ms}`; return res({ audio: a, d: b.ms / 1000 }); } // roteiro já traz a duração: não espera o download
   const fim = d => { if (ok) return; ok = true; res({ audio: d ? a : null, d: d || estimar(b) }); };
   a.onloadedmetadata = () => fim(isFinite(a.duration) ? a.duration : 0); a.onerror = () => fim(0); setTimeout(() => fim(0), 3500);
   a.src = `/audio/tutorial/${b.id}.wav?v=${b.ms || 1}`;
@@ -54,7 +55,7 @@ export function tocarTutorial(est, op = {}) {
   const selo = txt => { const s = $('.tut-selo'); s.className = 'tut-selo ' + (COR_SELO.find(([e]) => txt.startsWith(e))?.[1] || 'azul'); s.textContent = txt; reanima(s); };
   const chip = (txt, cor, x, y, atraso = 0) => fx.insertAdjacentHTML('beforeend', `<div class="tut-chip ${cor}" style="left:${x}%;top:${y}%;animation-delay:${atraso}s">${txt}</div>`);
   const balao = (id, txt, cor = '') => { S.bal = id ? { id } : null; bal.className = 'tut-balao ' + cor; bal.textContent = txt || ''; if (id) reanima(bal); };
-  const logo = sub => fx.insertAdjacentHTML('beforeend', `<div class="tut-logo"><div class="logo-txt"><span>DEBATE</span><b>PRESIDENCIAL</b><i>ONLINE</i></div><p>${esc(sub)}</p></div>`);
+  const logo = (sub, so) => fx.insertAdjacentHTML('beforeend', `<div class="tut-logo${so ? ' so' : ''}">${so ? '' : '<div class="logo-txt"><span>DEBATE</span><b>PRESIDENCIAL</b><i>ONLINE</i></div>'}<p>${esc(sub)}</p></div>`);
   const tecla = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); terminar(true); } };
   addEventListener('keydown', tecla, true);
   $('.tut-pular').onclick = () => terminar(true);
@@ -65,8 +66,9 @@ export function tocarTutorial(est, op = {}) {
   const G = (id, x, y, z) => { const g = pd(id).grupo; g.updateWorldMatrix(true, false); return g.localToWorld(V(x, y, z)); };
   const nome = String(op.nome || 'Você').slice(0, 18);
   function montarElenco() {
-    S.elenco ||= [['Zé Promessa', 'masculino', 'PUN', 'simpatico'], ['Dona Verdade', 'feminino', 'FPB', 'confiante'], [nome, 'feminino', op.partido || 'MSD'], ['Rui Barraco', 'masculino', 'ALB', 'bravo'], ['Bia Polêmica', 'feminino', 'POP', 'confiante']]
-      .map(([n, g, p, ex], i) => ({ id: 't' + i, nome: n, avatar: i === 2 && op.avatar ? op.avatar : { ...avatarAleatorio(g), ...(ex ? { expressao: ex } : {}) }, partido: p, slot: i, conectado: true, bot: true }));
+    const meu = op.partido || 'MSD', livres = ['PUN', 'FPB', 'ALB', 'POP', 'MSD'].filter(x => x !== meu); // ninguém repete o seu partido
+    S.elenco ||= [['Zé Promessa', 'masculino', 'simpatico'], ['Dona Verdade', 'feminino', 'confiante'], [nome, 'feminino'], ['Rui Barraco', 'masculino', 'bravo'], ['Bia Polêmica', 'feminino', 'confiante']]
+      .map(([n, g, ex], i) => ({ id: 't' + i, nome: n, avatar: i === 2 && op.avatar ? op.avatar : { ...avatarAleatorio(g), ...(ex ? { expressao: ex } : {}) }, partido: i === 2 ? meu : livres[i - (i > 2)], slot: i, conectado: true, bot: true }));
     est.chaveJog = ''; est.setJogadores(S.elenco, null);
     for (const p of est.podios.values()) p.etiqueta.visible = false;
   }
@@ -96,30 +98,30 @@ export function tocarTutorial(est, op = {}) {
   // ini(c) monta o palco; ev = [[k (0..1 do bloco), fn]]; quadro(c) a cada frame; cam(c) enquadramento. c.u = s no bloco, c.k = 0..1.
   const CENAS = {
     abertura: {
-      ini: () => { palco(); est.setLED({ modo: 'titulo', sub: 'COMO JOGAR · TUTORIAL' }); logo('COMO JOGAR'); },
-      ev: [[0, () => { som(sfx.vinheta); est.festejarPlateia(4500, 1); }], [.3, () => som(() => sfx.aplausos(3, .25))]],
+      ini: () => { palco(); est.setLED({ modo: 'texto', cabecalho: 'AO VIVO · ELEIÇÕES 2026', texto: 'Quem fala melhor leva a faixa!' }); logo('COMO JOGAR'); },
+      ev: [[0, () => { som(sfx.vinheta); est.festejarPlateia(4500, 1); }], [.3, () => som(() => sfx.aplausos(3, .25))], [.72, () => fx.querySelector('.tut-logo')?.classList.add('sai')]],
       cam: c => { const k = sm(c.k / .95); cam(mix(V(0, 8.5, 15.5), V(.4, 2.7, 7.4), k), mix(V(0, 1, -2), V(0, 2.3, -6), k), 52); },
     },
     estudio: {
       ini: () => { palco({ falante: VOCE }); est.setLED({ modo: 'titulo', sub: 'AO VIVO DO ESTÚDIO' }); },
       ev: [[0, () => est.agitarPlateia(.7, 3000)]],
-      cam: c => { const a = lerp(-.9, .9, sm(c.k)); cam(V(Math.sin(a) * 9, 3.6, -1.5 + Math.cos(a) * 9), V(0, 1.4, -1.5), 50); },
+      cam: c => { const a = lerp(-.9, .9, sm(c.k)); cam(V(Math.sin(a) * 10.2, 6.2, -1.5 + Math.cos(a) * 10.2), V(0, 1.0, -2.5), 50); },
     },
     pergunta: {
       ini: () => { palco({ falante: VOCE }); est.setLED({ modo: 'texto', cabecalho: 'PERGUNTA DA JORNALISTA', texto: 'Como você vai acabar com o trânsito nas grandes cidades?' });
         est.mediadoraFalando(true); est.telaPodio(VOCE, { titulo: 'SUA VEZ', texto: '01:00', destaque: true }); S.seg = 61; },
       ev: [[.5, () => { est.mediadoraFalando(false); som(sfx.vez); }]],
-      quadro: c => { if (c.k < .5) return; const s = Math.max(0, 60 - Math.floor(c.u - c.d * .5)); if (s !== S.seg) { S.seg = s; est.telaPodio(VOCE, { titulo: 'TEMPO', texto: '00:' + String(s).padStart(2, '0'), destaque: true }); if (s < 60) som(sfx.tique); } },
+      quadro: c => { if (c.k < .5) return; const s = Math.max(0, 60 - Math.floor(c.u - c.d * .5)); if (s !== S.seg) { S.seg = s; est.telaPodio(VOCE, { titulo: 'TEMPO', texto: `0${s / 60 | 0}:${String(s % 60).padStart(2, '0')}`, destaque: true }); if (s < 60) som(sfx.tique); } },
       cam: c => {
-        if (c.k < .5) { const k = sm(c.k / .5); return cam(mix(V(-1.9, 1.45, -.2), V(-1.4, 1.55, -.9), k), V(0, 2.55, -5), 50); }
-        const k = sm((c.k - .5) / .5); cam(G(VOCE, lerp(.55, .38, k), lerp(2.25, 2.0, k), lerp(-1.3, -.95, k)), G(VOCE, 0, 1.26, .1), 34);
+        if (c.k < .5) { const k = sm(c.k / .5); return cam(mix(V(-3.0, 1.6, 1.6), V(-2.4, 1.7, .7), k), V(-.2, 2.75, -5.5), 50); }
+        const k = sm((c.k - .5) / .5); cam(G(VOCE, lerp(.95, .8, k), lerp(2.6, 2.35, k), lerp(-.9, -.65, k)), G(VOCE, -.05, 1.26, .12), 30);
       },
     },
     fala: {
       ini: () => { palco({ falante: VOCE }); S.txt = 'Vou investir 20 bilhões em metrô e criar 500 km de corredores de ônibus até 2030!'; },
       ev: [[.5, () => { chip('NOTA 9,4 📈', 'verde', 64, 30); som(sfx.nota); }], [.72, () => { est.agitarPlateia(.8, 2000); som(() => sfx.aplausos(1.8, .18)); }]],
       quadro: c => { falaNivel(VOCE); ledVivo(c, c => ({ modo: 'fala', nome, partido: S.elenco[2].partido, tempo: '00:' + String(Math.max(0, 42 - Math.floor(c.u))).padStart(2, '0'), texto: S.txt.slice(0, Math.ceil(S.txt.length * Math.min(1, c.k / .7))) || '…', rotulo: 'Pergunta · Mobilidade nas cidades' })); },
-      cam: c => { const k = sm(c.k); cam(W(VOCE, lerp(.9, .25, k), lerp(1.95, 1.85, k), lerp(3.4, 2.1, k)), W(VOCE, 0, 1.7, 0), 36); },
+      cam: c => { const k = sm(c.k); cam(W(VOCE, lerp(1.1, .35, k), lerp(2.0, 1.9, k), lerp(4.6, 3.4, k)), W(VOCE, 0, 1.6, 0), 36); },
     },
     confronto: {
       ini: c => { palco({ duelo: 'indo' }); est.setLED({ modo: 'texto', cabecalho: 'CONFRONTO DIRETO', texto: `${nome.toUpperCase()}  ×  RUI BARRACO` }); S.chegou = false;
@@ -135,7 +137,7 @@ export function tocarTutorial(est, op = {}) {
       ev: [[.04, () => S.frase && balao(S.quem, S.frase, S.amarelo ? 'amarelo' : '')], [.36, c => { selo(c.b.dica || '✅ PODE'); som(S.amarelo ? sfx.alerta : sfx.nota); }],
         [.5, () => { if (S.amarelo) { est.gritarPlateia(.7, 2000); gritoVisivel('Ihhh!'); som(sfx.vaia); } else { est.festejarPlateia(2500, .8); som(() => sfx.aplausos(2.4, .26)); gritoVisivel('Isso aí!'); } }]],
       quadro: c => { if (c.k < .62) falaNivel(S.quem); },
-      cam: c => { const k = sm(c.k), ouve = S.quem === VOCE ? RIVAL : VOCE; cam(W(ouve, .5, 2.08, lerp(-1.3, -.95, k)), W(S.quem, 0, 1.78, 0), 34); },
+      cam: c => { const k = sm(c.k), ouve = S.quem === VOCE ? RIVAL : VOCE; cam(W(ouve, 1.3, 2.25, lerp(-2.5, -2.05, k)), W(S.quem, -.25, 1.7, 0), 36); },
     },
     nao_pode: {
       selo: true,
@@ -143,7 +145,7 @@ export function tocarTutorial(est, op = {}) {
       ev: [[0, () => { balao(RIVAL, '#@!%&*!!', 'vermelho'); som(() => bip(.5)); S.tremor = .05; }], [.3, c => { selo(c.b.dica || '❌ NÃO PODE'); som(sfx.fim); }],
         [.45, () => { est.gritarPlateia(1, 2500); gritoVisivel('Que feio!'); som(sfx.vaia); setTimeout(() => som(sfx.vaia), 350); }], [.56, () => chip('NOTA 1,2 📉', 'vermelho', 8, 34)]],
       quadro: c => { if (c.k < .42) falaNivel(RIVAL); },
-      cam: c => { const z = sm(c.u / .35); cam(W(RIVAL, .12, 1.9, lerp(1.6, 1.0, z)), W(RIVAL, 0, 1.8, 0), lerp(44, 30, z)); },
+      cam: c => { const z = sm(c.u / .35); cam(W(RIVAL, .2, 1.95, lerp(2.9, 2.1, z)), W(RIVAL, 0, 1.75, 0), lerp(46, 34, z)); },
     },
     advertencia: {
       ini: () => { palco({ falante: BIA }); est.mediadoraFalando(true); est.mediadora.animar('apontar', 3.5);
@@ -154,7 +156,7 @@ export function tocarTutorial(est, op = {}) {
         [.6, () => { fx.querySelector('.tut-cartoes i:nth-child(3)').classList.add('on'); fx.querySelector('.tut-cartoes').classList.add('ban'); est.mediadoraFalando(false); est.telaPodio(BIA, { titulo: 'ADVERTÊNCIAS', texto: '3/3', alerta: true }); som(sfx.fim); }],
         [.7, () => { pd(BIA).avatar.root.visible = false; S.sujo = true; est.telaPodio(BIA, { titulo: 'BANIDA', texto: 'FORA', alerta: true }); S.tremor = .03; est.gritarPlateia(1, 2500); gritoVisivel('Tchau, querida!'); som(sfx.vaia); }]],
       cam: c => {
-        if (c.k < .58) { const k = sm(c.k / .58); return cam(mix(V(1.35, 1.3, -1.3), V(.95, 1.4, -1.95), k), V(-.15, 1.85, -3.45), 36); }
+        if (c.k < .58) { const k = sm(c.k / .58); return cam(mix(V(2.1, 1.35, -.2), V(1.6, 1.45, -.8), k), V(-.3, 1.95, -3.45), 38); }
         const k = sm((c.k - .58) / .42); cam(W(BIA, lerp(.7, .25, k), 1.95, lerp(3.1, 2.4, k)), W(BIA, 0, 1.5, 0), 40);
       },
     },
@@ -167,7 +169,7 @@ export function tocarTutorial(est, op = {}) {
       ev: [[.66, c => CENAS.caldeirada.impacto(c)]],
       cam: c => {
         const a = W(RIVAL, 0, 0, 0), v = W(VOCE, 0, 0, 0), m = a.clone().add(v).multiplyScalar(.5), dir = V(0, 0, -3.2).sub(m).setY(0).normalize().applyAxisAngle(V(0, 1, 0), lerp(.35, -.2, sm(c.k)));
-        const pos = m.clone().addScaledVector(dir, 3.9 + a.distanceTo(v) * .35).setY(2.25), alvo = m.clone().setY(1.25);
+        const pos = m.clone().addScaledVector(dir, 5.2 + a.distanceTo(v) * .4).setY(2.6), alvo = m.clone().setY(1.25);
         if (!S.cc) S.cc = { pos: pos.clone(), alvo: alvo.clone() }; const q = 1 - Math.exp(-c.dt * 3); S.cc.pos.lerp(pos, q); S.cc.alvo.lerp(alvo, q);
         cam(S.cc.pos, S.cc.alvo, 44);
       },
@@ -181,23 +183,23 @@ export function tocarTutorial(est, op = {}) {
       cam: c => { const k = sm(c.k); cam(mix(V(-1.6, 2.3, 5.6), V(1.6, 2.5, 5.6), k), mix(V(-7, 2.0, 10.5), V(7, 2.4, 10.5), k), 50); },
     },
     votacao: {
-      ini: () => { palco(); S.lista = [[nome, S.elenco[2].partido, 41.3], ['Rui Barraco', 'ALB', 37.9], ['Dona Verdade', 'FPB', 11.2], ['Zé Promessa', 'PUN', 6.1], ['Bia Polêmica', 'POP', 3.5]]; S.ledT = 0; },
+      ini: () => { palco(); S.lista = [[2, 41.3], [3, 37.9], [1, 11.2], [0, 6.1], [4, 3.5]].map(([i, pct]) => [S.elenco[i].nome, S.elenco[i].partido, pct]); S.ledT = 0; },
       ev: [[0, c => som(() => sfx.rufar(Math.max(1.5, c.d * .62)))], [.66, () => { som(sfx.impacto); est.festejarPlateia(3000, 1); S.tremor = .03; }]],
       quadro: c => ledVivo(c, c => { const kk = sm(c.k / .62), fim = c.k >= .66;
         return { modo: 'resultado', titulo: 'APURAÇÃO · 1º TURNO', lista: S.lista.map(([n, p, pct], i) => ({ nome: n, partido: p, pct: Math.max(.1, pct * kk), eleito: fim && i < 2 ? '2º TURNO' : undefined })),
           rodape: fim ? 'NINGUÉM PASSOU DE 50%: VAI TER 2º TURNO!' : `URNAS APURADAS: ${Math.round(kk * 100)}%` }; }, 70),
-      cam: c => { const k = sm(c.k); cam(mix(V(-.7, 3.0, 2.4), V(0, 3.9, -1.0), k), V(0, 4.35, -10.4), 46); },
+      cam: c => { const k = sm(c.k); cam(mix(V(-.7, 3.0, 2.6), V(0, 3.6, .3), k), V(0, 4.0, -10.4), 46); },
     },
     comemoracao: {
       ini: () => { palco(); campeao('festa'); est.confetes(true); est.setLED({ modo: 'texto', cabecalho: 'RESULTADO FINAL', texto: `${nome.toUpperCase()}: PRESIDENTE ELEITO(A)!` }); },
       ev: [[0, () => { som(sfx.vitoria); som(() => sfx.aplausos(4, .32)); est.festejarPlateia(6000, 1); }], [.5, () => { if (est.campeao) est.campeao.festa = 'samba'; }]],
       quadro: () => { if (est.campeao) est.campeao.root.visible = true; },
-      cam: c => { const a = lerp(.75, -.5, sm(c.k)); cam(V(Math.sin(a) * 3.4, 1.25 + .35 * c.k, -1 + Math.cos(a) * 3.4), V(0, 1.25, -1), 44); },
+      cam: c => { const a = lerp(-.55, .45, sm(c.k)), r = lerp(3.9, 3.3, sm(c.k)); cam(V(Math.sin(a) * r, 1.1 + .45 * c.k, .4 - Math.cos(a) * r), V(0, 1.45, .4), 44); },
     },
     xp: {
       ini: () => { palco(); campeao('samba'); est.setLED({ modo: 'titulo', sub: 'SUBA NA CARREIRA POLÍTICA' }); S.nv = -1;
         fx.insertAdjacentHTML('beforeend', `<div class="tut-escuro"></div><div class="tut-xp"><img><div><small>CARGO ATUAL</small><b class="nm"></b><div class="bar"><i></i></div><span class="xpn"></span></div><em>SUBIU DE NÍVEL!</em></div>`); },
-      ev: [[.03, () => { chip('+230 XP', 'amarelo', 62, 20); chip('+🪙 99', 'amarelo', 62, 31, .25); som(sfx.nota); }]],
+      ev: [[.03, () => { chip('+230 XP', 'amarelo', 7, 24); chip('+🪙 99', 'amarelo', 22, 24, .25); som(sfx.nota); }]],
       quadro: c => {
         if (est.campeao) est.campeao.root.visible = true;
         const q = Math.min(.999, Math.max(0, (c.k - .1) / .78)), n = CARGOS.length - 1, s = c.k >= .88 ? n : Math.floor(q * n), f = c.k >= .88 ? 1 : q * n - s, cg = CARGOS[s], prox = CARGOS[s + 1];
@@ -207,15 +209,16 @@ export function tocarTutorial(est, op = {}) {
         box.querySelector('.bar i').style.width = (s === n ? 100 : f * 100) + '%';
         box.querySelector('.xpn').textContent = (prox ? Math.round(cg.xp + f * (prox.xp - cg.xp)) : cg.xp).toLocaleString('pt-BR') + ' XP';
       },
-      cam: c => { const a = lerp(-.35, .15, sm(c.k)); cam(V(Math.sin(a) * 2.7, 1.05, -1 + Math.cos(a) * 2.7), V(-.75, 1.45, -1), 40); },
+      cam: c => { const a = lerp(.25, -.1, sm(c.k)); cam(V(Math.sin(a) * 3.3, 1.55, .4 - Math.cos(a) * 3.3), V(1.05, 1.35, .4), 50); },
     },
     final: {
-      ini: () => { palco({ falante: VOCE }); est.setLED({ modo: 'titulo', sub: 'AGORA É COM VOCÊ!' }); logo('AGORA É COM VOCÊ!'); est.festejarPlateia(5000, 1); },
+      ini: () => { palco({ falante: VOCE }); est.setLED({ modo: 'titulo', sub: 'BOM DEBATE!' }); logo('AGORA É COM VOCÊ!', true); est.festejarPlateia(5000, 1); },
       ev: [[0, () => som(() => sfx.aplausos(3.5, .3))], [.12, () => som(sfx.vinheta)]],
       cam: c => { const k = sm(c.k); cam(mix(V(.7, 2.25, 5.3), V(0, 7.5, 14.5), k), mix(V(0, 1.9, -3), V(0, 2.2, -5), k), 52); },
     },
   };
-  function campeao(danca) { est.setCampeao({ ...pd(VOCE).avatar.cfg }, danca); if (est.campeao) est.campeao.root.visible = true; pd(VOCE).avatar.root.visible = false; S.sujo = true; }
+  function campeao(danca) { // no centro do palco (onde fica o púlpito do confronto), de frente para a mesa da mediação
+    est.setCampeao({ ...pd(VOCE).avatar.cfg }, danca); const R = est.campeao?.root; if (R) { R.position.set(0, 0, .4); R.rotation.y = Math.PI; R.visible = true; } pd(VOCE).avatar.root.visible = false; S.sujo = true; }
 
   // ---------- linha do tempo ----------
   function entrar(i, off) {
@@ -225,7 +228,7 @@ export function tocarTutorial(est, op = {}) {
     S.mudo = off > .05; cena.ini?.(c);
     for (const e of c.ev) if (c.k >= e[0] && off > .05) { e.f = true; e[1](c); }
     S.mudo = false;
-    if (b.audio) { const a = S.audio = b.audio; try { a.currentTime = Math.min(off, Math.max(0, a.duration - .05)); } catch { /* */ } a.volume = 1; if (!S.congela) a.play().catch(() => {}); }
+    if (b.audio && !b.audio.error) { const a = S.audio = b.audio; try { a.currentTime = Math.min(off, Math.max(0, a.duration - .05)); } catch { /* */ } a.volume = 1; if (!S.congela) a.play().catch(() => {}); }
     else if (off < .3 && !S.congela) falar(b.fala);
     // legenda (palavra a palavra quando é a própria fala) + tarja da dica + flash do corte
     leg.innerHTML = b.legenda ? `<span class="lido">${esc(b.legenda)}</span>` : b.fala.split(/\s+/).map(w => `<span>${esc(w)}</span>`).join(' ');
@@ -248,7 +251,8 @@ export function tocarTutorial(est, op = {}) {
     // balão acompanha a cabeça de quem fala
     if (S.bal && pd(S.bal.id)) {
       const p = W(S.bal.id, 0, 2.45, 0); est.camera.updateMatrixWorld(); p.project(est.camera); const r = est.canvas.getBoundingClientRect();
-      bal.style.left = (r.left + (p.x + 1) / 2 * r.width) + 'px'; bal.style.top = (r.top + (1 - p.y) / 2 * r.height) + 'px'; bal.style.visibility = p.z < 1 ? '' : 'hidden';
+      bal.style.left = Math.min(r.right - bal.offsetWidth / 2 - 20, Math.max(r.left + bal.offsetWidth / 2 + 20, r.left + (p.x + 1) / 2 * r.width)) + 'px';
+      bal.style.top = Math.max(innerHeight * .08 + bal.offsetHeight + 34, r.top + (1 - p.y) / 2 * r.height) + 'px'; // nunca sai do quadro (barras de cinema) bal.style.visibility = p.z < 1 ? '' : 'hidden';
     }
   }
   function terminar(pulou) {
@@ -273,11 +277,11 @@ export function tocarTutorial(est, op = {}) {
     if (S.fim) return;
     let ini = 0; S.blocos = roteiro.map((b, i) => { const x = { ...b, audio: med[i].audio, d: med[i].d + RESPIRO, ini }; ini += x.d; return x; }); S.total = ini;
     const ib = op.cena ? S.blocos.findIndex(b => b.cena === op.cena) : -1;
-    S.off0 = Math.min(S.total - .05, Math.max(0, (ib >= 0 ? S.blocos[ib].ini : 0) + (+op.t || 0))); S.congela = !!op.congela;
+    S.off0 = Math.min(S.total - .05, Math.max(0, (ib >= 0 ? S.blocos[ib].ini : 0) + (+op.t || 0))); S.congela = !!op.congela; el.classList.toggle('congelado', S.congela); // print: animações CSS já no estado final
     abafarAmbiente(.35);
     montarElenco(); est.setModo('cine'); est.onAcao = (ev, d) => { salvo.onAcao?.(ev, d); if (ev === 'impacto' && S.c?.cena === CENAS.caldeirada) CENAS.caldeirada.impacto(S.c); };
     S.t0 = performance.now(); est.cine = quadro;
     el.classList.remove('carregando');
-  })().catch(e => { console.warn('[tutorial]', e); document.body.dataset.tutErro = e?.stack || e; terminar(true); });
+  })().catch(e => { console.warn('[tutorial]', e); terminar(true); });
   return S.p;
 }

@@ -284,3 +284,8 @@ img.xz-av{object-fit:cover;background:#1d2a4a}
 @keyframes tutCartao{0%{transform:scale(1.8) rotate(-20deg)}100%{transform:none}}
 @keyframes tutXz{from{opacity:0;transform:translateY(60px)}}
 @keyframes tutSobe{0%{transform:rotate(6deg) scale(0)}60%{transform:rotate(6deg) scale(1.15)}100%{transform:rotate(6deg) scale(1)}}
+.tut-logo.sai{animation:tutLogoSai .5s ease-in forwards}@keyframes tutLogoSai{from{opacity:1;transform:translate(-50%,-50%)}to{opacity:0;transform:translate(-50%,-50%) scale(.85)}}
+.tut-logo.so{top:54%}.tut-logo.so p{margin:0;font-size:clamp(40px,6vw,92px);letter-spacing:.06em;color:#fff;text-shadow:0 6px 0 #0b1f6b,0 0 34px rgba(250,204,21,.7);animation:tutAparece .7s .2s both}
+.tut-cartoes:not(.ban) b{display:none}
+.tut-logo.so p{white-space:nowrap}
+.tut.congelado *{animation-duration:1ms!important;animation-delay:0s!important;transition:none!important}
