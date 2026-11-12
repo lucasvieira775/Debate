@@ -50,5 +50,57 @@
   },
   "partido": "CNB",
   "uid": "ce9cc2fc-24a9-44f3-8f3e-060cb62abf23"
+ },
+ "lulatron bozossauro": {
+  "nome": "Lulatron Bozossauro",
+  "pts": 1209,
+  "partidas": 1,
+  "vitorias": 1,
+  "avatar": {
+   "genero": "masculino",
+   "pele": "#f6d3b3",
+   "cabelo": "repartido",
+   "corCabelo": "#8a8a8a",
+   "barba": "nenhuma",
+   "oculos": "pixel",
+   "chapeu": "nenhum",
+   "roupa": "pastor",
+   "corRoupa": "#6b7280",
+   "corCamisa": "#111827",
+   "corGravata": "#ca8a04",
+   "brinco": false,
+   "broche": true,
+   "extra": "nenhum",
+   "corpo": "medio",
+   "expressao": "bravo"
+  },
+  "partido": "FPB",
+  "uid": "a7be5498-0d2d-40ff-8360-ed1cbfc16039"
+ },
+ "mirian leitão": {
+  "nome": "Mirian Leitão",
+  "pts": 620,
+  "partidas": 1,
+  "vitorias": 0,
+  "avatar": {
+   "genero": "feminino",
+   "pele": "#eab68c",
+   "cabelo": "afro",
+   "corCabelo": "#3b2416",
+   "barba": "nenhuma",
+   "oculos": "redondo",
+   "chapeu": "palhaco",
+   "roupa": "pastor",
+   "corRoupa": "#a8a29e",
+   "corCamisa": "#f1f5f9",
+   "corGravata": "#1d4ed8",
+   "brinco": false,
+   "broche": false,
+   "extra": "nenhum",
+   "corpo": "medio",
+   "expressao": "confiante"
+  },
+  "partido": "POP",
+  "uid": "46721470-b119-492e-aea3-3eb2dcefd070"
  }
 }

@@ -58,18 +58,24 @@ function limparAvatar(a, tem = () => false) { // tem(itemId): a conta possui o i
   };
 }
 /** Quadros da apuração ao vivo (QUADROS+1 momentos, 0% a 100% das urnas). A disputa entre os dois primeiros segue
- *  um roteiro de viradas: disputa apertada → ~3 trocas de liderança; vantagem clara → 0–1; lavada → nenhuma. */
+ *  um roteiro de viradas imprevisível: 0 a 5 trocas de liderança (mais prováveis em disputa apertada), em momentos sorteados. */
 const QUADROS = 60, APURACAO_MS = 30000;
 const REVELA_TELAO_MS = 3500; // = REVELACAO.telao (public/js/main.js): a(o) jornalista diz o nome quando o telão acende
 function quadrosApuracao(res) {
   const finais = res.map(x => x.pct), N = QUADROS;
   const D = finais.length > 1 ? finais[0] - finais[1] : 0; // vantagem final do vencedor
-  const viradas = finais.length < 2 ? 0 : pick(D < 5 ? [2, 3, 3, 3, 4] : D < 9 ? [1, 2, 2, 3] : D < 15 ? [0, 1, 1, 2] : D < 25 ? [0, 0, 1] : [0]);
-  // pontos de controle da diferença 1º−2º: alternam de sinal e terminam em D (trocas entre 20% e 92% do tempo)
-  const ctrl = [[0, 0]];
-  for (let j = 0; j <= viradas; j++) {
-    const lider = (viradas - j) % 2 ? -1 : 1, t = .14 + (j + .5) / (viradas + 1) * .74 + (Math.random() - .5) * .04;
-    ctrl.push([t, lider * (Math.max(D, 2.5) * (j === viradas ? 1.2 : .7) + 1.5 + Math.random() * 3.5 * (1 - t))]);
+  const viradas = finais.length < 2 ? 0 : pick(D < 5 ? [0, 1, 1, 2, 2, 3, 3, 4, 5] : D < 9 ? [0, 1, 1, 2, 2, 3, 4] : D < 15 ? [0, 0, 1, 1, 2, 3] : D < 25 ? [0, 0, 0, 1, 2] : [0, 0, 1]);
+  // momentos das trocas de liderança: sorteados (10% a 96% das urnas), sem ritmo fixo — pode virar no finzinho
+  let cortes;
+  do cortes = Array.from({ length: viradas }, () => .1 + Math.random() * .86).sort((a, b) => a - b); while (cortes.some((c, i) => i && c - cortes[i - 1] < .07));
+  // pontos de controle da diferença 1º−2º: cada trecho tem um líder (alternam e terminam em D); folga sorteada e,
+  // às vezes, uma "ameaça" (quase vira e não vira), pra não dar pra adivinhar quem leva pela contagem de viradas
+  const b = [0, ...cortes, 1], ctrl = [[0, 0]];
+  for (let i = 0; i <= viradas; i++) {
+    const sinal = (viradas - i) % 2 ? -1 : 1, t0 = b[i], L = b[i + 1] - t0, ult = i === viradas;
+    const amp = () => sinal * (ult ? Math.max(.6, D * (.3 + Math.random() * .9)) + Math.random() * 1.5 : .8 + Math.random() * (3 + Math.min(D, 12) * .5));
+    if (L > .2 && Math.random() < .45) ctrl.push([t0 + L * .25, amp()], [t0 + L * .5, sinal * (.3 + Math.random() * .5)], [t0 + L * .75, amp()]);
+    else ctrl.push([t0 + L * (.35 + Math.random() * .3), amp()]);
   }
   ctrl.push([1, D]);
   const dif = t => { let k = 0; while (k < ctrl.length - 2 && ctrl[k + 1][0] < t) k++; const [t0, a] = ctrl[k], [t1, b] = ctrl[k + 1], f = (t - t0) / Math.max(1e-6, t1 - t0); return a + (b - a) * (1 - Math.cos(Math.PI * Math.min(1, Math.max(0, f)))) / 2; };

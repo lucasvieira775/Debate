@@ -1303,10 +1303,10 @@
  },
  "a7be5498-0d2d-40ff-8360-ed1cbfc16039": {
   "uid": "a7be5498-0d2d-40ff-8360-ed1cbfc16039",
-  "moedas": 10000,
+  "moedas": 10040,
   "dicasExtra": 0,
-  "partidas": 0,
-  "vitorias": 0,
+  "partidas": 1,
+  "vitorias": 1,
   "criadaEm": 1794485250517,
   "cadastro": {
    "idade": 32,
@@ -1315,9 +1315,18 @@
    "criadoEm": 1794488309950
   },
   "nome": "Lulatron Bozossauro",
-  "xp": 0,
+  "xp": 331,
   "abandonos": [
-   1794494502542
+   1794494502542,
+   1794495434707,
+   1794495742498
+  ],
+  "extrato": [
+   {
+    "t": 1794497091586,
+    "valor": 40,
+    "motivo": "Partida de debate"
+   }
   ]
  },
  "17d3980c-bb5f-4792-917f-ad01407a9aa3": {
@@ -1791,5 +1800,47 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794494718196
+ },
+ "46721470-b119-492e-aea3-3eb2dcefd070": {
+  "uid": "46721470-b119-492e-aea3-3eb2dcefd070",
+  "nome": "Mirian Leitão",
+  "moedas": 10014,
+  "dicasExtra": 0,
+  "partidas": 1,
+  "vitorias": 0,
+  "criadaEm": 1794495828854,
+  "cadastro": {
+   "idade": 38,
+   "nome": "Mirian Leitão",
+   "user": "mirianleite",
+   "criadoEm": 1794495903907
+  },
+  "fanpage": {
+   "nome": "Mirian Leitão",
+   "user": "mirianleite",
+   "bio": "Sou ladrona!!!",
+   "seguidores": 128,
+   "criadaEm": 1794495954515,
+   "posts": [
+    {
+     "t": 1794497091595,
+     "texto": "Olha, as cooperativas do Paraná já vendem muito, e isso é algo muito importante em nosso país. Acredito que meu governo deve fazer o seguinte: iremos dar 20 bilhões em créditos para as cooperativas e agroindústrias, vamos melhorar a taxação das exportações, industrializar alimentos e apoiar o pequeno produtor com mais recursos de crédito. Se você vem agora aqui com essa agressão, o que está aconte",
+     "tema": "Cooperativas e agroindústria",
+     "nota": 7.7,
+     "delta": 99,
+     "curtidas": 179,
+     "reposts": 24,
+     "respostas": 37
+    }
+   ]
+  },
+  "xp": 196,
+  "extrato": [
+   {
+    "t": 1794497091593,
+    "valor": 14,
+    "motivo": "Partida de debate"
+   }
+  ]
  }
 }
