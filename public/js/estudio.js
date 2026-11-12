@@ -1242,9 +1242,9 @@ export class Estudio {
       case 'poll': case 'resultado': {
         faixaTopo(d.titulo || 'PESQUISA');
         const lista = d.lista || []; const max = Math.max(...lista.map(x => x.pct), 1);
-        const h = Math.min(100, 470 / Math.max(1, lista.length));
+        const h = Math.min(110, (d.rodape ? 490 : 550) / Math.max(1, lista.length) - 14);
         lista.forEach((x, i) => {
-          const y = 210 + i * (h + 14), p = PARTIDO[x.partido] || PARTIDO.PUN;
+          const y = 196 + i * (h + 14), p = PARTIDO[x.partido] || PARTIDO.PUN;
           ctx.fillStyle = 'rgba(5,12,40,.7)'; rr(ctx, 160, y, 1730, h, 20); ctx.fill();
           ctx.fillStyle = p.cor; rr(ctx, 600, y + 10, Math.max(10, (x.pct / max) * 1000), h - 20, 14); ctx.fill();
           ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = `${h * .55}px ${FONTE}`; ctx.fillText(x.nome.slice(0, 14).toUpperCase(), 190, y + h / 2 + 3);
@@ -1252,7 +1252,7 @@ export class Estudio {
           if (x.eleito) { ctx.fillStyle = '#22c55e'; rr(ctx, 1500, y + 14, 200, h - 28, 12); ctx.fill(); ctx.fillStyle = '#04210f'; ctx.textAlign = 'center'; ctx.font = `${h * .38}px ${FONTE}`; ctx.fillText(x.eleito === true ? 'ELEITO' : x.eleito, 1600, y + h / 2 + 2); }
           ctx.textAlign = 'center';
         });
-        if (d.rodape) { ctx.fillStyle = '#c7d2fe'; ctx.font = `bold 40px ${FONTE_TXT}`; ctx.fillText(d.rodape, W / 2, H - 45); }
+        if (d.rodape) { ctx.fillStyle = '#c7d2fe'; this.caber(ctx, d.rodape, W * .8, 46, FONTE_TXT, 'bold '); ctx.fillText(d.rodape, W / 2, H - 40); }
         break;
       }
     }
