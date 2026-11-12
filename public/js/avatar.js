@@ -138,9 +138,7 @@ export class Avatar {
       m(rbox(.035, .15, .016, .006), ouro, 0, .42, frente + .02, this.torso); m(rbox(.1, .035, .016, .006), ouro, 0, .45, frente + .02, this.torso);
     }
     if (c.roupa === 'terno' || c.roupa === 'social' || c.roupa === 'colete' || pastor) gravata();
-    if (temPalito) { // lapelas e botões
-      const lap = mat(tom(roupaCor, -.06));
-      for (const s of [-1, 1]) { const l = m(rbox(.07, .36, .02, .01), lap, s * .1, .56, frente + .008, this.torso); l.rotation.z = s * .38; }
+    if (temPalito) { // botões
       for (const y of [.3, .18]) m(esfera(.018), mat('#222'), 0, y, frente + .01, this.torso);
     }
     if (c.roupa === 'polo') { for (const s of [-1, 1]) { const g = m(rbox(.12, .05, .03, .01), mat(tom(roupaCor, .05)), s * .07, .76, frente - .01, this.torso); g.rotation.z = s * .3; } }
