@@ -123,16 +123,28 @@ img.xz-av{object-fit:cover;background:#1d2a4a}
 .loja-como{max-width:620px;margin:0 auto}
 
 /* ---------- emotes ---------- */
-.painel-emotes{position:absolute;left:14px;bottom:150px;width:330px;max-height:300px;overflow:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px}
-.painel-emotes button{background:#24176b;border:2px solid var(--borda);border-radius:12px;color:#fff;padding:6px 2px;font-size:22px;cursor:pointer}
-.painel-emotes button small{display:block;font-size:10px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.painel-emotes .bloq{opacity:.35}
-.painel-emotes{max-height:380px}
-.painel-emotes .em-tit{grid-column:1/-1;font-size:12px;font-weight:800;color:#facc15;margin-top:4px}
-.painel-emotes .em-obs{grid-column:1/-1;font-size:11px;line-height:1.35;color:#fde68a;background:rgba(127,29,29,.45);border:1px solid rgba(250,204,21,.35);border-radius:8px;padding:6px 8px}
-.painel-emotes .usada{opacity:.35;filter:grayscale(1)}
+.painel-emotes{position:absolute;left:14px;bottom:150px;width:min(360px,calc(100vw - 28px));box-sizing:border-box;padding:10px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.painel-emotes .em-abas{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:rgba(0,0,0,.25);border-radius:12px;padding:4px}
+.painel-emotes .em-abas button{background:none;border:0;border-radius:9px;color:var(--mut);padding:5px 2px;font-size:18px;cursor:pointer;line-height:1.1}
+.painel-emotes .em-abas button small{display:block;font-size:10px;font-weight:800}
+.painel-emotes .em-abas button.ativa{background:#facc15;color:#1e1356}
+.painel-emotes .em-abas button.ativa small{color:#1e1356}
+.painel-emotes .em-sub{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:800;color:#facc15;padding:0 2px}
+.painel-emotes .em-sub .mut{font-weight:600;font-size:11px}
+.painel-emotes .em-grade{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:236px;overflow-y:auto;overflow-x:hidden;padding-right:2px}
+.painel-emotes .em-grade button{position:relative;min-width:0;background:#24176b;border:2px solid var(--borda);border-radius:12px;color:#fff;padding:8px 4px 6px;font-size:26px;cursor:pointer;line-height:1.1;transition:transform .1s,border-color .1s}
+.painel-emotes .em-grade button:hover{transform:translateY(-2px);border-color:#facc15}
+.painel-emotes .em-grade button small{display:block;margin-top:3px;font-size:10.5px;font-weight:700;color:#e0dcff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.painel-emotes .em-grade button .em-preco{display:block;font-size:10px;font-weight:800;color:#facc15}
+.painel-emotes .em-grade .bloq{background:rgba(36,23,107,.45);border-style:dashed}
+.painel-emotes .em-grade .bloq>span:first-child{opacity:.4;filter:grayscale(.8)}
+.painel-emotes .em-grade .bloq small{color:var(--mut)}
+.painel-emotes .em-grade .usada{opacity:.35;filter:grayscale(1)}
+.painel-emotes .em-grade [data-ac]:not(.bloq){background:#5b1430}
+.painel-emotes .em-vazio{grid-column:1/-1;text-align:center;font-size:12px;color:var(--mut);padding:10px}
+.painel-emotes .em-tit{font-size:13px;font-weight:800;color:#facc15}
+.painel-emotes .em-obs{font-size:11px;line-height:1.35;color:#fde68a;background:rgba(127,29,29,.45);border:1px solid rgba(250,204,21,.35);border-radius:8px;padding:6px 8px}
 .painel-emotes .em-alvo img{width:40px;height:40px;border-radius:50%;display:block;margin:0 auto 2px;object-fit:cover}
-.painel-emotes [data-ac]{background:#5b1430}
 
 
 /* ---------- apuração ao vivo ---------- */

@@ -962,12 +962,18 @@ function renderHUD() {
         <button class="btn amarelo" id="h-regras-x">Entendi</button></div></div>`;
     $$('[data-r]', hud).forEach(b => b.onclick = () => socket.emit('reacao', b.dataset.r));
     // emotes / danças / provocações (itens da loja)
-    $('#h-emotes-b').onclick = () => {
-      const p = $('#h-emotes'); p.hidden = !p.hidden; if (p.hidden) return;
-      const tem = id => E.conta?.itens?.includes(id), bt = (i, at) => `<button ${at}="${i.id}" class="${tem(i.id) ? '' : 'bloq'}${E.acoesUsadas?.has(i.id) ? ' usada' : ''}" title="${esc(i.nome)}${tem(i.id) ? '' : ' (compre na loja)'}">${i.emoji}<small>${esc(i.nome)}</small></button>`;
+    const EM_ABAS = [['acao', '💥', 'Ações'], ['emote', '😀', 'Emotes'], ['danca', '💃', 'Danças'], ['provocacao', '😈', 'Provocar']];
+    $('#h-emotes-b').onclick = (ev, manter) => {
+      const p = $('#h-emotes'); if (!manter) p.hidden = !p.hidden; if (p.hidden) return;
+      const tem = id => E.conta?.itens?.includes(id), aba = E.emAba ||= 'emote';
+      const bt = (i, at) => `<button ${at}="${i.id}" class="${tem(i.id) ? '' : 'bloq'}${E.acoesUsadas?.has(i.id) ? ' usada' : ''}" title="${esc(i.nome)}${tem(i.id) ? '' : ' (compre na loja)'}"><span>${i.emoji}</span><small>${esc(i.nome)}</small>${tem(i.id) ? '' : `<span class="em-preco">🔒 ${fmtN(i.preco)}</span>`}</button>`;
       const espera = Math.max(0, ACAO_ESPERA_MS - (Date.now() - (E.ultAcao || 0))), sEsp = Math.ceil(espera / 1000), mmss = `${sEsp / 60 | 0}:${String(sEsp % 60).padStart(2, '0')}`;
-      p.innerHTML = `<div class="em-tit">💥 Ações${espera ? ` <span class="mut">· próxima em ${mmss}</span>` : ''}</div>${ITENS.filter(i => i.tipo === 'acao').map(i => bt(i, 'data-ac')).join('')}
-        <div class="em-tit">😀 Emotes, danças e provocações</div>${ITENS.filter(i => i.tipo !== 'acao').map(i => bt(i, 'data-em')).join('')}`;
+      const lista = ITENS.filter(i => i.tipo === aba).sort((a, b) => tem(b.id) - tem(a.id) || a.preco - b.preco), meus = lista.filter(i => tem(i.id)).length;
+      const info = aba === 'acao' ? (espera ? `⏳ próxima em ${mmss}` : '1× por debate') : aba === 'danca' ? 'também na vitória' : '';
+      p.innerHTML = `<div class="em-abas">${EM_ABAS.map(([k, e, n]) => `<button data-aba="${k}" class="${k === aba ? 'ativa' : ''}">${e}<small>${n}</small></button>`).join('')}</div>
+        <div class="em-sub"><span>${meus}/${lista.length} liberados</span><span class="mut">${info}</span></div>
+        <div class="em-grade">${lista.map(i => bt(i, aba === 'acao' ? 'data-ac' : 'data-em')).join('') || '<div class="em-vazio">Nada aqui ainda.</div>'}</div>`;
+      $$('[data-aba]', p).forEach(b => b.onclick = e => { e.stopPropagation(); E.emAba = b.dataset.aba; $('#h-emotes-b').onclick(null, true); });
       $$('[data-em]', p).forEach(b => b.onclick = () => { if (!tem(b.dataset.em)) return toast(`"${ITEM[b.dataset.em].nome}" está na Loja por 🪙 ${ITEM[b.dataset.em].preco}.`); socket.emit('emote', b.dataset.em, r => r?.erro && toast(r.erro, 'erro')); p.hidden = true; });
       // ação: escolhe o alvo (outro candidato) na lista
       $$('[data-ac]', p).forEach(b => b.onclick = () => {
@@ -976,8 +982,8 @@ function renderHUD() {
         const alvos = (E.sala?.jogadores || []).filter(j => j.id !== E.eu && !j.banido && !j.saiu);
         const obs = it.reacao === 'amor' ? '💐 Gesto de carinho: rende simpatia do eleitor e alguns seguidores.'
           : `⚠ Agressão pesa na votação: afasta eleitores moderados, vira assunto no Xzona e você será vaiado(a) na próxima fala${it.adv ? '. Vale advertência da mediação!' : '.'} Se a vítima estiver falando, ganha +15 s.`;
-        p.innerHTML = `<div class="em-tit">${it.emoji} ${esc(it.nome)}: em quem?</div><div class="em-obs">${obs}</div>${alvos.map(j => `<button data-alvo="${j.id}" class="em-alvo"><img src="${retrato(j.avatar)}"><small>${esc(j.nome)}</small></button>`).join('')}<button data-volta class="em-alvo">↩<small>Voltar</small></button>`;
-        $('[data-volta]', p).onclick = () => { p.hidden = true; $('#h-emotes-b').click(); };
+        p.innerHTML = `<div class="em-tit">${it.emoji} ${esc(it.nome)}: em quem?</div><div class="em-obs">${obs}</div><div class="em-grade">${alvos.map(j => `<button data-alvo="${j.id}" class="em-alvo"><img src="${retrato(j.avatar)}"><small>${esc(j.nome)}</small></button>`).join('')}<button data-volta class="em-alvo">↩<small>Voltar</small></button></div>`;
+        $('[data-volta]', p).onclick = e => { e.stopPropagation(); $('#h-emotes-b').onclick(null, true); };
         $$('[data-alvo]', p).forEach(a => a.onclick = () => { p.hidden = true; socket.emit('acao', { item: it.id, alvo: a.dataset.alvo }, r => { if (r?.erro) return toast(r.erro, 'erro'); E.ultAcao = Date.now(); (E.acoesUsadas ||= new Set()).add(it.id); }); });
       });
     };

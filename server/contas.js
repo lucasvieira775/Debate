@@ -21,12 +21,12 @@ const limparTxt =(t, n) => String(t || '').replace(/[<>]/g, '').replace(/\s+/g, 
 
 export const ECONOMIA = {
   inicial: MOEDAS_TESTE || 100,
-  participacao: 20, porPontoDeNota: 4, segundoTurno: 30, eleito: 80,
+  participacao: 6, porPontoDeNota: 1, segundoTurno: 10, eleito: 25,
   dicasGratis: 1,
   pacotes: [
-    { id: 'avulsa', nome: 'Anotação avulsa', descricao: '1 dica de assessoria', dicas: 1, preco: 200 },
-    { id: 'kit', nome: 'Kit do Assessor', descricao: '3 dicas · economize 17%', dicas: 3, preco: 500, destaque: true },
-    { id: 'gabinete', nome: 'Gabinete Completo', descricao: '6 dicas · economize 25%', dicas: 6, preco: 900 },
+    { id: 'avulsa', nome: 'Anotação avulsa', descricao: '1 dica de assessoria', dicas: 1, preco: 400 },
+    { id: 'kit', nome: 'Kit do Assessor', descricao: '3 dicas · economize 17%', dicas: 3, preco: 1000, destaque: true },
+    { id: 'gabinete', nome: 'Gabinete Completo', descricao: '6 dicas · economize 25%', dicas: 6, preco: 1800 },
   ],
   campeaoMensal: 1000, campeaoSemanal: 250, // moedas para o 1º lugar dos rankings
 };

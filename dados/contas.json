@@ -1092,5 +1092,28 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794448451435
+ },
+ "56b19d15-3560-4513-ba17-d73f8b2e9030": {
+  "uid": "56b19d15-3560-4513-ba17-d73f8b2e9030",
+  "nome": "Carneiro Pinto",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794454777875,
+  "cadastro": {
+   "idade": 32,
+   "nome": "Carneiro Pinto",
+   "user": "carneiropinto",
+   "criadoEm": 1794454805308
+  },
+  "fanpage": {
+   "nome": "Carneiro Pinto",
+   "user": "carneiropinto",
+   "bio": "",
+   "seguidores": 0,
+   "criadaEm": 1794454916319,
+   "posts": []
+  }
  }
 }
