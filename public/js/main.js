@@ -712,6 +712,7 @@ function louroSVG(tipo = 'ouro', cls = 'louro') {
     <g fill="url(#${g})" stroke="${c3}" stroke-width="1.2"><path d="M${x0.toFixed(1)} ${y0.toFixed(1)}A${r} ${r} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}" fill="none" stroke="${c2}" stroke-width="3" stroke-linecap="round"/>${ts.map(t => folha(t, 1) + folha(t + 9, -1)).join('')}<ellipse cx="${(x1 + 3).toFixed(1)}" cy="${(y1 - 5).toFixed(1)}" rx="4" ry="9" transform="rotate(30 ${(x1 + 3).toFixed(1)} ${(y1 - 5).toFixed(1)})"/></g></svg>`;
 }
 const COROA = `<svg class="coroa" viewBox="0 0 64 50" aria-hidden="true"><defs><linearGradient id="gcoroa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3a6"/><stop offset=".5" stop-color="#facc15"/><stop offset="1" stop-color="#c26a05"/></linearGradient></defs><g stroke="#7a4b00" stroke-width="2.4" stroke-linejoin="round" fill="url(#gcoroa)"><path d="M8 40 4 13l15 12L32 6l13 19 15-12-4 27z"/><rect x="7" y="38" width="50" height="9" rx="3"/><circle cx="32" cy="6" r="3.6"/><circle cx="4" cy="13" r="3.2"/><circle cx="60" cy="13" r="3.2"/></g><circle cx="32" cy="30" r="4" fill="#ef4444" stroke="#7a1010" stroke-width="1.2"/><circle cx="19" cy="32" r="2.8" fill="#60a5fa"/><circle cx="45" cy="32" r="2.8" fill="#4ade80"/></svg>`;
+const MOEDAS = `<svg class="moedas" viewBox="0 0 28 24" aria-hidden="true">${[[4,17],[4,12],[4,7],[13,15],[13,10]].map(([x,y]) => `<ellipse cx="${x+6}" cy="${y+3}" rx="6.5" ry="3" fill="#b45309"/><ellipse cx="${x+6}" cy="${y+1.6}" rx="6.5" ry="3" fill="#fcd34d" stroke="#b45309" stroke-width=".9"/>`).join('')}</svg>`;
 const CONGRESSO = `<svg class="rank-congresso" viewBox="0 0 230 92" aria-hidden="true"><defs><linearGradient id="gcong" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c4b8ff"/><stop offset="1" stop-color="#7b6be6"/></linearGradient></defs><g fill="url(#gcong)"><rect x="104" y="6" width="11" height="70" rx="1"/><rect x="120" y="6" width="11" height="70" rx="1"/><rect x="104" y="36" width="27" height="4"/><path d="M28 72a28 15 0 0 1 56 0z"/><path d="M150 54h72a36 15 0 0 1-72 0z"/><rect x="182" y="64" width="8" height="10"/><rect x="0" y="72" width="230" height="5" rx="2"/><rect x="14" y="79" width="206" height="3" rx="1.5" opacity=".6"/></g></svg>`;
 function telaRanking(ui) {
   const per = E.rankPer ||= 'semana';
@@ -725,8 +726,8 @@ function telaRanking(ui) {
     const el = $('#rank'); if (!el || E.rankPer !== per) return;
     const lista = Array.isArray(d) ? d : d?.lista || [];
     const fimSem = d?.id && per === 'semana' ? new Date(new Date(d.id + 'T00:00').getTime() + 6 * 864e5).toLocaleDateString('pt-BR') : '';
-    $('#rank-info').innerHTML = per === 'semana' ? `<u>Semana</u> até ${fimSem} (domingo). O 1º lugar ganha <b>🪙 ${fmtN(d?.premioSemanal || 0)} moedas</b> e o título de melhor candidato(a) da semana na Xzona.`
-      : per === 'mes' ? `Ranking de <u>${esc(nomeMes(d?.id))}</u>. O 1º lugar ganha <b>🪙 ${fmtN(d?.premio || 0)} moedas</b>, fica em destaque no menu inicial e ganha o título de melhor candidato(a) do mês na Xzona.`
+    $('#rank-info').innerHTML = per === 'semana' ? `<u>Semana</u> até ${fimSem} (domingo). O 1º lugar ganha ${MOEDAS}<b>${fmtN(d?.premioSemanal || 0)} moedas</b> e o título de melhor candidato(a) da semana na Xzona.`
+      : per === 'mes' ? `Ranking de <u>${esc(nomeMes(d?.id))}</u>. O 1º lugar ganha ${MOEDAS}<b>${fmtN(d?.premio || 0)} moedas</b>, fica em destaque no menu inicial e ganha o título de melhor candidato(a) do mês na Xzona.`
       : 'Pontuação acumulada de todos os tempos.';
     if (!lista.length) { el.innerHTML = '<p class="mut">Ninguém pontuou ainda neste período. Jogue uma partida para entrar no ranking!</p>'; return; }
     const img = r => r.avatar ? ret(r.avatar) : '';
