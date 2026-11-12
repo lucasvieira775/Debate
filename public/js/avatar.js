@@ -116,10 +116,6 @@ export class Avatar {
     // tronco
     this.torso = new THREE.Group(); this.torso.position.y = .86; R.add(this.torso);
     m(rbox(W, .76, .38, .1), mat(torsoCor, { r: .7 }), 0, .38, 0, this.torso);
-    const vShape = (larg, alt, cor, z, y0 = .76) => {
-      const s = new THREE.Shape(); s.moveTo(-larg / 2, y0); s.lineTo(larg / 2, y0); s.lineTo(0, y0 - alt); s.closePath();
-      const me = new THREE.Mesh(new THREE.ShapeGeometry(s), mat(cor)); me.position.z = z; this.torso.add(me); return me;
-    };
     const gravata = () => { // gravata 3D: colarinho, nó trapezoidal, lâmina com bisel e listras, prendedor
       const ext = (k, pts, o) => geo(k, () => { const s = new THREE.Shape(); pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); s.closePath(); return new THREE.ExtrudeGeometry(s, { curveSegments: 1, ...o }); });
       const gm = matGravata(c.corGravata);
@@ -127,11 +123,6 @@ export class Avatar {
       lam.rotation.x = -.03;
       const no = m(ext('gravNo', [[-.044, .75], [.044, .75], [.027, .672], [-.027, .672]], { depth: .028, bevelEnabled: true, bevelThickness: .012, bevelSize: .009, bevelSegments: 4 }), mat(tom(c.corGravata, -.04), { r: .45 }), 0, 0, frente + .006, this.torso);
       no.castShadow = false;
-      const gola = mat(camisaCor, { r: .6 });
-      for (const s of [-1, 1]) { // pontas do colarinho
-        const g = m(ext('gravGola', [[0, 0], [.075, .02], [.02, -.085]], { depth: .008, bevelEnabled: true, bevelThickness: .004, bevelSize: .004, bevelSegments: 2 }), gola, s * .035, .765, frente + .01, this.torso);
-        g.scale.x = s; g.rotation.y = s * .25;
-      }
       m(rbox(.075, .012, .012, .004), mat('#c9ccd3', { r: .25, m: .9 }), 0, .5, frente + .03, this.torso); // prendedor
     };
     if (batina) { // batina: saia longa até os pés, botões e friso vermelhos, faixa na cintura, crucifixo dourado
@@ -146,13 +137,13 @@ export class Avatar {
       for (const s of [-1, 1]) { const ca = m(rbox(.016, .3, .01, .004), ouro, s * .07, .62, frente + .014, this.torso); ca.rotation.z = s * .22; }
       m(rbox(.035, .15, .016, .006), ouro, 0, .42, frente + .02, this.torso); m(rbox(.1, .035, .016, .006), ouro, 0, .45, frente + .02, this.torso);
     }
-    if (c.roupa === 'terno' || c.roupa === 'social' || c.roupa === 'colete' || pastor) { vShape(c.roupa === 'social' ? .0001 : .22, .34, camisaCor, frente + .002); gravata(); }
+    if (c.roupa === 'terno' || c.roupa === 'social' || c.roupa === 'colete' || pastor) gravata();
     if (temPalito) { // lapelas e botões
       const lap = mat(tom(roupaCor, -.06));
       for (const s of [-1, 1]) { const l = m(rbox(.07, .36, .02, .01), lap, s * .1, .56, frente + .008, this.torso); l.rotation.z = s * .38; }
       for (const y of [.3, .18]) m(esfera(.018), mat('#222'), 0, y, frente + .01, this.torso);
     }
-    if (c.roupa === 'polo') { vShape(.12, .14, tom(roupaCor, -.1), frente + .002); for (const s of [-1, 1]) { const g = m(rbox(.12, .05, .03, .01), mat(tom(roupaCor, .05)), s * .07, .76, frente - .01, this.torso); g.rotation.z = s * .3; } }
+    if (c.roupa === 'polo') { for (const s of [-1, 1]) { const g = m(rbox(.12, .05, .03, .01), mat(tom(roupaCor, .05)), s * .07, .76, frente - .01, this.torso); g.rotation.z = s * .3; } }
     if (c.roupa === 'social') m(rbox(.1, .08, .01, .005), mat(tom(camisaCor, -.06)), -W * .25, .55, frente + .002, this.torso);
     if (c.broche === 'coxinha') { // broche de coxinha: gota dourado-alaranjada
       const g = new THREE.Group(); g.position.set(W * .24, .6, frente + .025); g.scale.setScalar(1.5); this.torso.add(g);
