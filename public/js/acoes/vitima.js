@@ -252,7 +252,7 @@ export class Vitima {
     this.espirais = this.rubores = null;
     if (this.minha) {
       if (this.camMovida && !this.camFim && est.modo === 'fp') est.setModo('fp'); // devolve a câmera ao rig da 1ª pessoa
-      av.ocultarCabeca(est.modo === 'fp');
+      av.ocultarCabeca(est.cabecaOculta());
       if (est.lendo) av.animar('folhear', 9999); // estava lendo a pergunta: volta a folhear
     }
     this.camFim = true;

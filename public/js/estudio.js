@@ -879,7 +879,7 @@ export class Estudio {
     const sp = this.criarSpot(pos.clone(), '#fff3dd');
     g.traverse(o => { o.userData.pid ??= j.id; });
     const podio = { id: j.id, bot: !!j.bot, grupo: g, ator, avatar: av, tela: tl, faixaLuz, bMic, bOk, spot: sp, etiqueta, et, nivel: j.nivel || 0, partido: p, anelMic, telaKey: '', idx: i, n, caminho: null, lugar: 'podio' };
-    if (j.id === this.meuId) av.ocultarCabeca(true);
+    if (j.id === this.meuId) av.ocultarCabeca(!this.terceira);
     this.desenharTelaPodio(podio, { titulo: j.nome, texto: p.sigla + ' ' + p.numero, num: p.numero });
     return podio;
   }
@@ -1111,15 +1111,23 @@ export class Estudio {
     if ((modo === 'vitrine' || modo === 'menu') && antes !== modo) { this.acoes?.limpar(); this.modo = modo; } // (limpar pode chamar setModo('fp')) saiu da partida no meio de uma ação: nada sobra na cena
     if (modo === 'fp') {
       const pd = this.podios.get(this.meuId);
-      if (pd) { pd.ator.add(this.rig); this.rig.position.set(0, 2.0, .1); this.camFP.add(this.camera); this.camera.position.set(0, 0, 0); this.camera.rotation.set(0, 0, 0); this.camera.fov = 68; this.camera.updateProjectionMatrix(); }
+      if (pd) { pd.ator.add(this.rig); this.rig.position.set(0, 2.0, .1); this.camFP.add(this.camera); this.posCamFP(); }
     } else {
       this.scene.add(this.camera); this.camera.fov = modo === 'vitrine' || modo === 'vencedor' || modo === 'revelacao' ? 42 : 55; this.camera.updateProjectionMatrix();
     }
-    this.podios.get(this.meuId)?.avatar.ocultarCabeca(modo === 'fp'); // fora da 1ª pessoa o seu avatar aparece inteiro
+    this.podios.get(this.meuId)?.avatar.ocultarCabeca(this.cabecaOculta()); // fora da 1ª pessoa o seu avatar aparece inteiro
     if (this.vitrine) this.vitrine.root.visible = modo === 'vitrine';
     if (this.campeao) this.campeao.root.visible = modo === 'vencedor';
     for (const p of this.podios.values()) p.grupo.visible = p.ator.visible = modo !== 'vitrine';
     this.visDuelo();
+  }
+  cabecaOculta() { return this.modo === 'fp' && !this.terceira; }
+  // câmera presa ao rig da cabeça: 1ª pessoa (no olho) ou 3ª pessoa (atrás e acima do ombro, orbitando com o olhar)
+  posCamFP() { const c = this.camera, t = this.terceira; c.position.set(t ? .35 : 0, t ? .4 : 0, t ? 2.3 : 0); c.rotation.set(t ? -.12 : 0, 0, 0); c.fov = t ? 60 : 68; c.updateProjectionMatrix(); }
+  alternarVisao() { // tecla V
+    this.terceira = !this.terceira;
+    if (this.camera.parent === this.camFP) this.posCamFP(); // (durante um golpe a câmera está solta: só vale quando voltar)
+    this.podios.get(this.meuId)?.avatar.ocultarCabeca(this.cabecaOculta());
   }
   setVitrine(cfgAv) {
     const k = JSON.stringify(cfgAv);
@@ -1145,6 +1153,7 @@ export class Estudio {
     cv.addEventListener('pointercancel', () => { arrastando = false; }); addEventListener('blur', () => { arrastando = false; });
     cv.addEventListener('pointerup', e => { if (!arrastando) return; arrastando = false; if (moveu < 6) this.pick(e.clientX, e.clientY); });
     addEventListener('keydown', e => {
+      if (this.modo === 'fp' && (e.key === 'v' || e.key === 'V') && !e.repeat && !e.ctrlKey && !e.altKey && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) && !document.activeElement?.isContentEditable) return this.alternarVisao();
       if (this.modo !== 'fp' || this.andandoEu() || /INPUT|TEXTAREA/.test(document.activeElement?.tagName)) return;
       const k = .12; if (e.key === 'ArrowLeft') this.olhar.y += k; if (e.key === 'ArrowRight') this.olhar.y -= k;
       if (e.key === 'ArrowUp') this.olhar.p = Math.min(.7, this.olhar.p + k); if (e.key === 'ArrowDown') this.olhar.p = Math.max(-.85, this.olhar.p - k);
