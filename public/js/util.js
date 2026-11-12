@@ -29,6 +29,7 @@ export function lerConfig() { return { voz: true, sfx: .7, ambiente: .7, musica:
 export const salvarConfig = c => LS.gravar('debate_cfg', c);
 export const lerSessao = () => LS.ler('debate_sessao', null);
 export const salvarSessao = s => LS.gravar('debate_sessao', s);
+export const tutorialVisto = () => !!LS.ler('debate_tutorial', false), marcarTutorial = () => LS.gravar('debate_tutorial', true); // tutorial da 1ª partida (assistido ou pulado)
 
 // ---------- símbolos dos partidos (canvas 2D) ----------
 export function desenharSimbolo(ctx, tipo, cx, cy, r, cor) {

@@ -20,7 +20,7 @@ function m(g, mt, x = 0, y = 0, z = 0, parent) {
   if (parent) parent.add(me); return me;
 }
 function tom(hex, f) { const c = new THREE.Color(hex); const hsl = {}; c.getHSL(hsl, THREE.SRGBColorSpace); c.setHSL(hsl.h, hsl.s, Math.max(Math.min(hsl.l, .06), Math.min(1, hsl.l + f)), THREE.SRGBColorSpace); return '#' + c.getHexString(); } // HSL em sRGB (em linear, tons escuros zeravam)
-const realce = (hex, f) => tom(hex, new THREE.Color(hex).getHSL({}, THREE.SRGBColorSpace).l > .75 ? -f : f); // clareia (ou escurece, se já for claro) p/ destacar detalhe
+const realce = (hex, f) => { const l = new THREE.Color(hex).getHSL({}, THREE.SRGBColorSpace).l; return tom(hex, l > .75 ? -f : l < .2 ? f * 1.7 : f); }; // clareia (ou escurece, se já for claro) p/ destacar detalhe; em tons bem escuros clareia mais (senão a lapela some no preto)
 const _qA = new THREE.Quaternion(), _qB = new THREE.Quaternion();
 const _qY = new THREE.Quaternion(), _eixoY = new THREE.Vector3(0, 1, 0);
 const esfera = r => geo('s' + r, () => new THREE.SphereGeometry(r, 18, 14));
@@ -136,6 +136,7 @@ export class Avatar {
       m(rbox(.075, .012, .012, .004), mat('#c9ccd3', { r: .25, m: .9 }), 0, .5, z + .024, this.torso); // prendedor
     };
     const cinto = () => { m(rbox(W * .98, .055, .39, .025), mat('#1c1917', { r: .4 }), 0, .035, 0, this.torso); m(rbox(.06, .045, .012, .005), mat('#c9a227', { r: .3, m: .8 }), 0, .035, frente + .006, this.torso); };
+    const mBot = mat(new THREE.Color(roupaCor).getHSL({}, THREE.SRGBColorSpace).l < .15 ? '#6b7280' : '#1a1a1a', { r: .3, m: .3 }); // botões (cinza em roupa preta, senão somem)
     if (paleto) { // paletó: camisa em V, lapelas, botões e bolsos
       const mL = mat(realce(roupaCor, .09), { r: .45 }), mEsc = mat(tom(roupaCor, -.07), { r: .7 });
       const fundoV = aberto ? [[-.11, .705], [.11, .705], [.075, -.01], [-.075, -.01]] : fem ? [[-.1, .705], [.1, .705], [0, .37]] : [[-.11, .705], [.11, .705], [0, .31]];
@@ -149,8 +150,8 @@ export class Avatar {
         for (const y of [.6, .45, .3, .15]) m(esfera(.011), mCamEsc, 0, y, frente + .006, this.torso);
         m(rbox(.15, .05, .012, .005), mat('#1c1917', { r: .4 }), 0, .04, frente + .002, this.torso); m(rbox(.045, .04, .014, .004), mat('#c9a227', { r: .3, m: .8 }), 0, .04, frente + .006, this.torso);
         par(rbox(.014, .36, .012, .005), mL, frente + .002, this.torso, .07 * W / .67, .17);
-        for (const y of [.26, .15]) m(esfera(.019), mat('#1a1a1a', { r: .3 }), .1 * W / .67, y, frente + .008, this.torso);
-      } else for (const y of fem ? [.32] : [.26, .15]) m(esfera(.019), mat('#1a1a1a', { r: .3 }), 0, y, frente + .008, this.torso);
+        for (const y of [.26, .15]) m(esfera(.019), mBot, .1 * W / .67, y, frente + .008, this.torso);
+      } else for (const y of fem ? [.32] : [.26, .15]) m(esfera(.019), mBot, 0, y, frente + .008, this.torso);
       if (fem) par(rbox(.09, .026, .014, .006), mEsc, .158, this.torso, W * .2, .1);
       else { par(rbox(.13, .035, .014, .006), mEsc, frente + .004, this.torso, W * .29, .13); m(rbox(.1, .022, .012, .005), mEsc, -W * .3, .5, frente + .004, this.torso); }
       if (!fem) { const ln = m(rbox(.07, .03, .01, .004), mat(aberto ? c.corGravata : '#f8fafc', { r: .5 }), -W * .3, .525, frente + .004, this.torso); ln.rotation.z = .15; } // lenço
@@ -161,7 +162,7 @@ export class Avatar {
       m(rbox(W + .014, .6, .394, .05), mV, 0, .3, 0, this.torso);
       m(ext('vColete', [[-.13, .6], [.13, .6], [0, .3]]), mCam, 0, 0, .19, fr);
       par(ext('vColBorda', [[.13, .6], [.0, .3], [.02, .3], [.15, .6]], { depth: .006 }), mat(realce(roupaCor, .09), { r: .5 }), .197, fr);
-      for (let y = .26; y > .02; y -= .055) m(esfera(.013), mat('#1a1a1a', { r: .3 }), 0, y, frente + .009, this.torso);
+      for (let y = .26; y > .02; y -= .055) m(esfera(.013), mBot, 0, y, frente + .009, this.torso);
       par(rbox(.1, .022, .012, .005), mat(tom(roupaCor, -.08)), frente + .006, this.torso, W * .27, .16);
       colarinho(false);
     }

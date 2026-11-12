@@ -2,7 +2,8 @@ import { Estudio } from './estudio.js';
 import { retrato } from './avatar.js';
 import { Microfone, falar, calar, sfx, somItem, nivelDoAudio, setVolume, testarMicrofone, temReconhecimento, contextoSeguro, configurarAmbiente, ajustarAmbiente, setVolumeAmbiente, setVolumeMusica, abafarAmbiente, pararSonsRevelacao } from './voz.js';
 import { PARTIDOS, PARTIDO, IDEO, AV, TEMA, TEMAS, KIND_NOME, ETAPAS, JORN, DIFICULDADES, avatarAleatorio, textoVitoria } from '/shared/regras.js';
-import { $, $$, esc, fmtN, fmtP, fmtT, lerPerfil, salvarPerfil, lerConfig, salvarConfig, lerSessao, salvarSessao, logoPartido, toast } from './util.js';
+import { $, $$, esc, fmtN, fmtP, fmtT, lerPerfil, salvarPerfil, lerConfig, salvarConfig, lerSessao, salvarSessao, logoPartido, toast, tutorialVisto, marcarTutorial } from './util.js';
+import { tocarTutorial } from './tutorial.js';
 import { Voip } from './voip.js';
 import { SONS_ACAO } from './acoes/sons.js';
 import { termosAceitos, mostrarTermos } from './termos.js';
@@ -519,8 +520,13 @@ function sincronizarPerfil() { if (!E.sala || E.sala.fase !== 'lobby') return; c
 
 // ======================= RENDER: telas =======================
 function ir(tela) { sfx.clique(); E.tela = tela; E.prova = null; $$('.sob-av').forEach(b => b.remove()); if (tela === 'personalizar' || tela === 'loja') { est.setVitrine(E.perfil.avatar); est.setModo('vitrine'); } else if (!emJogo()) est.setModo('menu'); renderUI(); }
+/** Tutorial (cinemática 3D, public/js/tutorial.js): toca, marca como visto (também ao pular) e segue para `depois`. */
+function verTutorial(depois) {
+  if (E.tutorial) return; E.tutorial = true; sfx.clique();
+  tocarTutorial(est, { avatar: E.perfil.avatar, nome: E.perfil.nome, partido: E.perfil.partido }).then(() => { marcarTutorial(); E.tutorial = false; if (depois) ir(depois); else renderUI(); });
+}
 function renderUI() {
-  if (E.demo) return;
+  if (E.demo || E.tutorial) return;
   const ui = $('#ui'), hud = $('#hud');
   if (emJogo()) { ui.innerHTML = ''; hud.hidden = false; renderHUD(); return; }
   hud.hidden = true; E.hudKey = '';
@@ -563,12 +569,16 @@ function telaMenu(ui) {
       <button class="btn" id="btn-niveis"><i class="ic"><img src="${brasao(nv.n)}" style="width:28px;height:28px;vertical-align:middle"></i>NÍVEIS <small style="opacity:.7">· ${nv.nome}</small></button>
       <button class="btn" data-a="loja"><i class="ic">🛒</i>LOJA</button>
       <button class="btn" data-a="config"><i class="ic">⚙️</i>CONFIGURAÇÕES</button>
+      <button class="btn" id="btn-tutorial"><i class="ic">🎬</i>TUTORIAL</button>
     </div></div>`;
+  $('#btn-tutorial', ui).onclick = () => verTutorial();
   $('#nome-trocar') && ($('#nome-trocar').onclick = janelaTrocarNome);
   if (!(Date.now() - (E.topXzT || 0) < 60000)) { E.topXzT = Date.now(); socket.emit('topXzona', null, l => { const mudou = JSON.stringify(l) !== JSON.stringify(E.topXz); E.topXz = l || []; if (mudou && E.tela === 'menu') renderUI(); }); }
   if (E.campeao === undefined) { E.campeao = null; socket.emit('campeao', null, c => { E.campeao = c || null; if (c && E.tela === 'menu') renderUI(); }); }
   $('#perfil-chip', ui).onclick = $('#btn-niveis', ui).onclick = janelaCarreira;
-  $$('[data-a]', ui).forEach(b => b.onclick = () => { if (b.dataset.a === 'jogar' && !exigirNome()) return; if (b.dataset.a === 'personalizar') E.persVoltar = 'menu'; ir(b.dataset.a); });
+  $$('[data-a]', ui).forEach(b => b.onclick = () => { const a = b.dataset.a; if (a === 'jogar' && !exigirNome()) return; if (a === 'personalizar') E.persVoltar = 'menu';
+    if ((a === 'jogar' || a === 'salas') && !tutorialVisto()) return verTutorial(a); // 1ª vez que vai jogar: tutorial antes (pular também conta)
+    ir(a); });
 }
 function telaJogar(ui) {
   ui.innerHTML = `<div class="tela">${topo('Jogar')}
@@ -1442,6 +1452,8 @@ if (demo) setTimeout(() => {
   if (demo === 'loja') { E.perfil.nome ||= 'Demo'; E.lojaAba = new URLSearchParams(location.search).get('aba') || 'moedas'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('loja'); return; } // ?demo=loja&aba=assessoria
   if (demo === 'promocao') { const c = CARGOS[(+new URLSearchParams(location.search).get('n') || 2) - 1]; E.perfil.nome ||= 'Demo'; ir('menu'); animarPromocao({ n: c.n, nome: c.nome, recompensa: c.recompensa, bonus: c.bonus }); return; } // ?demo=promocao&n=5
   if (demo === 'carreira') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 900, itens: [], xp: 8200, cargoMax: 5, cadastro: { nome: 'Demo', user: 'demo' } }), set() {} }); ir('menu'); janelaCarreira(); avisoGanhos({ total: 99, itens: [['Participação', 20], ['Bônus de cargo: Senador (×1,45)', 31]], xp: { ganho: 230, antes: 4, depois: 5, xp: 8200 } }); return; }
+  if (demo === 'tutorial') { const q = new URLSearchParams(location.search); E.perfil.nome ||= 'Demo'; E.tutorial = true; $('#ui').innerHTML = ''; // ?demo=tutorial[&cena=votacao][&t=2.5][&congela=1]
+    tocarTutorial(est, { avatar: E.perfil.avatar, nome: E.perfil.nome, partido: E.perfil.partido, cena: q.get('cena'), t: +q.get('t') || 0, congela: !!q.get('congela') }).then(() => { E.tutorial = false; ir('menu'); }); return; }
   if (demo === 'cadastro') { E.conta = { ...E.conta, cadastro: null }; renderUI(); return; }
   if (demo === 'menu' || demo === 'ranking') { E.perfil.nome ||= 'Demo'; if (demo === 'menu') { const fixo = (k, v) => Object.defineProperty(E, k, { get: () => v, set() {} }); fixo('topXzT', Date.now()); fixo('conta', { ...E.conta, cadastro: { nome: 'Demo' } }); fixo('campeao', { mes: '2026-10', nome: 'Ana Brasil', pts: 4200, vitorias: 5 }); fixo('topXz', [['Ana Presidente', 'ana_pres', 18420], ['Carlos Mendes 2026', 'carlosmendes', 9310], ['Bia do Povo', 'biadopovo', 4120], ['Rafa Souza', 'rafasouza', 1980], ['Lu Oliveira', 'lu_oli', 760]].map(([nome, user, seguidores]) => ({ nome, user, seguidores }))); } ir(demo); return; }
   if (demo === 'fanpage') { E.perfil.nome ||= 'Demo'; E.conta = { ...E.conta, partidas: 2, vitorias: 1, fanpage: { nome: 'Demo Presidente', user: 'demo_presidente', bio: 'Candidato(a) à Presidência. Trabalho, saúde e educação. 🇧🇷', seguidores: 388, titulos: { mensal: ['2026-10'], semanal: ['2026-11-02', '2026-10-26'] }, posts: [
