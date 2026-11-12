@@ -98,7 +98,7 @@ export class Estudio {
     this.camera = new THREE.PerspectiveCamera(60, 1, .05, 120);
     this.rig = new THREE.Group(); this.rig.rotation.order = 'YXZ'; this.camFP = new THREE.Group(); this.camFP.rotation.y = Math.PI; this.rig.add(this.camFP);
 
-    this.construirPalco(); this.construirTelao(); this.construirPlateia(); this.construirTelaoCurvo(); this.construirLuzes(); this.construirMediadora(); this.construirDuelo(); this.construirConfete();
+    this.construirPalco(); this.construirTelao(); this.construirPlateia(); this.construirTelaoCurvo(); this.construirLuzes(); this.construirMediadora(); this.construirDuelo(); this.construirPoltronas(); this.construirConfete();
     this.vitrine = null;
     this.acoes = new Acoes(this); // cadeirada, tomate, flores… (public/js/acoes/)
 
@@ -699,9 +699,10 @@ export class Estudio {
     const xs = ids.map(id => this.podios.get(id).grupo.position.x);
     const ladoDe = k => ids.length < 2 || xs[k] < xs[1 - k] || (xs[k] === xs[1 - k] && k === 0) ? -1 : 1;
     for (const p of this.podios.values()) {
-      const k = ids.indexOf(p.id);
-      const quer = k >= 0 ? 'duelo' : 'podio';
+      const k = ids.indexOf(p.id), pol = k < 0 ? this.sentados?.[p.id] : undefined;
+      const quer = k >= 0 ? 'duelo' : pol !== undefined && this.poltronas?.[pol] ? 'poltrona' : 'podio';
       if (k >= 0) p.lado = ladoDe(k);
+      if (quer === 'poltrona') { if (p.pol !== pol && (p.lugar === 'poltrona' || p.caminho?.destino === 'poltrona')) p.lugar = p.caminho = null; p.pol = pol; } // trocou de poltrona: refaz
       if (this.acoes.ocupado(p.id)) continue; // no meio de uma ação: ao terminar, a ação chama aplicarDuelo de novo
       if (p.lugar === quer && !p.caminho) { if (instantaneo) this.colocarAtor(p, quer); continue; }
       if (p.caminho?.destino === quer && !instantaneo) continue; // já está a caminho
@@ -715,17 +716,26 @@ export class Estudio {
   casaAtor(p) { p.grupo.updateMatrixWorld(); return { pos: p.grupo.localToWorld(new THREE.Vector3(0, 0, -.62)), yaw: p.grupo.rotation.y }; }
   colocarAtor(p, lugar) {
     p.caminho = null; p.avatar.andar = 0; p.lugar = lugar;
+    const pl = lugar === 'poltrona' && this.poltronas?.[p.pol]; p.avatar.sentar(pl ? pl.assento : null);
     if (lugar === 'podio') { p.grupo.add(p.ator); p.ator.position.set(0, 0, -.62); p.ator.rotation.set(0, 0, 0); return; }
-    const l = this.lugarDuelo(p.lado); this.scene.add(p.ator); p.ator.position.copy(l.pos); p.ator.rotation.set(0, l.yaw, 0);
+    const l = pl || this.lugarDuelo(p.lado); this.scene.add(p.ator); p.ator.position.copy(l.pos); p.ator.rotation.set(0, l.yaw, 0);
   }
   /** Caminhada automática: sai pela lateral do púlpito, contorna pela frente e chega por trás do púlpito central (ou o inverso). */
   caminhar(p, destino) {
     const g = p.grupo; g.updateMatrixWorld();
-    const casa = this.casaAtor(p), l = this.lugarDuelo(p.lado);
-    const sd = Math.sign(g.worldToLocal(DUELO.clone()).x) || 1;
-    const w1 = g.localToWorld(new THREE.Vector3(sd * .85, 0, -.62)), w2 = g.localToWorld(new THREE.Vector3(sd * .85, 0, .75));
-    const w3 = l.pos.clone().add(new THREE.Vector3(0, 0, .95));
-    let pts = [casa.pos, w1, w2, w3, l.pos], yawFim = l.yaw;
+    const casa = this.casaAtor(p);
+    // poltrona: ida (destino) ou volta ao púlpito de quem estava sentado/indo sentar
+    const pl = destino === 'poltrona' || (destino === 'podio' && (p.lugar === 'poltrona' || p.caminho?.destino === 'poltrona')) ? this.poltronas?.[p.pol] : null;
+    const l = pl || this.lugarDuelo(p.lado);
+    p.avatar.sentar(null); // levanta antes de andar
+    let pts, yawFim = l.yaw;
+    if (pl) pts = this.rotaPoltrona(p, pl);
+    else {
+      const sd = Math.sign(g.worldToLocal(DUELO.clone()).x) || 1;
+      const w1 = g.localToWorld(new THREE.Vector3(sd * .85, 0, -.62)), w2 = g.localToWorld(new THREE.Vector3(sd * .85, 0, .75));
+      const w3 = l.pos.clone().add(new THREE.Vector3(0, 0, .95));
+      pts = [casa.pos, w1, w2, w3, l.pos];
+    }
     if (destino === 'podio') { pts = pts.reverse(); yawFim = casa.yaw; }
     // começa de onde o ator está agora (se a caminhada anterior foi interrompida)
     this.scene.attach(p.ator); pts[0] = p.ator.position.clone().setY(0);
@@ -741,10 +751,28 @@ export class Estudio {
     if (ptsOk.length < 2) { this.colocarAtor(p, destino); return; } // quase não saiu do lugar: só volta
     const curva = new THREE.CatmullRomCurve3(ptsOk, false, 'centripetal');
     const tot = curva.getLength();
-    const dur = clamp(tot / VEL_ANDAR, 1.5, 5); // o servidor espera 5,5 s: todos chegam a tempo
+    const dur = clamp(tot / VEL_ANDAR, 1.5, pl ? 5.5 : 5); // o servidor espera 5,5 s (CAMINHADA_MS): todos chegam a tempo; até a poltrona, no máximo o mesmo tempo
+    if (pl) p.avatar.passoK = clamp(tot / dur / VEL_ANDAR, 1, 1.8); else p.avatar.passoK = 1; // caminho longo: passos mais rápidos (sem "patinar")
     p.caminho = { curva, tot, dur, t: 0, yawFim, destino, yaw0: p.ator.rotation.y };
     p.lugar = 'andando';
     if (p.id === this.meuId) { this.olhar.y = 0; this.olhar.p = -.05; this.suaveAte = this.t + 1.2; }
+  }
+  /** Eliminados sentados nas poltronas (do servidor: { id: índice }). inst = entrou/recarregou: já aparecem sentados, sem caminhar. */
+  setPoltronas(mapa, inst = false) {
+    const k = JSON.stringify(mapa || {}); if (k === this.poltronasKey && !inst) return; this.poltronasKey = k;
+    this.sentados = mapa || {};
+    this.aplicarDuelo(inst);
+  }
+  /** Do púlpito até a poltrona sem atravessar nada: sai por trás do púlpito, contorna o arco de púlpitos por fora
+   *  (raio RAIO + 1,5 em volta da mesa, longe do púlpito central), chega pela frente da poltrona e senta. */
+  rotaPoltrona(p, pl) {
+    // cada poltrona tem seu próprio arco (0 = mais longe, 2 = mais perto): dois indo sentar ao mesmo tempo não se atravessam
+    const casa = this.casaAtor(p).pos, Rw = RAIO + 1.3 + .3 * Math.max(0, this.poltronas.length - 1 - this.poltronas.indexOf(pl));
+    const F = pl.pos.clone().add(new THREE.Vector3(Math.sin(pl.yaw), 0, Math.cos(pl.yaw)).multiplyScalar(.85)); // em frente ao assento
+    const ang = v => Math.atan2(v.x - CENTRO.x, v.z - CENTRO.z), arco = a => new THREE.Vector3(CENTRO.x + Math.sin(a) * Rw, 0, CENTRO.z + Math.cos(a) * Rw);
+    const a0 = ang(casa), a1 = ang(F), n = Math.max(1, Math.ceil(Math.abs(a1 - a0) / .2));
+    const pts = [casa]; for (let i = 0; i <= n; i++) pts.push(arco(a0 + (a1 - a0) * i / n));
+    return [...pts, F, pl.pos.clone()];
   }
   andarAtores(dt) {
     for (const p of this.podios.values()) {
@@ -779,6 +807,28 @@ export class Estudio {
   }
   /** Você está sendo levado(a) automaticamente: a câmera não responde ao mouse. */
   andandoEu() { return !!this.podios.get(this.meuId)?.caminho || this.acoes.andando(this.meuId); }
+  // ---------- POLTRONAS (eliminados assistem ao 2º turno) ----------
+  /** 3 poltronas creme com pés de trenó cromados, em arco no lado direito do palco (x < 0, entre os púlpitos e a plateia), viradas para o DUELO.
+   *  this.poltronas[i] = { pos (chão, sob o quadril de quem senta), yaw (mesma convenção de lugarDuelo: frente = +z local), assento (topo da almofada) }. */
+  construirPoltronas() {
+    const g = this.poltronasGrupo = new THREE.Group(); this.scene.add(g);
+    const tecido = new THREE.MeshStandardMaterial({ color: '#e6d6ba', roughness: .92 }), almofada = new THREE.MeshStandardMaterial({ color: '#efe2cb', roughness: .95 });
+    const cromo = new THREE.MeshStandardMaterial({ color: '#d7dbe2', roughness: .18, metalness: 1 });
+    const trilho = new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[0, .15, -.39], [0, .06, -.4], [0, .018, -.33], [0, .018, .33], [0, .06, .4], [0, .15, .39]].map(p => new THREE.Vector3(...p)), false, 'catmullrom', .15), 40, .017, 8);
+    const ASSENTO = .46, R = 7.1; // raio do arco em volta do DUELO
+    this.poltronas = [-50, -60, -70].map(gr => {
+      const a = gr * D2R, pos = new THREE.Vector3(DUELO.x + Math.sin(a) * R, 0, DUELO.z + Math.cos(a) * R), yaw = Math.atan2(DUELO.x - pos.x, DUELO.z - pos.z);
+      const p = new THREE.Group(); p.position.copy(pos); p.rotation.y = yaw; g.add(p);
+      const peca = (geo, m, x, y, z, rx = 0) => { const me = new THREE.Mesh(geo, m); me.position.set(x, y, z); me.rotation.x = rx; me.castShadow = me.receiveShadow = true; p.add(me); return me; };
+      // origem = quadril de quem senta; frente da poltrona = +z
+      peca(rb(.96, .72, .22, .07), tecido, 0, .5, -.35);                       // encosto (estrutura)
+      for (const s of [-1, 1]) { peca(rb(.17, .52, .86, .06), tecido, s * .395, .4, -.02); peca(trilho, cromo, s * .395, 0, -.02); } // braços largos + trenó cromado
+      peca(rb(.63, .2, .66, .04), tecido, 0, .24, .1);                         // base do assento
+      peca(rb(.6, .13, .64, .06), almofada, 0, ASSENTO - .065, .11);           // almofada do assento
+      peca(rb(.6, .42, .13, .06), almofada, 0, .71, -.18, -.12);                // almofada do encosto (levemente reclinada)
+      return { pos, yaw, assento: ASSENTO };
+    });
+  }
   // ===================== PÚLPITOS E JOGADORES =====================
   posicaoSlot(i, n) {
     const a = ANGULOS[n][i] * D2R;
@@ -1123,7 +1173,7 @@ export class Estudio {
     if (this.campeao) this.campeao.root.visible = modo === 'vencedor';
     if (this.mediadora) this.mediadora.root.visible = modo !== 'vitrine'; // na personalização a jornalista atrás da mesa aparecia como "mancha" atrás dos ombros
     for (const p of this.podios.values()) p.grupo.visible = p.ator.visible = modo !== 'vitrine';
-    this.visDuelo();
+    this.visDuelo(); if (this.poltronasGrupo) this.poltronasGrupo.visible = modo !== 'vitrine';
   }
   cabecaOculta() { return this.modo === 'fp' && !this.terceira; }
   // câmera presa ao rig da cabeça: 1ª pessoa (no olho) ou 3ª pessoa (atrás e acima do ombro, orbitando com o olhar)
@@ -1310,7 +1360,7 @@ export class Estudio {
         const l = p.ator.worldToLocal(w).sub(new THREE.Vector3(0, 2, 0));
         p.avatar.setOlhar(Math.atan2(l.x, l.z) + Math.sin(t * .4 + p.avatar.ocioso) * .08, Math.atan2(l.y, Math.hypot(l.x, l.z)));
       }
-      p.avatar.update(dt, t);
+      p.avatar.update(dt, t); p.etiqueta.position.y = 2.75 + p.avatar.descida; // a etiqueta desce junto ao sentar
       if (this.selecionaveis) { const sel = this.selecionaveis.has(p.id); p.faixaLuz.material.color.set(sel ? (Math.sin(t * 6) > 0 ? '#facc15' : '#ffffff') : p.partido.cor); }
       else p.faixaLuz.material.color.set(p.partido.cor);
       if (p.id === this.meuId) { // guia p/ novatos: botão do próximo passo brilha devagar
@@ -1350,7 +1400,7 @@ export class Estudio {
       // balanço leve da cabeça ao caminhar (sobe/desce a cada passo e inclina de lado)
       const an = eu.avatar.andar, ph = eu.avatar.faseAndar;
       this.bob = (this.bob || 0) + ((an ? 1 : 0) - (this.bob || 0)) * (1 - Math.exp(-dt * 4));
-      this.rig.position.y = 2.0 + (Math.abs(Math.cos(ph)) - .6) * .03 * this.bob; this.rig.rotation.z = Math.sin(ph) * .008 * this.bob;
+      this.rig.position.y = 2.0 + eu.avatar.descida + (Math.abs(Math.cos(ph)) - .6) * .03 * this.bob; this.rig.position.z = .1 + (eu.avatar._sz || 0); // sentado: o olho desce junto this.rig.rotation.z = Math.sin(ph) * .008 * this.bob;
       const agora = performance.now();
       if (this.onOlhar && agora - (this.ultOlhar || 0) > 100 && (Math.abs(this.olhar.y - (this.olharEnv?.y ?? 9)) > .01 || Math.abs(this.olhar.p - (this.olharEnv?.p ?? 9)) > .01)) {
         this.ultOlhar = agora; this.olharEnv = { ...this.olhar }; this.onOlhar(this.olhar.y, this.olhar.p);

@@ -608,7 +608,12 @@ export class Avatar {
     if (this.anim && t - this.anim.ini > this.anim.dur) this.anim = null;
     const nomeAnim = this.festa ? (typeof this.festa === 'string' ? this.festa : 'festa') : this.anim?.nome;
     const u = this.festa ? t : t - (this.anim?.ini ?? t);
-    const pose = nomeAnim ? POSES[nomeAnim]?.(u) : null;
+    let pose = nomeAnim ? POSES[nomeAnim]?.(u) : null;
+    // sentado (poltrona): pernas sempre na pose sentada; emotes só mexem nos braços/cabeça. O corpo desce até o assento.
+    const sent = this.sentado != null;
+    if (sent) pose = { ...POSES.sentado(u), ...(pose || {}), pernaE: SENTADO.perna, pernaD: SENTADO.perna, pulo: 0 };
+    const ks = 1 - Math.exp(-dt * 5), sentY = (this._sy || 0) + ((sent ? this.sentado + SENTADO.quadril - .88 : 0) - (this._sy || 0)) * ks, sentZ = (this._sz || 0) + ((sent ? SENTADO.z : 0) - (this._sz || 0)) * ks;
+    this.root.position.y += sentY - (this._sy || 0); this.root.position.z += sentZ - (this._sz || 0); this._sy = sentY; this._sz = sentZ; // (delta: não mexe na posição base do root)
     // expressão pedida pela pose: olhos fechados e/ou boca bem aberta (bocejo)
     if (pose?.olhosFechados) this.olhos.scale.y = .1;
     if (pose?.boca > .05) { this.bocaAberta.visible = true; this.bocaFechada.visible = false; this.bocaAberta.scale.set(1 - pose.boca * .2, 1 + pose.boca * 1.4, 1); this.bocaAberta.position.y = -pose.boca * .035; }
@@ -622,7 +627,7 @@ export class Avatar {
     const kb = 1 - Math.exp(-dt * (pose ? 12 : gf ? 8 : 5));
     // corpo (pulos, ginga)
     // caminhada: pernas e braços balançam alternados, tronco sobe e desce a cada passo
-    const an = this.andar; this.faseAndar += dt * 7.5 * an;
+    const an = this.andar; this.faseAndar += dt * 7.5 * an * (this.passoK || 1);
     const ph = this.faseAndar;
     const kp = 1 - Math.exp(-dt * 14);
     for (const pv of this.pernas) { // caminhada ou passos de dança (quadril x, joelho, abertura)
@@ -692,6 +697,10 @@ export class Avatar {
   }
   /** Toca uma animação curta (emote, provocação, folhear anotações). */
   animar(nome, dur = 2.6) { if (POSES[nome]) this.anim = { nome, dur, ini: null }; }
+  /** Senta (assento = altura do topo da almofada, m; a origem do avatar fica sob o quadril) ou levanta (null). */
+  sentar(assento) { this.sentado = assento ?? null; }
+  /** Quanto o corpo desceu ao sentar (≤ 0): a câmera em 1ª pessoa e a etiqueta acompanham. */
+  get descida() { return this._sy || 0; }
 }
 
 // ---------- poses das animações ----------
@@ -748,7 +757,11 @@ function lerpQ(a, b, k) { const B = nq(b); return nq(a).map((v, i) => i === 5 ? 
 const onda = (u, f, fase = 0) => (1 - Math.cos(u * f + fase)) / 2; // 0..1 suave
 const passo = (v, alt = 1) => [-.45 * pos(v) * alt, .9 * pos(v) * alt, 0]; // levanta o joelho quando v > 0
 const ROBO = { A: [-.2, .1, -1.57, 0, 1.57, 'faca'], C: [-.1, 1.4, -1.57, 0, 1.57, 'faca'], B: [-1.57, .1, 0, 0, 1.57, 'faca'] };
+// sentado: quadril dobrado (coxa ~10° abaixo da horizontal), canela na vertical, braços apoiados nos braços da poltrona.
+// quadril = altura do pivô do quadril acima do assento (meia coxa); z = avanço do corpo (as costas encostam no encosto).
+const SENTADO = { perna: [-1.4, 1.4, .04], quadril: .12, z: .07, braco: [.02, .05, -1.05, -.2, -.5, 'apoio'] };
 const POSES = {
+  sentado: () => ({ esq: SENTADO.braco, dir: SENTADO.braco, pernaE: SENTADO.perna, pernaD: SENTADO.perna }),
   festa: u => ({ esq: lerpQ(Q.festaB, Q.festa, onda(u, 6)), dir: lerpQ(Q.festaB, Q.festa, onda(u, 6, Math.PI)), pulo: abs(sen(u * 5)) * .06, pernaE: passo(sen(u * 6), .8), pernaD: passo(-sen(u * 6), .8) }),
   samba: u => ({ esq: lerpQ(Q.sambaB, Q.sambaA, onda(u, 9)), dir: lerpQ(Q.sambaB, Q.sambaA, onda(u, 9, Math.PI)), giro: sen(u * 9) * .25, pulo: abs(sen(u * 9)) * .05, inclina: sen(u * 4.5) * .06, pernaE: passo(sen(u * 9), .7), pernaD: passo(-sen(u * 9), .7) }),
   robo: u => {

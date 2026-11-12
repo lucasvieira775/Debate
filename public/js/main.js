@@ -401,6 +401,7 @@ function onEstado(s) {
   // púlpito do confronto: a produção traz no bloco 2 e leva embora no bloco 3 (quem entra no meio já vê no lugar)
   est.setPulpito(s.fase === 'debate' && (p?.etapa === 2 || !!s.duelo), !ant || ant.fase !== 'debate' || s.fase !== 'debate', s.fase === 'debate' && p ? p.etapa > 2 : undefined);
   est.setDuelo(s.fase === 'debate' ? s.duelo : null);
+  est.setPoltronas(s.fase === 'lobby' ? null : s.poltronas, !ant || ant.code !== s.code); // eliminados assistindo sentados (quem entra no meio já os vê sentados)
   if (minhaVez() && s.fala?.status === 'avaliado' && E.micOn) { mic.abortar(); E.micOn = false; }
   if (ant?.fala?.status !== 'avaliado' && s.fala?.status === 'avaliado') { sfx.nota(); est.festejarPlateia(3200, .8); sfx.aplausos(1.8, .2); }
   // resultado: primeiro a apuração ao vivo; a comemoração (com a dança do vencedor) só depois do anúncio
@@ -424,7 +425,7 @@ function ajustarCamera() {
   if (E.revelando && !E.revTeste && !(s?.fase === 'resultado' && emJogo())) pararRevelacao(); // saiu do resultado no meio
   if (E.revelando) return; // a cinemática controla a câmera até a festa
   est.setCampeao(venc ? venc.avatar : null, (ITEM[r?.dancas?.[r?.vencedor]] || ITEM.comemorar).anim);
-  const modoJogo = venc && E.celebrar ? 'vencedor' : E.naPlateia && s?.fase === 'resultado' ? 'tv' : 'fp';
+  const modoJogo = venc && E.celebrar ? 'vencedor' : E.naPlateia && s?.fase === 'resultado' && s.poltronas?.[E.eu] === undefined ? 'tv' : 'fp'; // sentado na poltrona: 1ª pessoa (a câmera segue o avatar)
   if (emJogo()) { if (est.modo !== modoJogo) { est.setModo(modoJogo); est.olhar = { y: 0, p: -.28 }; } }
   else if (E.tela === 'personalizar' || E.tela === 'loja') est.setModo('vitrine');
   else { est.setModo('menu'); E.tela = 'sala'; }
@@ -504,7 +505,7 @@ function sairLocal() {
   calar(); pararNarracao(); voip.sair(); E.voipTentou = false; limparXzona(); esconderDica(); pararRevelacao();
   E.sala = null; E.eu = null; salvarSessao(null); E.tela = 'menu'; history.replaceState(null, '', '/');
   E.jornAtual = null;
-  est.setFalante(null); est.confetes(false); est.festa(null); est.setDuelo(null); est.setPulpito(false, true); est.setModo('menu'); est.setJogadores(bots(), null); renderUI();
+  est.setFalante(null); est.confetes(false); est.festa(null); est.setDuelo(null); est.setPoltronas(null, true); est.setPulpito(false, true); est.setModo('menu'); est.setJogadores(bots(), null); renderUI();
 }
 function sairSala() { socket.emit('sair'); sairLocal(); }
 /** Sair no meio do debate = abandono: confirma e avisa da punição (2 abandonos em 24 h → 1 h de suspensão + perde seguidores). */
@@ -1255,6 +1256,7 @@ function renderApuracao(el, s, r) {
 function avisoEliminado(s, r) {
   const eu = s.jogadores.find(j => j.id === E.eu);
   const fora = eu && !r.eleito1 && r.anunciado1 && !r.mostrar2 && r.r1.res.some(x => x.id === E.eu) && !r.r1.res.slice(0, 2).some(x => x.id === E.eu);
+  if (fora && s.poltronas?.[E.eu] !== undefined) E.elimOk = E.naPlateia = true; // já está sentado (recarregou a página): não pergunta de novo
   if (!fora || E.elimOk) { $('#elimin')?.remove(); return; }
   if ($('#elimin')) return;
   const d = document.createElement('div'); d.id = 'elimin'; d.className = 'elimin p';
@@ -1262,7 +1264,8 @@ function avisoEliminado(s, r) {
   d.innerHTML = `<b style="font-size:20px">Você ficou fora do 2º turno</b><p class="mut" style="margin:6px 0 12px">Terminou em ${pos}º lugar, com ${fmtP(r.r1.res[pos - 1].pct)} dos votos válidos.</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn amarelo" id="el-ver">👀 Assistir da plateia</button><button class="btn" id="el-sair">🏠 Ir para o lobby</button></div>`;
   document.body.appendChild(d);
-  $('#el-ver').onclick = () => { E.elimOk = true; E.naPlateia = true; d.remove(); ajustarCamera(); };
+  // o servidor escolhe a poltrona (até 3, uma por pessoa); sem poltrona livre, assiste do púlpito (câmera de TV)
+  $('#el-ver').onclick = () => { E.elimOk = true; E.naPlateia = true; d.remove(); ajustarCamera(); if (!E.demo) socket.emit('assistir', null, r => { if (r?.erro) toast(r.erro, 'erro'); }); };
   $('#el-sair').onclick = () => { E.elimOk = true; d.remove(); sairSala(); };
 }
 function renderResultado() {
@@ -1509,6 +1512,23 @@ if (demo) setTimeout(() => {
     if (q.get('tv')) est.setModo('tv');
     if (demo === 'pulpito') { if (q.get('sai')) est.setPulpito(true, true); est.setPulpito(!q.get('sai'), false); for (let k = 0; k < adianta * 30; k++) est.animarPulpito(1 / 30); }
     else { est.setPulpito(true, true); est.setDuelo({ a: 'bot1', b: 'bot2', fase: 'indo' }); for (const p of est.podios.values()) if (p.caminho) p.caminho.t = adianta; }
+  }
+  // ?demo=assistir[&n=1|2|3][&eu=finalista|sentado][&t=segundos][&cam=x,y,z,lx,ly,lz][&oy=..&op=..]
+  // 2º turno falso: finalistas bot1 e bot3; n eliminados (bot4, bot2, bot0) vão às poltronas 0, 1, 2 (como o servidor daria, por ordem de clique).
+  // Sem t: mostra o resultado final (todos sentados). Com t: congela a caminhada nesse instante. Sem eu: câmera geral fixa.
+  if (demo === 'assistir') {
+    const q = new URLSearchParams(location.search), n = Math.max(0, Math.min(3, +(q.get('n') ?? 3)));
+    const elim = ['bot4', 'bot2', 'bot0'].slice(0, n), mapa = Object.fromEntries(elim.map((id, i) => [id, i]));
+    const eu = q.get('eu') === 'finalista' ? 'bot1' : q.get('eu') === 'sentado' ? elim[0] || 'bot2' : null;
+    E.eu = eu; est.setJogadores(bots(), eu); est.setFalante(null); est.setPoltronas(null, true);
+    const cam = (q.get('cam') || '1.5,3.4,9.5,-4.8,.8,3').split(',').map(Number);
+    if (eu) { est.setModo('fp'); est.olhar = { y: +q.get('oy') || 0, p: +q.get('op') || -.1 }; }
+    else { est.cine = () => { est.camera.position.set(cam[0], cam[1], cam[2]); est.camera.lookAt(cam[3], cam[4], cam[5]); }; est.setModo('cine'); }
+    est.setPoltronas(mapa); // começa a caminhada
+    const adianta = q.has('t') ? +q.get('t') || 0 : 8;
+    for (let k = 0; k < adianta * 30; k++) { est.andarAtores(1 / 30); for (const p of est.podios.values()) p.avatar.update(1 / 30, k / 30); }
+    if (q.has('t')) est.andarAtores = () => {}; // congela no instante pedido (o print sai depois do virtual-time-budget)
+    return;
   }
   if (demo === 'jogadores' || demo === 'etiquetas') { // ?demo=jogadores (painel aberto) | ?demo=etiquetas (brasões sobre a cabeça)
     const niv = [1, 5, 8, 0, 3], fake = bots().map((j, i) => ({ ...j, bot: i === 3, nivel: niv[i], conectado: i !== 4, saiu: i === 4 && !!new URLSearchParams(location.search).get('saiu'), fanpage: i === 3 || i === 4 ? null : { nome: j.nome, user: 'u' + i, seguidores: 100 * (i + 1), nivel: niv[i] } }));

@@ -15,6 +15,7 @@ const GRITOS_AGRESSOR = {
   cadeirada: ['Cadeirada não é proposta!', 'Violento!|Violenta!|Violência não!', 'Vai catar caqui!', 'Corno!|Corna!', 'Sem vergonha!', 'Canalha!', 'Bandido!|Bandida!|Bandidagem!'],
 };
 const CAMINHADA_MS = 5500; // tempo da caminhada automática até o púlpito central (e de volta); o cliente anima em até 5 s
+const POLTRONAS = 3; // poltronas no palco para os eliminados assistirem ao 2º turno (public/js/estudio.js: construirPoltronas)
 import { gerarFala, nomeIA } from '../shared/ia.js';
 import { Dublagem, VOZES_IA, DIR_PLATEIA } from './voz.js';
 import { N, trechosFixos, trechosTemas, sortearVariacao, FALAS_ACAO, FALAS_LEVE, FALAS_FLORES } from './narracao.js';
@@ -103,7 +104,7 @@ class Sala {
   }
   reset() {
     this.limpar();
-    Object.assign(this, { fila: [], i: -1, passo: null, fala: null, temaAtual: null, roleta: null, usados: new Set(), resultado: null, autoEm: null, textoJ: '', narr: null, narrandoAte: 0, perguntas: [], duelo: null, pausa: null, turno2: false });
+    Object.assign(this, { fila: [], i: -1, passo: null, fala: null, temaAtual: null, roleta: null, usados: new Set(), resultado: null, autoEm: null, textoJ: '', narr: null, narrandoAte: 0, perguntas: [], duelo: null, pausa: null, turno2: false, poltronas: {} });
   }
   // ---------- jornalista e dublagem ----------
   /** Faz o(a) jornalista falar. Os trechos viram áudio do Gemini (ou voz do navegador se não der tempo).
@@ -188,7 +189,7 @@ class Sala {
       fala: this.fala, temaAtual: this.temaAtual, roleta: this.roleta, autoEm: this.autoEm, textoJ: this.textoJ, narr: this.narr, perguntas: this.perguntas,
       jorn: this.jorn && { nome: this.jorn.nome, genero: this.jorn.genero, avatar: this.jorn.avatar },
       microfones: this.microfones(), narrando: this.narrando(),
-      resultado: this.resultado, pausa: !!this.pausa,
+      resultado: this.resultado, pausa: !!this.pausa, poltronas: this.poltronas, // poltronas: { id: 0|1|2 } eliminados sentados
     };
   }
   emit() { this.io.to(this.code).emit('estado', this.snapshot()); }
@@ -254,6 +255,7 @@ class Sala {
     if (this.fase === 'lobby') this.jog = this.jog.filter(x => x.id !== id);
     else {
       const sk = this.socketDe(id); j.conectado = false; j.socketId = null;
+      this.liberarPoltrona(id); // foi para o lobby: a poltrona fica livre (e a reserva dele também)
       if (this.fase === 'debate' && !j.banido && !j.saiu) { this.expirar(j, true); if (j.abandono) sk?.emit('penalidade', textoAbandono(j.abandono)); return; } // saiu por vontade própria: desistiu
     }
     if (this.hostId === id || !this.porId(this.hostId)?.conectado) this.hostId = this.humanos()[0]?.id || null;
@@ -303,7 +305,7 @@ class Sala {
   expirar(j, voluntario = false) {
     clearTimeout(j.tAus); j.ausenteAte = null;
     if (this.fase !== 'debate' || j.conectado || j.saiu || j.banido || !this.jog.includes(j)) return this.emit();
-    j.saiu = true;
+    j.saiu = true; this.liberarPoltrona(j.id);
     if (!j.bot) j.abandono = this.mgr.contas.registrarAbandono(this.conta(j)); // 2 abandonos em 24 h → 1 h de suspensão + perde seguidores
     this.fila = this.fila.filter((q, k) => k <= this.i || (q.falante !== j.id && q.alvo !== j.id));
     this.io.to(this.code).emit('saiuPartida', { id: j.id, nome: j.nome, voluntario, wo: this.emAtivo().length === 1 ? this.emAtivo()[0].nome : null });
@@ -734,7 +736,10 @@ class Sala {
     r.anunciado1 = true;
     const nome = id => this.porId(id).nome;
     if (r.eleito1) { this.revelarNome(N.vence1(nome(r.vencedor))); this.encerrarPartida(); }
-    else { this.narrar(N.segundoTurno(nome(r.r1.res[0].id), nome(r.r1.res[1].id))); this.later(14000, () => this.iniciarTurno2()); }
+    else {
+      this.narrar(N.segundoTurno(nome(r.r1.res[0].id), nome(r.r1.res[1].id))); this.later(14000, () => this.iniciarTurno2());
+      this.later(5000, () => { this.sentarBots(); this.emit(); }); // bots eliminados vão para as poltronas que sobrarem
+    }
     this.emit();
   }
   /** Botão do anfitrião: pula a espera e começa logo o debate do 2º turno. */
@@ -743,11 +748,32 @@ class Sala {
     if (!r.anunciado1) return this.anunciar1();
     this.iniciarTurno2();
   }
+  // ---------- poltronas: eliminados do 1º turno assistem ao 2º turno sentados no palco ----------
+  /** Disputou o 1º turno, ficou fora do 2º e segue na partida (não saiu nem foi banido); só depois do anúncio do 2º turno. */
+  eliminado(j) { const r = this.resultado; return !!j && !!r && !r.eleito1 && !!r.anunciado1 && !j.banido && !j.saiu && r.r1.res.some(x => x.id === j.id) && !this.finalistas().includes(j.id); }
+  /** Dá a j a poltrona livre de menor índice. O servidor trata um evento por vez: cliques simultâneos nunca recebem a mesma.
+   *  Idempotente (repetir o pedido / reconectar mantém a mesma). Sem poltrona livre: continua no púlpito. Devolve erro ou null. */
+  sentar(j) {
+    if (!this.eliminado(j)) return 'Só quem ficou fora do 2º turno pode assistir das poltronas.';
+    if (this.poltronas[j.id] !== undefined) return null;
+    const usadas = new Set(Object.values(this.poltronas));
+    const i = [...Array(POLTRONAS).keys()].find(k => !usadas.has(k));
+    if (i === undefined) return 'As poltronas já estão ocupadas: você assiste do seu púlpito.';
+    this.poltronas[j.id] = i; return null;
+  }
+  liberarPoltrona(id) { delete this.poltronas[id]; this.sentarBots(); }
+  /** Bots eliminados sentam nas poltronas que sobrarem — sem tomar o lugar de humanos eliminados (conectados) que ainda não escolheram. */
+  sentarBots() {
+    const r = this.resultado; if (!r || r.eleito1 || !r.anunciado1 || r.mostrar2) return;
+    const fora = this.jog.filter(j => this.eliminado(j) && this.poltronas[j.id] === undefined);
+    let livres = POLTRONAS - Object.keys(this.poltronas).length - fora.filter(j => !j.bot && j.conectado).length;
+    for (const b of fora.filter(j => j.bot)) { if (livres-- <= 0) break; this.sentar(b); }
+  }
   /** Debate do 2º turno: confronto direto de tema livre entre os finalistas (pergunta e resposta, sem réplica/tréplica)
    *  e considerações finais. As notas somam às do 1º turno, mas as falas daqui pesam mais (ver aplicar em regras.js). */
   iniciarTurno2() {
     const r = this.resultado; if (this.fase !== 'resultado' || !r || r.eleito1 || r.r2 || this.turno2) return;
-    this.limpar(); this.turno2 = true;
+    this.limpar(); this.turno2 = true; this.sentarBots(); // (o anfitrião pode ter pulado a espera antes dos bots sentarem)
     const [a, b] = this.finalistas(), nome = id => this.porId(id)?.nome || '';
     const base = { tipo: 'fala', etapa: 2, t2: true, tema: null };
     const f = [{ tipo: 'intro', etapa: 2, t2: true, partes: N.turno2(nome(a), nome(b)) },
@@ -1080,6 +1106,8 @@ export class Salas {
     socket.on('confirmar', d => sala()?.confirmar(socket.data.pid, d?.t));
     socket.on('escolher', d => sala()?.escolher(socket.data.pid, d?.alvo));
     socket.on('revelar2', () => { if (ehHost()) sala().revelar2(); });
+    // eliminado do 1º turno pede para assistir: o servidor escolhe a poltrona (única) e todos veem a caminhada pelo snapshot (poltronas)
+    socket.on('assistir', (_, cb) => { const s = sala(), j = eu(); if (!s || !j) return resp(cb, { erro: 'Fora de uma sala.' }); const e = s.sentar(j); if (!e) s.emit(); resp(cb, e ? { erro: e } : { ok: true, poltrona: s.poltronas[j.id] }); });
     socket.on('revanche', () => { const s = sala(); if (s && ehHost() && s.fase === 'resultado') { s.jog = s.jog.filter(j => j.conectado); if (s.jog.length >= MIN) { s.jog.forEach(j => j.pronto = true); s.iniciar(); } } });
     socket.on('lobby', () => { const s = sala(); if (s && ehHost() && s.fase !== 'lobby') s.voltarLobby(); });
     socket.on('olhar', d => {
