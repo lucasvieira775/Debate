@@ -167,11 +167,12 @@ export class Avatar {
     }
     if (colete) { // colete por cima da camisa (ombros e mangas de camisa)
       const mV = mat(roupaCor, { r: .6 });
-      m(rbox(W + .014, .6, .394, .05), mV, 0, .3, 0, this.torso);
-      m(ext('vColete', [[-.13, .6], [.13, .6], [0, .3]]), mCam, 0, 0, .19, fr);
-      par(ext('vColBorda', [[.13, .6], [.0, .3], [.02, .3], [.15, .6]], { depth: .006 }), mat(realce(roupaCor, .09), { r: .5 }), .197, fr);
-      for (let y = .26; y > .02; y -= .055) m(esfera(.013), mBot, 0, y, frente + .009, this.torso);
-      par(rbox(.1, .022, .012, .005), mat(tom(roupaCor, -.08)), frente + .006, this.torso, W * .27, .16);
+      m(rbox(W + .014, .5, .394, .05), mV, 0, .27, 0, this.torso); // costas e laterais
+      m(ext('vColete', [[-.14, .64], [.14, .64], [0, .3]], { depth: .004 }), mCam, 0, 0, .199, fr); // camisa no decote em V
+      par(ext('vColPainel', [[0, .3], [.125, .64], [.15, .76], [.225, .76], [.25, .6], [.345, .5], [.345, .03], [.03, -.05], [0, -.03]], { depth: .01 }), mV, .198, fr); // frentes com cava, alças e pontas
+      par(ext('vColBorda', [[.125, .64], [0, .3], [.018, .3], [.14, .64], [.163, .76], [.15, .76]], { depth: .004 }), mat(realce(roupaCor, .09), { r: .5 }), .208, fr);
+      for (let y = .25; y > .02; y -= .055) m(esfera(.013), mBot, 0, y, frente + .016, this.torso);
+      par(rbox(.1, .022, .012, .005), mat(tom(roupaCor, -.08)), frente + .015, this.torso, W * .27, .16);
       colarinho(false);
     }
     if (social) { colarinho(false); m(rbox(.035, .7, .01, .004), mCamEsc, 0, .38, frente + .002, this.torso); cinto(); }
