@@ -1083,7 +1083,7 @@ function renderLateral() {
     const dicas = [];
     if (mine) {
       if (r.wc < 5) dicas.push('Praticamente não houve fala.');
-      else { if (r.extensao < .4) dicas.push('Aproveite melhor o tempo.'); if (r.relevancia < .34 && p.tema) dicas.push(`Cite ${TEMA[p.tema].estado} e o problema do tema.`); if (r.concretude < .34) dicas.push('Traga metas e números: “vou criar…”.'); if (r.apelo < .34) dicas.push('Fale com o eleitor: famílias, futuro, “você”.'); }
+      else { if (r.extensao < .4) dicas.push('Aproveite melhor o tempo.'); if (r.relevancia < .34 && p.tema) dicas.push(TEMA[p.tema].uf === 'BR' ? 'Cite o problema do tema e um dado real.' : `Cite ${TEMA[p.tema].estado} e o problema do tema.`); if (r.concretude < .34) dicas.push('Traga metas e números: “vou criar…”.'); if (r.apelo < .34) dicas.push('Fale com o eleitor: famílias, futuro, “você”.'); }
     }
     h = `<div class="hud-box"><small class="mut">COMENTARISTAS · ${esc(j?.nome)}</small><div style="display:flex;align-items:baseline;gap:8px"><span class="nota-grande">${r.nota.toFixed(1)}</span><span class="mut">/ 10</span></div>
       <div class="chips">${chips.join('')}</div>${dicas.length ? `<small class="mut">${dicas.map(esc).join('<br>')}</small>` : ''}</div>`;

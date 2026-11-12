@@ -10,7 +10,7 @@ function dicaLocal(ctx) {
   const metas = { esq: ['ampliar o investimento público', 'proteger quem mais precisa', 'cobrar mais de quem ganha mais'], cen: ['metas com prazo e transparência', 'parceria entre governo e setor privado', 'gestão eficiente sem gastar a mais'], dir: ['menos burocracia', 'parceria com a iniciativa privada', 'responsabilidade com as contas'] }[lado];
   return {
     titulo: t ? `${t.uf} · ${t.titulo}` : 'Considerações finais',
-    abertura: t ? `Comece citando ${t.estado} pelo nome: mostre que conhece o problema.` : 'Olhe para a câmera e fale direto com o eleitor.',
+    abertura: t ? (t.uf === 'BR' ? 'Mostre que conhece o problema nacional: cite um dado ou um caso real.' : `Comece citando ${t.estado} pelo nome: mostre que conhece o problema.`) : 'Olhe para a câmera e fale direto com o eleitor.',
     pontos: [`Uma meta com número e prazo (ex.: "até o fim do primeiro ano").`, `Linha do partido: ${pick(metas)}.`, 'Diga de onde vem o dinheiro: isso conta pontos.'],
     palavras: kw,
     cuidado: ctx.kind === 'resposta' ? 'Responda o que foi perguntado: fugir do tema derruba a nota.' : 'Evite ataques pessoais: o eleitor de centro não gosta.',

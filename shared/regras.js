@@ -1,5 +1,7 @@
 // Regras do jogo, compartilhadas entre servidor e cliente.
-// Dados (partidos, temas dos 27 estados), análise das falas e modelo eleitoral.
+// Dados (partidos, temas dos 27 estados + nacionais), análise das falas e modelo eleitoral.
+
+import { TEMAS_BR } from './temas-br.js';
 
 export const JORN = 'Poliana Cabrita';
 export const ELEITORADO = 158_000_000;
@@ -131,6 +133,7 @@ const UFS = [
   ['TO', 'Tocantins', 'do Tocantins', [
     ['agro', 'Matopiba e a fronteira agrícola', 'O Tocantins está no Matopiba, a nova fronteira agrícola. Como crescer sem destruir o Cerrado?', 'matopiba,soja,cerrado,fronteira agricola'],
     ['saude', 'Saúde no interior', 'Moradores do interior do Tocantins viajam centenas de quilômetros por um atendimento especializado. O que fazer?', 'interior,hospital,especialista,distancia,regionaliz']]],
+  ['BR', 'Brasil', 'do Brasil', TEMAS_BR.map(t => [t.base, t.titulo, t.pergunta, t.kw])], // 100 temas nacionais (shared/temas-br.js)
 ];
 
 /** Resumo curto de cada tema (contexto para o jogador formular resposta/pergunta). Chave = UF + índice. */
@@ -195,7 +198,7 @@ export function norm(s) { return String(s || '').toLowerCase().normalize('NFD').
 
 export const TEMAS = [];
 UFS.forEach(([uf, estado, de, lista]) => lista.forEach(([base, titulo, pergunta, kw], k) => TEMAS.push({
-  key: uf + k, uf, estado, de, base, titulo, pergunta, resumo: RESUMO[uf + k] || '', kw: kw.split(',').map(s => s.trim()).concat('=' + norm(estado)),
+  key: uf + k, uf, estado, de, base, titulo, pergunta, resumo: RESUMO[uf + k] || (uf === 'BR' ? TEMAS_BR[k].resumo : ''), kw: kw.split(',').map(s => s.trim()).concat('=' + norm(estado)),
 })));
 export const TEMA = Object.fromEntries(TEMAS.map(t => [t.key, t]));
 const temaKw = key => TEMA_BASE[TEMA[key].base].concat(TEMA[key].kw);
@@ -385,8 +388,11 @@ export function apurar(lista, ruido, segundo, abstBase) {
 }
 
 export function sortearTema(usados) {
-  const ufsUsadas = new Set([...usados].map(k => TEMA[k].uf));
-  let livres = TEMAS.filter(t => !ufsUsadas.has(t.uf));
+  // metade das vezes um tema nacional (BR), senão um estado ainda não sorteado
+  const ufsUsadas = new Set([...usados].map(k => TEMA[k].uf)); ufsUsadas.delete('BR');
+  const nac = Math.random() < .5;
+  let livres = TEMAS.filter(t => !usados.has(t.key) && (t.uf === 'BR') === nac && !ufsUsadas.has(t.uf));
+  if (!livres.length) livres = TEMAS.filter(t => !usados.has(t.key) && !ufsUsadas.has(t.uf));
   if (!livres.length) livres = TEMAS.filter(t => !usados.has(t.key));
   if (!livres.length) livres = TEMAS;
   const t = pick(livres); usados.add(t.key); return t.key;
