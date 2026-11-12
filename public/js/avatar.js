@@ -65,6 +65,19 @@ function texturaListras() {
   texListras = new THREE.CanvasTexture(c); texListras.colorSpace = THREE.SRGBColorSpace; return texListras;
 }
 
+let texGravata;
+function matGravata(cor) { // listras diagonais sutis (textura cinza multiplicada pela cor)
+  return geo('mGrav' + cor, () => {
+    if (!texGravata) {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d');
+      x.fillStyle = '#ffffff'; x.fillRect(0, 0, 64, 64); x.strokeStyle = '#9a9a9a'; x.lineWidth = 7;
+      for (let i = -64; i <= 128; i += 32) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + 64, 64); x.stroke(); }
+      texGravata = new THREE.CanvasTexture(cv); texGravata.colorSpace = THREE.SRGBColorSpace; texGravata.wrapS = texGravata.wrapT = THREE.RepeatWrapping; texGravata.repeat.set(9, 9);
+    }
+    return new THREE.MeshStandardMaterial({ color: cor, map: texGravata, roughness: .38, metalness: .05 });
+  });
+}
+
 export class Avatar {
   constructor(cfg) {
     this.cfg = { expressao: 'simpatico', ...cfg };
@@ -107,10 +120,19 @@ export class Avatar {
       const s = new THREE.Shape(); s.moveTo(-larg / 2, y0); s.lineTo(larg / 2, y0); s.lineTo(0, y0 - alt); s.closePath();
       const me = new THREE.Mesh(new THREE.ShapeGeometry(s), mat(cor)); me.position.z = z; this.torso.add(me); return me;
     };
-    const gravata = () => {
-      const s = new THREE.Shape(); s.moveTo(-.035, .7); s.lineTo(.035, .7); s.lineTo(.055, .38); s.lineTo(0, .3); s.lineTo(-.055, .38); s.closePath();
-      const g = new THREE.Mesh(new THREE.ShapeGeometry(s), mat(c.corGravata, { r: .4 })); g.position.z = frente + .006; this.torso.add(g);
-      m(rbox(.08, .06, .03, .01), mat(tom(c.corGravata, -.1)), 0, .72, frente + .004, this.torso);
+    const gravata = () => { // gravata 3D: colarinho, nó trapezoidal, lâmina com bisel e listras, prendedor
+      const ext = (k, pts, o) => geo(k, () => { const s = new THREE.Shape(); pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); s.closePath(); return new THREE.ExtrudeGeometry(s, { curveSegments: 1, ...o }); });
+      const gm = matGravata(c.corGravata);
+      const lam = m(ext('gravLam', [[-.024, .69], [.024, .69], [.052, .4], [0, .325], [-.052, .4]], { depth: .012, bevelEnabled: true, bevelThickness: .007, bevelSize: .006, bevelSegments: 3 }), gm, 0, 0, frente + .006, this.torso);
+      lam.rotation.x = -.03;
+      const no = m(ext('gravNo', [[-.044, .75], [.044, .75], [.027, .672], [-.027, .672]], { depth: .028, bevelEnabled: true, bevelThickness: .012, bevelSize: .009, bevelSegments: 4 }), mat(tom(c.corGravata, -.04), { r: .45 }), 0, 0, frente + .006, this.torso);
+      no.castShadow = false;
+      const gola = mat(camisaCor, { r: .6 });
+      for (const s of [-1, 1]) { // pontas do colarinho
+        const g = m(ext('gravGola', [[0, 0], [.075, .02], [.02, -.085]], { depth: .008, bevelEnabled: true, bevelThickness: .004, bevelSize: .004, bevelSegments: 2 }), gola, s * .035, .765, frente + .01, this.torso);
+        g.scale.x = s; g.rotation.y = s * .25;
+      }
+      m(rbox(.075, .012, .012, .004), mat('#c9ccd3', { r: .25, m: .9 }), 0, .5, frente + .03, this.torso); // prendedor
     };
     if (batina) { // batina: saia longa até os pés, botões e friso vermelhos, faixa na cintura, crucifixo dourado
       const vm = mat('#b91c1c', { r: .5 }), ouro = mat('#e8b923', { r: .25, m: .7 });
