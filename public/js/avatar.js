@@ -118,7 +118,7 @@ export class Avatar {
       const jo = new THREE.Group(); jo.position.y = -.42; pv.add(jo); pv.userData = { lado: s, jo }; // joelho
       if (saia) { m(rbox(.18, .5, .2, .06), mat('#3a2e33', { r: .5 }), s * W * (.2 - .22), .33 - .46, 0, jo); }
       else { m(rbox(.22, .46, .24, .06), calca, 0, -.21, 0, pv); m(rbox(.215, .4, .235, .06), calca, 0, -.18, 0, jo); }
-      m(rbox(.24, .1, .34, .04), mat(saia ? '#2a1418' : '#141414', { r: .35 }), 0, .05 - .46, .04, jo);
+      m(rbox(.24, .1, .34, .04), mat(saia ? '#2a1418' : '#141414', { r: .35 }), 0, .05 - .46, batina ? .1 : .04, jo);
     }
     this.andar = 0; this.faseAndar = 0;
     if (saia) { const sa = m(geo('saia' + W, () => new THREE.CylinderGeometry(W * .5, W * .62, .5, 20)), mat(tom(roupaCor, -.03), { r: .7 }), 0, .63, 0, R); sa.scale.z = .68; }
@@ -184,10 +184,10 @@ export class Avatar {
     }
     if (batina) { // batina: saia longa até os pés, botões e friso vermelhos, faixa na cintura, crucifixo dourado
       const vm = mat('#b91c1c', { r: .5 }), ouro = mat('#e8b923', { r: .25, m: .7 });
-      const sa = m(geo('batina' + W, () => new THREE.CylinderGeometry(W * .5, W * .66, .8, 22)), mat(roupaCor, { r: .75 }), 0, .46, 0, R); sa.scale.z = .66;
+      const sa = m(geo('batina2' + W, () => new THREE.CylinderGeometry(W * .5, W * .66, .72, 22)), mat(roupaCor, { r: .75 }), 0, .5, 0, R); sa.scale.z = .66;
       m(rbox(.022, .76, .01, .005), vm, 0, .38, frente + .002, this.torso);
       for (let y = .1; y < .72; y += .1) m(esfera(.017), vm, 0, y, frente + .012, this.torso);
-      for (let y = .78; y > .1; y -= .13) m(esfera(.017), vm, 0, y, W * .33 + (.86 - y) * .1, R); // botões descendo pela saia
+      for (let y = .78; y > .18; y -= .13) m(esfera(.017), vm, 0, y, W * .33 + (.86 - y) * .1, R); // botões descendo pela saia
       m(rbox(W + .04, .12, .42, .05), vm, 0, .05, 0, this.torso); // faixa
       for (const dx of [0, .05]) m(rbox(.08, .5 - dx * 2, .03, .01), vm, W * .26 + dx, -.2 - dx, frente + .03 + dx * .2, this.torso); // pontas da faixa
       m(rbox(.26, .05, .3, .02), vm, 0, .77, 0, this.torso); // gola com friso

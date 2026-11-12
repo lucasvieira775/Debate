@@ -2529,5 +2529,36 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794512906828
+ },
+ "817b36ea-41c6-4694-be61-bf12aeb3893c": {
+  "uid": "817b36ea-41c6-4694-be61-bf12aeb3893c",
+  "nome": "Lucas Bozonaro",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794513064763,
+  "cadastro": {
+   "idade": 30,
+   "nome": "Lucas Bozonaro",
+   "user": "lucasbozonaro",
+   "criadoEm": 1794513079095
+  }
+ },
+ "8b27d577-f8b2-4fe7-b7bb-0a660a3f5e5f": {
+  "uid": "8b27d577-f8b2-4fe7-b7bb-0a660a3f5e5f",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794513349669
+ },
+ "c3e503aa-12d0-4f3a-9eb4-1f8eee21b0b6": {
+  "uid": "c3e503aa-12d0-4f3a-9eb4-1f8eee21b0b6",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794513401225
  }
 }
