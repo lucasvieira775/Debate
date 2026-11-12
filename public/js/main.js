@@ -9,8 +9,8 @@ import { SONS_ACAO } from './acoes/sons.js';
 import { termosAceitos, mostrarTermos } from './termos.js';
 import { PUNICAO, REGRAS_DEBATE } from '/shared/moderacao.js';
 import { postXzona, limparXzona, mostrarDica, esconderDica, recolherDica, aoLerDica,janela, janelaDenuncia, telaLoja, avisoGanhos, reais, htmlFanpage, janelaFanpage } from './extras.js';
-import { ITENS, ITEM, PACOTES_MOEDAS, itensDe, ACAO_ESPERA_MS, GRATIS } from '/shared/loja.js';
-import { CARGOS, XP, XP_PUNICAO, cargo, brasao, htmlBrasao } from '/shared/niveis.js';
+import { ITENS, ITEM, PACOTES_MOEDAS, itensDe, ACAO_ESPERA_MS, GRATIS, possui, nivelOk } from '/shared/loja.js';
+import { CARGOS, XP, XP_PUNICAO, cargo, brasao, htmlBrasao, nivelMax } from '/shared/niveis.js';
 import { animarPromocao } from './promocao.js';
 import { CADASTRO, validarNome, validarUser, validarIdade, formatarNome, formatarUser } from '/shared/cadastro.js';
 
@@ -664,7 +664,7 @@ function telaDaLoja(ui) {
     equipar: id => socket.emit('equiparDanca', { uid: UID, item: id }, r => { if (r?.erro) return toast(r.erro, 'erro'); atualizarConta(r.conta); toast('Dança equipada para a sua vitória!', 'ok'); renderUI(); }),
     testar: id => {
       const it = ITEM[id], tela = $('#ui .tela'); tela.style.transition = 'opacity .3s'; tela.style.opacity = 0; tela.style.pointerEvents = 'none';
-      const compra = it.preco > 0 && !(GRATIS.includes(id) || E.conta?.itens?.includes(id));
+      const compra = it.preco > 0 && !possui(id, E.conta?.itens, nivelMax(E.conta)) && nivelOk(id, nivelMax(E.conta));
       const bt = sobAvatar(`<button class="btn" data-x>✕ Parar</button>${compra ? `<button class="btn amarelo" data-ok>🛒 Comprar · 🪙 ${fmtN(it.preco)}</button>` : ''}`);
       const roupa = !!it.av; if (roupa) est.setVitrine({ ...E.perfil.avatar, ...it.av, ...it.cores }); // prova o acessório/conjunto
       let tm; const som = roupa ? null : somItem(id); const fim = () => { clearTimeout(tm); som?.pause?.(); bt.remove(); est.pararVitrine(); if (roupa) est.setVitrine(E.perfil.avatar); tela.style.opacity = 1; tela.style.pointerEvents = ''; };
@@ -857,7 +857,14 @@ function telaSala(ui) {
 // ---------- personalização ----------
 const ABAS = { aparencia: '👤 Aparência', roupas: '👔 Roupas', acessorios: '👓 Acessórios', expressoes: '🙂 Expressões', partido: '🏛 Partido' };
 /** Item mais barato da loja que libera avatar[campo] = valor, se o jogador ainda não o tem (senão undefined). */
-const bloqueio = (campo, valor) => { const ids = itensDe(campo, valor); if (!ids.length || ids.some(id => (GRATIS.includes(id) || E.conta?.itens?.includes(id)))) return; return ids.map(id => ITEM[id]).sort((x, y) => x.preco - y.preco)[0]; };
+const bloqueio = (campo, valor) => { const ids = itensDe(campo, valor), nv = nivelMax(E.conta); if (!ids.length || ids.some(id => possui(id, E.conta?.itens, nv))) return;
+  const its = ids.map(id => ITEM[id]).sort((x, y) => nivelOk(x.id, nv) - nivelOk(y.id, nv) || x.preco - y.preco), it = its.find(i => nivelOk(i.id, nv)) || its[0];
+  return nivelOk(it.id, nv) ? it : { ...it, travaNivel: CARGOS[it.nivel - 1].nome }; }; // travaNivel: falta o cargo (ex.: faixa só p/ Presidente), não dá p/ comprar
+/** Miniatura da opção: tira os acessórios que tapam a peça e enquadra a parte do corpo certa (retrato() guarda em cache). */
+const SEM = { oculos: 'nenhum', chapeu: 'nenhum', extra: 'nenhum' };
+const MINI = { oculos: [{ chapeu: 'nenhum', extra: 'nenhum' }, 'rosto'], chapeu: [{ oculos: 'nenhum', extra: 'nenhum' }, 'cabeca'], cabelo: [{ chapeu: 'nenhum' }, 'cabeca'],
+  barba: [SEM, 'rosto'], extra: [{ chapeu: 'nenhum', oculos: 'nenhum' }, v => ['charuto', 'nariz'].includes(v) ? 'rosto' : 'busto'] };
+const retOpc = (a, campo, v) => { const [tira, foco] = MINI[campo] || [{}, 'rosto']; return retrato({ ...a, ...tira, [campo]: v }, null, typeof foco === 'function' ? foco(v) : foco); };
 const ICONE_ROUPA = { terno: '🤵', terno_aberto: '🧥', blazer: '💼', saia: '👗', social: '👔', colete: '🦺', polo: '👕', batina: '⛪', pastor: '📖' };
 /** O que a prova veste por cima do avatar salvo (conjunto = peça inteira; acessório = só o campo). */
 const provaAv = p => p.it.tipo === 'conjunto' ? { ...p.it.av, ...p.it.cores } : { [p.campo]: p.valor };
@@ -912,7 +919,7 @@ function renderPersConteudo() {
   const prov = (campo, v) => pv && pv.campo === campo && pv.valor === v ? 'provando' : '';
   const cores = (campo, lista) => `<div class="cores">${lista.map(c => `<button class="cor ${a[campo] === c ? 'on' : ''} ${prov(campo, c)}" style="background:${c}" data-c="${campo}" data-v="${c}"></button>`).join('')}</div>`;
   const tiles = (campo, opcoes, comRetrato = true, icones) => `<div class="grade">${Object.entries(opcoes).map(([v, nome]) => { const it = bloqueio(campo, v);
-    return `<button class="opc ${a[campo] === v ? 'on' : ''} ${it ? 'bloq' : ''} ${prov(campo, v)}" data-c="${campo}" data-v="${v}" ${it ? `title="${esc(it.nome)} · 🪙 ${it.preco}"` : ''}>${comRetrato ? `<img src="${ret({ ...a, [campo]: v })}">` : icones ? `<i class="opc-ico">${icones[v] || '✨'}</i>` : ''}<span>${esc(nome)}</span>${it ? `<small class="opc-preco">🔒 🪙 ${it.preco}</small>` : ''}</button>`; }).join('')}</div>`;
+    return `<button class="opc ${a[campo] === v ? 'on' : ''} ${it ? 'bloq' : ''} ${prov(campo, v)}" data-c="${campo}" data-v="${v}" ${it ? `title="${esc(it.nome)} · ${it.travaNivel ? 'Liberado no nível ' + it.travaNivel : '🪙 ' + it.preco}"` : ''}>${comRetrato ? `<img src="${retOpc(a, campo, v)}">` : icones ? `<i class="opc-ico">${icones[v] || '✨'}</i>` : ''}<span>${esc(nome)}</span>${it ? `<small class="opc-preco">${it.travaNivel ? '🔒 Nível ' + it.travaNivel : '🔒 🪙 ' + it.preco}</small>` : ''}</button>`; }).join('')}</div>`;
   const tg = (campo, nome) => `<div class="cfg-linha"><span>${nome}</span><button class="toggle ${a[campo] ? 'on' : ''}" data-t="${campo}"></button></div>`;
   const g = (t, c) => `<div class="grupo"><h4>${t}</h4>${c}</div>`;
   let h = '';
@@ -928,12 +935,13 @@ function renderPersConteudo() {
           <img src="${logoPartido(p.sigla, 116)}"><b>${p.sigla} · ${p.numero}</b><small>${esc(p.nome)}</small><span class="chip" style="font-size:11px">${IDEO[p.ideo].nome}</span><small class="lema">“${esc(p.lema)}”</small></button>`).join('')}</div>`;
     }
   }
-  if (pv) h = `<div class="prova"><div class="prova-txt">👀 Provando: <b>${pv.it.emoji} ${esc(pv.it.nome)}</b> · 🪙 ${pv.it.preco}${pv.it.tipo === 'conjunto' ? `<small>Este item é parte do ${esc(pv.it.nome)}: a compra inclui todas as peças.</small>` : ''}</div>
-    <button class="btn peq" id="pv-x">↺ Desfazer</button><button class="btn peq amarelo" id="pv-ok">🛒 Comprar</button></div>` + h;
+  const trava = pv?.it.travaNivel; // só prova: o cargo exigido ainda não foi alcançado
+  if (pv) h = `<div class="prova"><div class="prova-txt">👀 Provando: <b>${pv.it.emoji} ${esc(pv.it.nome)}</b> · ${trava ? `🔒 Nível ${trava}<small>Disponível quando você chegar a ${trava}.</small>` : `🪙 ${pv.it.preco}`}${pv.it.tipo === 'conjunto' ? `<small>Este item é parte do ${esc(pv.it.nome)}: a compra inclui todas as peças.</small>` : ''}</div>
+    <button class="btn peq" id="pv-x">↺ Desfazer</button>${trava ? '' : '<button class="btn peq amarelo" id="pv-ok">🛒 Comprar</button>'}</div>` + h;
   el.innerHTML = h;
-  if (pv) { $('#pv-x', el).onclick = () => { sfx.clique(); desfazerProva(); reRenderPers(); }; $('#pv-ok', el).onclick = comprarProva; }
+  if (pv) { $('#pv-x', el).onclick = () => { sfx.clique(); desfazerProva(); reRenderPers(); }; if (!trava) $('#pv-ok', el).onclick = comprarProva; }
   $('#prova-av')?.remove(); // botão de compra embaixo do avatar enquanto prova
-  if (pv) { const b = sobAvatar(`<button class="btn amarelo" data-ok>🛒 Comprar ${esc(pv.it.nome)} · 🪙 ${fmtN(pv.it.preco)}</button>`, 'prova-av'); $('[data-ok]', b).onclick = comprarProva; }
+  if (pv && !trava) { const b = sobAvatar(`<button class="btn amarelo" data-ok>🛒 Comprar ${esc(pv.it.nome)} · 🪙 ${fmtN(pv.it.preco)}</button>`, 'prova-av'); $('[data-ok]', b).onclick = comprarProva; }
   $$('[data-c]', el).forEach(b => b.onclick = () => setAv(b.dataset.c, b.dataset.v));
   $$('[data-t]', el).forEach(b => b.onclick = () => setAv(b.dataset.t, !a[b.dataset.t]));
   $$('[data-p]', el).forEach(b => b.onclick = () => { E.perfil.partido = b.dataset.p; salvar(); sincronizarPerfil(); sfx.clique(); renderPersConteudo(); });
@@ -976,7 +984,7 @@ function renderHUD() {
     const EM_ABAS = [['acao', '💥', 'Ações'], ['emote', '😀', 'Emotes'], ['danca', '💃', 'Danças'], ['provocacao', '😈', 'Provocar']];
     $('#h-emotes-b').onclick = (ev, manter) => {
       const p = $('#h-emotes'); if (!manter) p.hidden = !p.hidden; if (p.hidden) return;
-      const tem = id => (GRATIS.includes(id) || E.conta?.itens?.includes(id)), aba = E.emAba ||= 'emote';
+      const tem = id => possui(id, E.conta?.itens, nivelMax(E.conta)), aba = E.emAba ||= 'emote';
       const bt = (i, at) => `<button ${at}="${i.id}" class="${tem(i.id) ? '' : 'bloq'}${E.acoesUsadas?.has(i.id) ? ' usada' : ''}" title="${esc(i.nome)}${tem(i.id) ? '' : ' (compre na loja)'}"><span>${i.emoji}</span><small>${esc(i.nome)}</small>${tem(i.id) ? '' : `<span class="em-preco">🔒 ${fmtN(i.preco)}</span>`}</button>`;
       const espera = Math.max(0, ACAO_ESPERA_MS - (Date.now() - (E.ultAcao || 0))), sEsp = Math.ceil(espera / 1000), mmss = `${sEsp / 60 | 0}:${String(sEsp % 60).padStart(2, '0')}`;
       const lista = ITENS.filter(i => i.tipo === aba).sort((a, b) => tem(b.id) - tem(a.id) || a.preco - b.preco), meus = lista.filter(i => tem(i.id)).length;
@@ -1449,7 +1457,7 @@ window.__debate = { E, est, socket };
 // modo de demonstração visual: ?demo=fp | ?demo=lado | ?demo=vitrine
 const demo = new URLSearchParams(location.search).get('demo');
 if (demo) setTimeout(() => {
-  if (demo === 'vitrine') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); E.persAba = new URLSearchParams(location.search).get('aba') || E.persAba; ir('personalizar'); const pr = new URLSearchParams(location.search).get('provar'); if (pr) pr.split(',').forEach(p => setAv(...p.split(':'))); const gi = new URLSearchParams(location.search).get('girar'); if (gi && est.vitrine) est.vitrine.root.rotation.y = +gi; return; } // ?demo=vitrine&aba=roupas[&provar=roupa:batina,corRoupa:%23b91c1c]
+  if (demo === 'vitrine') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], xp: +new URLSearchParams(location.search).get('xp') || 0, cadastro: { nome: 'Demo' } }), set() {} }); E.persAba = new URLSearchParams(location.search).get('aba') || E.persAba; ir('personalizar'); const pr = new URLSearchParams(location.search).get('provar'); if (pr) pr.split(',').forEach(p => setAv(...p.split(':'))); const gi = new URLSearchParams(location.search).get('girar'); if (gi && est.vitrine) est.vitrine.root.rotation.y = +gi; const ro = new URLSearchParams(location.search).get('rolar'); if (ro) setTimeout(() => { const el = $('.pers-conteudo'); if (el) el.scrollTop = +ro; }, 2500); return; } // ?demo=vitrine&xp=38000 (Presidente: libera a faixa)&aba=roupas[&provar=roupa:batina,corRoupa:%23b91c1c]
   if (demo === 'config') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('config'); return; } // ?demo=config
   if (demo === 'emote') { const q = new URLSearchParams(location.search), it = ITEM[q.get('item')]; E.perfil.nome ||= 'Demo'; if (it.av) E.perfil.avatar = { ...E.perfil.avatar, ...it.av, ...it.cores, genero: 'masculino', barba: q.get('barba') || E.perfil.avatar.barba }; ir('personalizar'); $('#ui').style.opacity = 0; if (it.tipo === 'acao') { setTimeout(() => { est.testarNaVitrine(it); est.adiantarDemo(Number(q.get('t')) || 0); }, 400); return; } est.testarNaVitrine({ ...it, tipo: 'danca' }); if (est.vitrine?.anim) est.vitrine.anim.ini = -(Number(q.get('t')) || 0); return; } // &t=1 começa a animação 1 s adiantada // ?demo=emote&item=chorao
   if (demo === 'sala') { E.perfil.nome ||= 'Demo'; const js = bots().slice(0, 3).map((j, i) => ({ ...j, bot: false, pronto: i === 1, nivel: i + 1 })); E.eu = js[0].id; // ?demo=sala (lobby com chat)

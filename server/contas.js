@@ -1,10 +1,10 @@
 // Contas dos jogadores (moedas, dicas extras, banimentos) e denúncias. Guardadas em dados/*.json.
 import fs from 'node:fs';
 import path from 'node:path';
-import { ITEM, GRATIS } from '../shared/loja.js';
+import { ITEM, GRATIS, possui, nivelOk } from '../shared/loja.js';
 import { revisarLocal } from '../shared/revisao.js';
 import { moderar, nomeImproprio, PUNICAO } from '../shared/moderacao.js';
-import { cargo, CARGOS, XP_PUNICAO } from '../shared/niveis.js';
+import { cargo, CARGOS, XP_PUNICAO, nivelMax } from '../shared/niveis.js';
 import { CADASTRO, validarNome, validarUser, validarIdade, formatarNome, formatarUser, chaveNome } from '../shared/cadastro.js';
 
 // Fanpage na Xzona: seguidores sobem quando o candidato vai bem e caem quando vai mal.
@@ -139,9 +139,10 @@ export class Contas {
     const delta = Math.max(-f.seguidores, Math.round(fator * (.85 + Math.random() * .3)));
     f.seguidores += delta; this.salvar(); return delta;
   }
-  tem(c, item) { return GRATIS.includes(item) || !!c?.itens?.includes(item); }
+  tem(c, item) { return possui(item, c?.itens, nivelMax(c)); } // cargo mínimo (ex.: faixa = Presidente) validado aqui: o perfil vindo do cliente não veste o que não pode
   comprarItem(c, id) {
     const it = Object.hasOwn(ITEM, id) && ITEM[id]; if (!c || !it) return 'Item inválido.'; // hasOwn: '__proto__'/'constructor' zeravam as moedas (NaN)
+    if (!nivelOk(id, nivelMax(c))) return `Disponível só a partir do nível ${CARGOS[it.nivel - 1].nome}.`;
     if (this.tem(c, id)) return 'Você já tem este item.';
     if (c.moedas < it.preco) return `Moedas insuficientes: faltam ${it.preco - c.moedas}.`;
     c.moedas -= it.preco; (c.itens ||= []).push(id);

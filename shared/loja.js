@@ -43,7 +43,7 @@ export const ITENS = [
   { id: 'ch_coroa', tipo: 'acessorio', av: { chapeu: 'coroa' }, nome: 'Coroa', preco: 630, anim: 'aceno', emoji: '👑', descricao: 'Ouro e pedras preciosas. Monarquista?' },
   { id: 'ch_festa', tipo: 'acessorio', av: { chapeu: 'festa' }, nome: 'Chapéu de festa', preco: 200, anim: 'joinha', emoji: '🥳', descricao: 'Cone listrado para comemorar a vitória.' },
   { id: 'ch_palhaco', tipo: 'acessorio', av: { chapeu: 'palhaco' }, nome: 'Peruca de palhaço', preco: 300, anim: 'gargalhada', emoji: '🤡', descricao: 'Cachos coloridos para o circo do debate.' },
-  { id: 'ex_faixa', tipo: 'acessorio', av: { extra: 'faixa' }, nome: 'Faixa presidencial', preco: 750, anim: 'continencia', emoji: '🎗️', descricao: 'Já se sente eleito(a)? Vista a faixa.' },
+  { id: 'ex_faixa', tipo: 'acessorio', av: { extra: 'faixa' }, nivel: 8, nome: 'Faixa presidencial', preco: 750, anim: 'continencia', emoji: '🎗️', descricao: 'Já se sente eleito(a)? Vista a faixa.' },
   { id: 'ex_corrente', tipo: 'acessorio', av: { extra: 'corrente' }, nome: 'Corrente de ouro', preco: 450, anim: 'joinha', emoji: '📿', descricao: 'Ostentação no pescoço.' },
   { id: 'ex_charuto', tipo: 'acessorio', av: { extra: 'charuto' }, nome: 'Charuto', preco: 300, anim: 'joinha', emoji: '🚬', descricao: 'Charuto cubano de quem fecha acordos.' },
   { id: 'ex_nariz', tipo: 'acessorio', av: { extra: 'nariz' }, nome: 'Nariz de palhaço', preco: 200, anim: 'gargalhada', emoji: '🔴', descricao: 'Bolinha vermelha no nariz.' },
@@ -71,5 +71,9 @@ export const ITEM = Object.fromEntries(ITENS.map(i => [i.id, i]));
 // TESTES: tudo liberado (ações, roupas, danças...). VOLTAR PARA false AO HOSPEDAR (junto com MOEDAS_TESTE em server/contas.js).
 export const TUDO_LIBERADO = true;
 export const GRATIS = ITENS.filter(i => TUDO_LIBERADO || i.preco === 0).map(i => i.id);
+// "nivel" no item = cargo mínimo (shared/niveis.js) para comprar/vestir; vale mesmo com TUDO_LIBERADO. nivel = maior cargo já alcançado.
+export const nivelOk = (id, nivel = 1) => !(ITEM[id]?.nivel > nivel);
+/** O jogador pode usar o item: tem o cargo exigido e (é grátis ou comprou). Mesma regra no cliente e no servidor. */
+export const possui = (id, itens = [], nivel = 1) => nivelOk(id, nivel) && (GRATIS.includes(id) || !!itens?.includes(id));
 // Ações: depois de usar uma, espera 3 min para usar outra; cada ação só pode ser usada uma vez por debate.
 export const ACAO_ESPERA_MS = 3 * 60000;

@@ -23,6 +23,8 @@ export function cargo(xp = 0) {
   const i = CARGOS.findLastIndex(c => xp >= c.xp), c = CARGOS[i], prox = CARGOS[i + 1];
   return { ...c, xp, prox: prox?.xp ?? null, pct: prox ? Math.min(100, (xp - c.xp) / (prox.xp - c.xp) * 100) : 100 };
 }
+/** Maior cargo já alcançado pela conta (libera itens com "nivel" na loja; não se perde ao cair de cargo). */
+export const nivelMax = c => Math.max(c?.cargoMax || 1, cargo(c?.xp || 0).n);
 export const brasao = n => `/img/niveis/${n}.png`;
 /** <img> pequeno do brasão para pôr ao lado do nome. */
 export const htmlBrasao = (n, tam = 22) => n ? `<img class="brasao" src="${brasao(n)}" width="${tam}" height="${tam}" title="${CARGOS[n - 1]?.nome}" alt="${CARGOS[n - 1]?.nome}">` : '';

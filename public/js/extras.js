@@ -1,7 +1,7 @@
 // Peças de interface: feed da Xzona, anotação da assessoria (papel), janelas (denúncia) e loja.
 import { $, $$, esc, fmtN, toast } from './util.js';
-import { ITENS, PACOTES_MOEDAS, GRATIS } from '/shared/loja.js';
-import { CARGOS, htmlBrasao } from '/shared/niveis.js';
+import { ITENS, PACOTES_MOEDAS, GRATIS, possui, nivelOk } from '/shared/loja.js';
+import { CARGOS, htmlBrasao, nivelMax } from '/shared/niveis.js';
 
 // ---------------- Xzona ----------------
 const coresPerfil = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
@@ -126,7 +126,7 @@ export function janelaDenuncia(jogadores, enviar) {
 const TIPOS = { moedas: '🪙 Moedas', assessoria: '📝 Assessoria', danca: '💃 Danças', emote: '😀 Emotes', provocacao: '😈 Provocações', acao: '💥 Ações', acessorio: '👓 Acessórios', conjunto: '🎩 Conjuntos' };
 export const reais = v => 'R$ ' + v.toFixed(2).replace('.', ',');
 export function telaLoja(ui, { conta, info, aba, topo, comprarPacote, comprarItem, comprarMoedas, equipar, mudarAba, testar, avatar, vestir }) {
-  const tem = id => GRATIS.includes(id) || conta?.itens?.includes(id);
+  const nv = nivelMax(conta), tem = id => possui(id, conta?.itens, nv);
   const usando = i => i.av && Object.entries(i.av).every(([c, v]) => avatar?.[c] === v);
   const acaoTem = i => i.tipo === 'danca' ? (conta?.danca === i.id ? '<span class="chip verde">Equipada</span>' : `<button class="btn peq verde" data-eq="${i.id}">Equipar</button>`)
     : i.av ? (usando(i) ? '<span class="chip verde">Usando</span>' : `<button class="btn peq verde" data-vestir="${i.id}">${i.tipo === 'conjunto' ? 'Vestir' : 'Usar'}</button>`) : '<span class="chip verde">✔ Seu</span>';
@@ -148,6 +148,7 @@ export function telaLoja(ui, { conta, info, aba, topo, comprarPacote, comprarIte
         <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
           <button class="btn peq" data-testar="${i.id}" title="Ver o seu candidato ${i.av ? 'usando' : 'fazendo'}">▶ Ver</button>
           ${tem(i.id) ? acaoTem(i)
+            : !nivelOk(i.id, nv) ? `<span class="chip" title="Liberado ao chegar a ${CARGOS[i.nivel - 1].nome}">🔒 Nível ${CARGOS[i.nivel - 1].nome}</span>`
             : `<button class="btn amarelo peq" data-item="${i.id}">🪙 ${fmtN(i.preco)}</button>`}</div></div>`).join('');
   ui.innerHTML = `<div class="tela">${topo}
     <div class="loja-saldo painel"><span>Seu saldo</span><b>🪙 ${fmtN(conta?.moedas || 0)}</b><span class="mut">· ${conta?.dicasExtra || 0} dica(s) extra no estoque · 1 dica grátis por debate</span></div>
