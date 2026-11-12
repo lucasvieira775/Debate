@@ -126,7 +126,7 @@ export class Vitima {
     const av = this.p.avatar; av.animar(POSE[this.tipo], this.dur); this.olhar(this.tipo === 'sujo' ? av.olhar.y * .5 : 0, 0); // sujo: o rosto fica meio virado para quem jogou
     if (this.tipo === 'nocaute') this.olhosEspiral();
     if (this.tipo === 'amor') this.rubor();
-    if (this.minha && this.est.modo === 'fp' && !this.est.terceira) try { efeitoTela(this.it.id); } catch (e) { console.warn(e); } // você é o alvo, em 1ª pessoa: efeito na tela (a câmera não sai do olho)
+    if (this.minha) try { efeitoTela(this.it.id); } catch (e) { console.warn(e); } // você é o alvo (1ª ou 3ª pessoa): efeito na tela
   }
 
   /** false = terminou (a coreografia chama limpar). */

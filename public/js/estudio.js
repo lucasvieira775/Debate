@@ -1129,7 +1129,6 @@ export class Estudio {
   posCamFP() { const c = this.camera, t = this.terceira; c.position.set(t ? .35 : 0, t ? .4 : 0, t ? 2.3 : 0); c.rotation.set(t ? -.12 : 0, 0, 0); c.fov = t ? 60 : 68; c.updateProjectionMatrix(); }
   alternarVisao() { // tecla V
     this.terceira = !this.terceira;
-    if (this.terceira) limparTela(); // efeito de tela (apagão/meleca) só vale em 1ª pessoa
     if (this.camera.parent === this.camFP) this.posCamFP(); // (durante um golpe a câmera está solta: só vale quando voltar)
     this.podios.get(this.meuId)?.avatar.ocultarCabeca(this.cabecaOculta());
   }

@@ -214,4 +214,4 @@ img.xz-av{object-fit:cover;background:#1d2a4a}
 .jl-xz:disabled{opacity:.35;cursor:not-allowed;border-color:var(--borda)}
 
 /* efeitos de tela em 1ª pessoa quando você é o alvo de uma ação (acoes/tela.js) */
-.efeito-tela{position:fixed;inset:0;z-index:5;pointer-events:none;overflow:hidden}
+.efeito-tela{position:fixed;inset:0;z-index:30;pointer-events:none;overflow:hidden}
