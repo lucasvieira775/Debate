@@ -331,10 +331,14 @@ export class Avatar {
   }
   cabelo(H, c) {
     const mc = mat(c.corCabelo, { r: .8 });
-    const topo = () => c.chapeu === 'bone' ? null : m(rbox(.54, .17, .52, .08), mc, 0, .55, -.005, H); // sob o boné o topo atravessaria o domo
+    const ch = c.chapeu || 'nenhum', aba = !['nenhum', 'festa'].includes(ch); // chapéu que cobre o topo da cabeça
+    if (ch === 'palhaco') return; // a peruca substitui o cabelo
+    // com chapéu, cabelo volumoso vira curto (senão atravessa o acessório)
+    const tipo = ch !== 'nenhum' && ['afro', 'cacheado', 'topete', 'repartido'].includes(c.cabelo) ? 'curto' : aba && c.cabelo === 'coque' ? 'curto' : c.cabelo;
+    const topo = () => !aba ? m(rbox(.54, .17, .52, .08), mc, 0, .55, -.005, H) : ch === 'coroa' ? m(rbox(.42, .14, .4, .07), mc, 0, .55, -.01, H) : null;
     const nuca = (alt = .3) => m(rbox(.53, alt, .13, .06), mc, 0, .52 - alt / 2, -.2, H);
     const costeletas = () => { for (const s of [-1, 1]) m(rbox(.04, .14, .12, .015), mc, s * .255, .38, -.03, H); };
-    switch (c.cabelo) {
+    switch (tipo) {
       case 'curto': topo(); nuca(); costeletas(); break;
       case 'repartido': topo(); nuca(); costeletas(); { const p = m(rbox(.32, .09, .52, .045), mc, -.1, .63, 0, H); p.rotation.z = .18; } break;
       case 'topete': topo(); nuca(); costeletas(); { const t = m(rbox(.38, .16, .2, .07), mc, 0, .63, .16, H); t.rotation.x = -.35; } break;
@@ -717,7 +721,7 @@ export function retrato(cfg, fundo = null) {
   }
   const av = new Avatar(cfg); rScene.add(av.root);
   av.root.updateMatrixWorld(true);
-  const alto = cfg.chapeu === 'chapeu' || cfg.cabelo === 'afro';
+  const alto = cfg.chapeu === 'chapeu' || (cfg.cabelo === 'afro' && (cfg.chapeu || 'nenhum') === 'nenhum');
   rCam.position.set(.32, 2.04 + (alto ? .06 : 0), 2.0); rCam.lookAt(0, 1.97 + (alto ? .06 : 0), 0);
   rScene.background = fundo ? new THREE.Color(fundo) : null;
   rRenderer.render(rScene, rCam);
