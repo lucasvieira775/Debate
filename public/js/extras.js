@@ -150,7 +150,7 @@ export function telaLoja(ui, { conta, info, aba, topo, comprarPacote, comprarIte
           ${tem(i.id) ? acaoTem(i)
             : !nivelOk(i.id, nv) ? `<span class="chip" title="Liberado ao chegar a ${CARGOS[i.nivel - 1].nome}">🔒 Nível ${CARGOS[i.nivel - 1].nome}</span>`
             : `<button class="btn amarelo peq" data-item="${i.id}">🪙 ${fmtN(i.preco)}</button>`}</div></div>`).join('');
-  ui.innerHTML = `<div class="tela">${topo}
+  ui.innerHTML = `<div class="tela vitrine">${topo}
     <div class="loja-saldo painel"><span>Seu saldo</span><b>🪙 ${fmtN(conta?.moedas || 0)}</b><span class="mut">· ${conta?.dicasExtra || 0} dica(s) extra no estoque · 1 dica grátis por debate</span></div>
     <div class="abas" style="justify-content:center">${Object.entries(TIPOS).map(([k, v]) => `<button class="aba ${aba === k ? 'on' : ''}" data-aba="${k}">${v}</button>`).join('')}</div>
     <div class="loja-grade">${cards}</div>

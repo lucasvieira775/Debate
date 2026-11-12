@@ -898,7 +898,7 @@ function setAv(campo, valor) {
 }
 function telaPersonalizar(ui) {
   vitrinePers(); est.setModo('vitrine');
-  ui.innerHTML = `<div class="tela">${topo('Personalizar candidato', E.persVoltar)}
+  ui.innerHTML = `<div class="tela vitrine">${topo('Personalizar candidato', E.persVoltar)}
     <div class="pers">
       <div class="pers-esq">
         <div class="painel" style="display:flex;gap:10px;align-items:center;padding:10px">
