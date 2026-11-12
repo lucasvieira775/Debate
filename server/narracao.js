@@ -33,6 +33,9 @@ const COBRANCAS = ['Vá direto ao ponto, por favor.', 'O eleitor quer propostas 
 // cada tema vira poucos trechos fixos (gerados uma vez e guardados): a abertura e a abertura+pergunta
 const aberturaTema = t => `e o tema é: ${t.titulo}.`; // só o título (sem "nacional"/estado)
 const temaComPergunta = t => `${aberturaTema(t)} ${t.pergunta}`;
+// origem do tema (um trecho por estado + nacional), dita antes do título
+const origemTema = t => t.uf === 'BR' ? 'O tema vem do Brasil inteiro, de alcance nacional,' : `O tema vem ${t.de},`;
+const ORIGENS = [...new Set(TEMAS.map(origemTema))];
 /** Todos os trechos de tema (estaduais + nacionais), para gerar em segundo plano. */
 export const trechosTemas = () => TEMAS.flatMap(t => [temaComPergunta(t), aberturaTema(t)]);
 
@@ -78,13 +81,13 @@ export const N = {
   pesquisa: () => [pick(['Vamos aos números. O instituto divulga agora uma pesquisa relâmpago de intenção de voto.', 'Atenção para a pesquisa relâmpago: veja como está a intenção de voto neste momento.'])],
   roleta: nome => [n(nome), 'vamos sortear o seu tema.'],
   // cob = índice de cobrança extra ou -1 (sorteado ao montar a partida)
-  proposta: (nome, t, s, v = 0, cob = -1) => [n(nome), temaComPergunta(t), ...(cob >= 0 ? [COBRANCAS[cob]] : []), seg(s)],
+  proposta: (nome, t, s, v = 0, cob = -1) => [n(nome), origemTema(t), temaComPergunta(t), ...(cob >= 0 ? [COBRANCAS[cob]] : []), seg(s)],
   escolha: nome => [n(nome), 'é a sua vez de perguntar. Escolha quem você vai enfrentar. O tema será sorteado.'],
   escolhido: (nome, alvo) => [n(nome), 'escolheu quem vai enfrentar:', n(alvo), 'vamos sortear o tema!'],
   fimDuelo: (a, b) => [FIM_DUELO, n(a), n(b), VOLTEM],
   turno2: (a, b) => [SEGUNDO_TURNO, n(a), n(b), REGRA_T2],
   final2: () => [FINAL2],
-  pergunta: (nome, alvo, t, s) => [n(nome), t ? aberturaTema(t) : TEMA_LIVRE, n(alvo), 'vai responder. Faça a sua pergunta.', seg(s)],
+  pergunta: (nome, alvo, t, s) => [n(nome), ...(t ? [origemTema(t), aberturaTema(t)] : [TEMA_LIVRE]), n(alvo), 'vai responder. Faça a sua pergunta.', seg(s)],
   resposta: (nome, s, v = 0) => [n(nome), ['a sua resposta.', 'agora é com você. A sua resposta.'][v % 2], seg(s)],
   replica: (nome, s) => [n(nome), 'a sua réplica.', seg(s)],
   treplica: (nome, s) => [n(nome), 'a sua tréplica.', seg(s)],
@@ -105,7 +108,7 @@ export const N = {
 export function trechosFixos(jorn) {
   const segundos = [30, 45, 60, 90, 15, 23, 68, 34];
   return [
-    abertura(jorn), CUMPRIMENTEM, FRENTE,
+    abertura(jorn), CUMPRIMENTEM, FRENTE, ...ORIGENS,
     ...N.bloco2(), ...N.bloco3(),
     BLOCO1,
     'Vamos aos números. O instituto divulga agora uma pesquisa relâmpago de intenção de voto.', 'Atenção para a pesquisa relâmpago: veja como está a intenção de voto neste momento.',
