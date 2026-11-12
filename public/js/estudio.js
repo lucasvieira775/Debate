@@ -1208,14 +1208,14 @@ export class Estudio {
     const { ctx, tex } = this.led, W = 2048, H = 768, d = this.ledDados || { modo: 'titulo' };
     this.fundoLED(ctx, W, H);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const faixaTopo = (txt) => { this.titulo(ctx, 300, 100, 320); ctx.fillStyle = 'rgba(5,12,40,.6)'; rr(ctx, 560, 30, 1440, 140, 28); ctx.fill(); ctx.fillStyle = '#fff'; this.caber(ctx, txt, 1360, 96); ctx.fillText(txt, 1280, 104); };
+    const faixaTopo = (txt) => { this.titulo(ctx, 300, 100, 320); ctx.fillStyle = 'rgba(5,12,40,.6)'; rr(ctx, 560, 30, 1440, 140, 28); ctx.fill(); ctx.fillStyle = '#fff'; this.caber(ctx, txt, 1300, 78); ctx.fillText(txt, 1280, 103); }; // encolhe sozinho: nunca passa da tarja
     const cartaoTema = (t, rotulo, girando) => {
       ctx.fillStyle = 'rgba(5,12,40,.72)'; rr(ctx, 220, 220, 1608, 380, 40); ctx.fill();
       ctx.lineWidth = 8; ctx.strokeStyle = girando ? '#facc15' : '#60a5fa'; ctx.stroke();
       rr(ctx, 280, 290, 240, 240, 36); ctx.fillStyle = '#facc15'; ctx.fill();
       ctx.fillStyle = '#0b1f6b'; ctx.font = `150px ${FONTE}`; ctx.fillText(t.uf, 400, 415);
       ctx.textAlign = 'left'; ctx.fillStyle = '#93c5fd'; ctx.font = `bold 58px ${FONTE_TXT}`; ctx.fillText((rotulo + ' · ' + t.estado).toUpperCase(), 580, 290);
-      ctx.fillStyle = '#fff'; ctx.font = `112px ${FONTE}`; quebrar(ctx, t.titulo, 1200).slice(0, 2).forEach((l, i) => ctx.fillText(l, 580, 400 + i * 116));
+      ctx.fillStyle = '#fff'; ctx.font = `96px ${FONTE}`; quebrar(ctx, t.titulo, 1180).slice(0, 2).forEach((l, i) => { this.caber(ctx, l, 1180, 96); ctx.fillText(l, 580, 400 + i * 104); });
       ctx.textAlign = 'center';
     };
     switch (d.modo) {
@@ -1223,12 +1223,12 @@ export class Estudio {
       case 'tema': faixaTopo(d.cabecalho || ''); cartaoTema(TEMA[d.tema], 'Tema', false); break;
       case 'roleta': faixaTopo('SORTEANDO O TEMA…'); cartaoTema(TEMAS[Math.random() * TEMAS.length | 0], 'Sorteio', true); break;
       case 'texto': faixaTopo(d.cabecalho || ''); ctx.fillStyle = 'rgba(5,12,40,.72)'; rr(ctx, 220, 220, 1608, 400, 40); ctx.fill();
-        ctx.fillStyle = '#fff'; ctx.font = `104px ${FONTE}`; quebrar(ctx, d.texto, 1480).slice(0, 3).forEach((l, i, a) => ctx.fillText(l, W / 2, 422 - (a.length - 1) * 59 + i * 118)); break;
+        ctx.fillStyle = '#fff'; ctx.font = `88px ${FONTE}`; quebrar(ctx, d.texto, 1480).slice(0, 3).forEach((l, i, a) => { this.caber(ctx, l, 1480, 88); ctx.fillText(l, W / 2, 422 - (a.length - 1) * 52 + i * 104); }); break;
       case 'fala': {
         const p = PARTIDO[d.partido] || PARTIDO.PUN;
         ctx.fillStyle = p.cor; rr(ctx, 60, 40, 1500, 130, 30); ctx.fill();
         desenharSimbolo(ctx, p.simbolo, 135, 105, 42, '#fff');
-        ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = `86px ${FONTE}`; ctx.fillText(d.nome.toUpperCase(), 200, 110);
+        ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; this.caber(ctx, d.nome.toUpperCase(), 1080, 80); ctx.fillText(d.nome.toUpperCase(), 200, 110);
         ctx.font = `bold 44px ${FONTE_TXT}`; ctx.textAlign = 'right'; ctx.fillText(`${p.sigla} ${p.numero}`, 1530, 108);
         ctx.textAlign = 'center';
         rr(ctx, 1600, 40, 390, 130, 30); ctx.fillStyle = d.alerta ? '#b91c1c' : '#0b1640'; ctx.fill();
@@ -1266,7 +1266,7 @@ export class Estudio {
     if (d.modo === 'fala') {
       const p = PARTIDO[d.partido] || PARTIDO.PUN;
       ctx.fillStyle = p.cor; rr(ctx, 60, 180, 904, 150, 28); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.font = `80px ${FONTE}`; ctx.fillText(d.nome.toUpperCase().slice(0, 16), 512, 258);
+      ctx.fillStyle = '#fff'; this.caber(ctx, d.nome.toUpperCase(), 840, 76); ctx.fillText(d.nome.toUpperCase(), 512, 258);
       ctx.fillStyle = d.alerta ? '#fecaca' : '#fff'; ctx.font = `120px ${FONTE}`; ctx.fillText(d.tempo || '', 512, 430);
     } else this.titulo(ctx, 512, 320, W * .7);
     tex.needsUpdate = true;

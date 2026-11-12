@@ -1441,7 +1441,7 @@ if (demo) setTimeout(() => {
   setInterval(() => est.setFalaNivel('bot1', Math.random()), 120);
   est.reacao('bot3', '👏');
   { const q = new URLSearchParams(location.search), led = q.get('led'); // ?demo=1&led=titulo|texto|tema|poll (confere os modos do telão)
-    if (led) est.setLED({ titulo: { modo: 'titulo', sub: 'SALA #AB12 · 3/5 CANDIDATOS' }, texto: { modo: 'texto', cabecalho: 'CUMPRIMENTOS', texto: 'Os candidatos se cumprimentam · o debate já vai começar' }, tema: { modo: 'tema', tema: TEMAS[0].key, cabecalho: 'PERGUNTA · CARLOS MENDES' }, poll: { modo: 'poll', titulo: 'PESQUISA DE INTENÇÃO DE VOTO', lista: bots().map((j, i) => ({ nome: j.nome, partido: j.partido, pct: 32 - i * 5 })), rodape: 'VOTOS VÁLIDOS · MARGEM DE ERRO DE 2 P.P.' } }[led]);
+    if (led) est.setLED({ titulo: { modo: 'titulo', sub: 'SALA #AB12 · 3/5 CANDIDATOS' }, texto: { modo: 'texto', cabecalho: 'CUMPRIMENTOS', texto: 'Os candidatos se cumprimentam · o debate já vai começar' }, tema: { modo: 'tema', tema: TEMAS[0].key, cabecalho: 'APRESENTAÇÃO DE PROPOSTA · ' + (q.get('nome') || 'CARLOS MENDES').toUpperCase() }, poll: { modo: 'poll', titulo: 'PESQUISA DE INTENÇÃO DE VOTO', lista: bots().map((j, i) => ({ nome: j.nome, partido: j.partido, pct: 32 - i * 5 })), rodape: 'VOTOS VÁLIDOS · MARGEM DE ERRO DE 2 P.P.' } }[led]);
     if (q.has('oy') || q.has('op')) est.olhar = { y: +q.get('oy') || 0, p: +q.get('op') || 0 }; // ?demo=1&oy=3&op=.3&vinheta=2&vt=2 (telão curvo)
     if (q.get('vinheta')) est.vinheta(+q.get('vinheta'), (+q.get('vt') || 0) * 1000); }
   if (demo === 'duelo') { // ?demo=duelo (1ª pessoa no confronto)
