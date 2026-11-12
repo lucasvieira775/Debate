@@ -492,7 +492,7 @@ export class Estudio {
   /** Troca o(a) jornalista atrás da mesa (sorteado a cada partida). */
   setMediador(av) {
     const ant = this.mediadora; this.mesaGrupo.remove(ant.root);
-    this.mediadora = new Avatar(av); this.mediadora.root.position.copy(ant.root.position); this.mesaGrupo.add(this.mediadora.root);  }
+    this.mediadora = new Avatar(av); this.mediadora.root.position.copy(ant.root.position); this.mesaGrupo.add(this.mediadora.root); this.mediadora.root.visible = this.modo !== 'vitrine'; }
   // ===================== PÚLPITO CENTRAL (CONFRONTO DIRETO) =====================
   construirDuelo() {
     const s = this.scene;
@@ -1121,6 +1121,7 @@ export class Estudio {
     this.podios.get(this.meuId)?.avatar.ocultarCabeca(this.cabecaOculta()); // fora da 1ª pessoa o seu avatar aparece inteiro
     if (this.vitrine) this.vitrine.root.visible = modo === 'vitrine';
     if (this.campeao) this.campeao.root.visible = modo === 'vencedor';
+    if (this.mediadora) this.mediadora.root.visible = modo !== 'vitrine'; // na personalização a jornalista atrás da mesa aparecia como "mancha" atrás dos ombros
     for (const p of this.podios.values()) p.grupo.visible = p.ator.visible = modo !== 'vitrine';
     this.visDuelo();
   }
@@ -1358,6 +1359,7 @@ export class Estudio {
     } else if (this.modo === 'vencedor' && this.campeao) { // câmera de frente para o vencedor, balançando devagar
       const p = this.campeao.root.position, m = Math.sin(t * .35);
       this.camera.position.set(p.x + m * .7, 1.5, p.z + 3.4); this.camera.lookAt(p.x, 1.1, p.z);
+    } else if (this.modo === 'cine' && this.cine) { this.cine(dt, t); // cinemática do tutorial (public/js/tutorial.js) dirige a câmera
     } else {
       // "direção de TV": três câmeras filmando os candidatos de frente; no confronto e com o púlpito em movimento,
       // a câmera acompanha a ação. As trocas de plano viram movimentos suaves de grua (sem cortes secos).
