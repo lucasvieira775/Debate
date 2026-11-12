@@ -30,7 +30,7 @@ button{cursor:pointer}
 .tela>*{pointer-events:auto}
 /* personalizar/loja: áreas vazias deixam o mouse passar p/ o canvas (girar o avatar arrastando) */
 #ui>.tela.vitrine,.tela.vitrine>.pers,.tela.vitrine>.loja-grade{pointer-events:none}
-.tela.vitrine>.pers>*,.tela.vitrine>.loja-grade>*{pointer-events:auto}
+.tela.vitrine>.pers>:not(.pers-esq),.tela.vitrine>.loja-grade>*{pointer-events:auto}
 body:has(.tela.vitrine) #cena{cursor:grab}body:has(.tela.vitrine) #cena:active{cursor:grabbing}
 .topo{display:flex;align-items:center;gap:14px;margin-bottom:16px}
 .topo h1{flex:1;text-align:center;margin:0;font-family:var(--titulo);font-weight:400;font-size:40px;letter-spacing:.02em;text-shadow:0 4px 0 #1a1052,0 0 20px rgba(0,0,0,.4);text-transform:uppercase}

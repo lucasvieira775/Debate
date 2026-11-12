@@ -2345,5 +2345,45 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794509710673
+ },
+ "5e8ec7fd-2b89-462d-9274-2f2d78b193a4": {
+  "uid": "5e8ec7fd-2b89-462d-9274-2f2d78b193a4",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794509961642
+ },
+ "f0c5c3fe-949a-4173-9c21-e872c8ef6ac9": {
+  "uid": "f0c5c3fe-949a-4173-9c21-e872c8ef6ac9",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794509989054
+ },
+ "7dd034b4-64a6-4ffc-948e-46520bac1796": {
+  "uid": "7dd034b4-64a6-4ffc-948e-46520bac1796",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794510022724
+ },
+ "f8675eed-2482-4f5b-b32b-d139abd4944c": {
+  "uid": "f8675eed-2482-4f5b-b32b-d139abd4944c",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794510086535
+ },
+ "4503558b-dfcb-48d3-a7ef-4417f2326702": {
+  "uid": "4503558b-dfcb-48d3-a7ef-4417f2326702",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794510110179
  }
 }

@@ -1145,17 +1145,24 @@ export class Estudio {
   }
   instalarControles() {
     // olhar livre: segurar o botão esquerdo (ou arrastar o dedo) sobre a cena e mover; vitrine gira arrastando.
-    const cv = this.canvas; let arrastando = false, moveu = 0, lx = 0, ly = 0;
-    cv.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse' && e.button !== 0) return; arrastando = true; moveu = 0; lx = e.clientX; ly = e.clientY; cv.setPointerCapture(e.pointerId); });
-    cv.addEventListener('pointermove', e => {
+    const cv = this.canvas; let arrastando = false, moveu = 0, lx = 0, ly = 0, doCanvas = false;
+    // na vitrine (personalizar/loja) painéis e cards cobrem parte do boneco: arrastar sobre qualquer coisa que não seja controle também gira
+    const controle = t => t.closest?.('button,a,input,select,textarea,label,summary,[contenteditable],[role=button],.sob-av') || (t !== cv && t.clientWidth && t.offsetWidth - t.clientWidth > 4 && t.scrollHeight > t.clientHeight); // (alvo rolável: pode ser a barra de rolagem)
+    addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      doCanvas = e.target === cv; if (!doCanvas && (this.modo !== 'vitrine' || controle(e.target))) return;
+      if (!doCanvas && e.pointerType === 'mouse') e.preventDefault(); // não seleciona texto ao arrastar sobre a UI
+      arrastando = true; moveu = 0; lx = e.clientX; ly = e.clientY; try { cv.setPointerCapture(e.pointerId); } catch {}
+    }, true);
+    addEventListener('pointermove', e => { // (no window: com captura os eventos vêm do canvas; sem ela, de onde estiver o ponteiro)
       if (!arrastando) return;
       const dx = e.clientX - lx, dy = e.clientY - ly; lx = e.clientX; ly = e.clientY; moveu += Math.abs(dx) + Math.abs(dy);
       const k = .0042 * this.cfg.sens;
       if (this.modo === 'fp' && !this.andandoEu()) { this.olhar.y = clamp(this.olhar.y - dx * k, -1.9, 1.9); this.olhar.p = clamp(this.olhar.p - dy * k, -.85, .7); }
       else if (this.modo === 'vitrine' && this.vitrine && !this.demoV) this.vitrine.root.rotation.y += dx * .01;
     });
-    cv.addEventListener('pointercancel', () => { arrastando = false; }); addEventListener('blur', () => { arrastando = false; });
-    cv.addEventListener('pointerup', e => { if (!arrastando) return; arrastando = false; if (moveu < 6) this.pick(e.clientX, e.clientY); });
+    addEventListener('pointercancel', () => { arrastando = false; }); addEventListener('blur', () => { arrastando = false; });
+    addEventListener('pointerup', e => { if (!arrastando) return; arrastando = false; if (moveu < 6 && doCanvas) this.pick(e.clientX, e.clientY); });
     addEventListener('keydown', e => {
       if (this.modo === 'fp' && (e.key === 'v' || e.key === 'V') && !e.repeat && !e.ctrlKey && !e.altKey && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) && !document.activeElement?.isContentEditable) return this.alternarVisao();
       if (this.modo !== 'fp' || this.andandoEu() || /INPUT|TEXTAREA/.test(document.activeElement?.tagName)) return;
