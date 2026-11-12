@@ -124,6 +124,7 @@ async function desligarMic() { const t = await mic.desligar(); E.micOn = false; 
 function alternarMic() {
   if (!minhaVez()) { if (E.sala?.fase === 'debate') avisoBloqueado(); return; }
   if (E.confirmando) return;
+  micUsado(true);
   const st = E.sala.fala?.status;
   if (st === 'pronto') comecarFala(true);
   else if (st === 'ativo') E.micOn ? desligarMic() : ligarMic();
@@ -1170,12 +1171,14 @@ function renderAcao(forcar) {
 // guia para novatos: o botão do próximo passo brilha devagar (mic → dica → confirmar)
 function guiarBotoes() {
   const mic = $('#h-mic'), ok = $('#h-ok'), dica = $('#h-dica-b'); if (!mic) return;
-  const texto = (E.meuTexto || '').trim().length, ativo = E.sala?.fala?.status === 'ativo';
-  mic.classList.toggle('guia', !E.micOn && !mic.disabled && !texto);
-  ok?.classList.toggle('guia', ativo && texto >= 25);
-  dica?.classList.toggle('guia', E.dicasGratis > 0 && !$('#papel-dica') && !texto);
-  est.guiarMic?.(!E.micOn && !mic.disabled && !texto, ativo && texto >= 25);
+  // mic/confirmar: param de vez após o 1º clique no microfone · dica: para quando acabarem as dicas
+  const texto = (E.meuTexto || '').trim().length, ativo = E.sala?.fala?.status === 'ativo', novato = !micUsado();
+  const gMic = novato && !E.micOn && !mic.disabled && !texto, gOk = novato && ativo && texto >= 25;
+  mic.classList.toggle('guia', gMic); ok?.classList.toggle('guia', gOk);
+  dica?.classList.toggle('guia', (E.dicasGratis > 0 || E.conta?.dicasExtra > 0) && !$('#papel-dica'));
+  est.guiarMic?.(gMic, gOk);
 }
+function micUsado(marcar) { if (marcar) E.micUsado = true; try { if (marcar) localStorage.setItem('guiaMicOk', '1'); return E.micUsado || !!localStorage.getItem('guiaMicOk'); } catch { return !!E.micUsado; } }
 // ---------- dica da assessoria ----------
 // a anotação fica aberta enquanto você fala/digita; só é guardada no fim da sua resposta (ou pelo botão "Guardar anotação")
 aoLerDica(on => est.lerDica(on));

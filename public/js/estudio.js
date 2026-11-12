@@ -1306,7 +1306,7 @@ export class Estudio {
       if (this.selecionaveis) { const sel = this.selecionaveis.has(p.id); p.faixaLuz.material.color.set(sel ? (Math.sin(t * 6) > 0 ? '#facc15' : '#ffffff') : p.partido.cor); }
       else p.faixaLuz.material.color.set(p.partido.cor);
       if (p.id === this.meuId) { // guia p/ novatos: botão do próximo passo brilha devagar
-        const g = .5 + 1.3 * (.5 - .5 * Math.cos(t * 2.4)), gm = this.guia || {};
+        const g = .5 + .9 * (.5 - .5 * Math.cos(t * Math.PI * 2 / 4.5)), gm = this.guia || {}; // fade in/out lento (4,5 s)
         p.bMic.material.emissiveIntensity = gm.mic ? g : .5; p.bOk.material.emissiveIntensity = gm.ok ? g : .5;
       }
     }
