@@ -1100,13 +1100,14 @@ function renderLateral() {
 }
 function atualizarLegenda() {
   const el = $('#h-legenda'); if (!el || !E.sala) return;
+  const ac = $('#h-acao'); if (ac && !ac._ro) { ac._ro = new ResizeObserver(() => { el.style.bottom = (ac.offsetHeight ? ac.offsetHeight + 28 : 30) + 'px'; }); ac._ro.observe(ac); }
   const s = E.sala, p = s.passo;
   if (s.fase !== 'debate') { el.innerHTML = ''; return; }
   let quem = s.jorn?.nome || JORN, txt = E.legAcao?.ate > Date.now() ? E.legAcao.t : s.textoJ, gc = '';
   if (p?.tipo === 'fala' && s.fala && s.fala.status !== 'pronto') { quem = jog(p.falante)?.nome || ''; txt = p.falante === E.eu ? E.meuTexto : (E.textoFala || s.fala.texto || ''); if (!txt) txt = '…';
     const pp = PARTIDO[jog(p.falante)?.partido];
     if (pp) gc = `<span class="gc" style="--c:${pp.cor};--c2:${pp.cor2}"><img src="${logoPartido(pp.sigla, 40)}"><span class="gc-num">${pp.numero}</span><b>${pp.sigla}</b> ${esc(pp.nome)} <i>${IDEO[pp.ideo].nome}</i></span>`; }
-  const cauda = txt.length > 260 ? '…' + txt.slice(-260) : txt;
+  const cauda = txt.length > 220 ? '…' + txt.slice(-220) : txt;
   el.innerHTML = `<span class="quem">${esc(quem)}</span>${gc}<div class="txt">${esc(cauda)}</div>`;
 }
 function renderAcao(forcar) {

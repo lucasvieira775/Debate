@@ -1315,7 +1315,10 @@
    "criadoEm": 1794488309950
   },
   "nome": "Lulatron Bozossauro",
-  "xp": 0
+  "xp": 0,
+  "abandonos": [
+   1794494502542
+  ]
  },
  "17d3980c-bb5f-4792-917f-ad01407a9aa3": {
   "uid": "17d3980c-bb5f-4792-917f-ad01407a9aa3",
