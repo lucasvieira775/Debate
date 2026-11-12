@@ -772,7 +772,7 @@ function painelConfig(ui, refazer) {
 function telaSala(ui) {
   const s = E.sala, host = ehHost(), me = eu();
   if (!s || !me) { ui.innerHTML = ''; return; }
-  const linhaJorn = `<div class="jog vago"><span class="ok-ico">🎤</span><div class="av"></div><div class="nome"><b class="mut">Jornalista: IA (Poliana ou Cezinha)</b><small>Conduz o debate e faz as perguntas</small></div></div>`;
+  const linhaJorn = `<div class="jog vago"><span class="ok-ico">🎤</span><div class="av"></div><div class="nome"><b class="mut">Jornalista: IA (sorteado entre 10)</b><small>Conduz o debate e faz as perguntas</small></div></div>`;
   const cfg = s.cfg, durNome = { curto: 'Curto (30s)', normal: 'Normal (60s)', longo: 'Longo (90s)' };
   const todosProntos = s.jogadores.filter(j => j.conectado && j.id !== s.hostId).every(j => j.pronto);
   const podeIniciar = s.jogadores.filter(j => j.conectado).length >= 2 && todosProntos;

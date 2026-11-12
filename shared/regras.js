@@ -448,9 +448,26 @@ export function textoVitoria(av) {
 }
 export const AV_MEDIADORA = { genero: 'feminino', pele: '#c98e62', cabelo: 'chanel', corCabelo: '#2b1a10', barba: 'nenhuma', oculos: 'nenhum', chapeu: 'nenhum', roupa: 'blazer', corRoupa: '#7f1d1d', corCamisa: '#f5f5f4', corGravata: '#b91c1c', brinco: true, broche: false, corpo: 'medio', expressao: 'simpatico' };
 export const AV_MEDIADOR = { genero: 'masculino', pele: '#e0a98a', cabelo: 'repartido', corCabelo: '#8a8a8a', barba: 'nenhuma', oculos: 'quadrado', chapeu: 'nenhum', roupa: 'terno', corRoupa: '#1f2937', corCamisa: '#ffffff', corGravata: '#1d4ed8', brinco: false, broche: false, corpo: 'medio', expressao: 'serio' };
+const AV_J = (o) => ({ barba: 'nenhuma', oculos: 'nenhum', chapeu: 'nenhum', corCamisa: '#ffffff', brinco: false, broche: false, corpo: 'medio', expressao: 'simpatico', ...o });
+export const AV_MAJU = AV_J({ genero: 'feminino', pele: '#5a3420', cabelo: 'cacheado', corCabelo: '#151515', roupa: 'blazer', corRoupa: '#0e7490', corGravata: '#0e7490', brinco: true });
+export const AV_SANDRA = AV_J({ genero: 'feminino', pele: '#f6d3b3', cabelo: 'chanel', corCabelo: '#d9b26f', roupa: 'blazer', corRoupa: '#111111', corCamisa: '#fce7f3', corGravata: '#111827', brinco: true, expressao: 'confiante' });
+export const AV_FATIMA = AV_J({ genero: 'feminino', pele: '#eab68c', cabelo: 'chanel', corCabelo: '#3b2416', roupa: 'blazer', corRoupa: '#6b21a8', corCamisa: '#f5f5f4', corGravata: '#6b21a8', brinco: true });
+export const AV_GLORIA = AV_J({ genero: 'feminino', pele: '#3f2416', cabelo: 'curto', corCabelo: '#151515', roupa: 'saia', corRoupa: '#065f46', corCamisa: '#fef3c7', corGravata: '#ca8a04', brinco: true, corpo: 'largo', expressao: 'confiante' });
+export const AV_WILLIAM = AV_J({ genero: 'masculino', pele: '#f0c8a8', cabelo: 'curto', corCabelo: '#8a8a8a', chapeu: 'bone', roupa: 'terno', corRoupa: '#2b2f36', corGravata: '#1e3a8a', expressao: 'serio' });
+export const AV_EVARISTO = AV_J({ genero: 'masculino', pele: '#eab68c', cabelo: 'curto', corCabelo: '#6a4423', roupa: 'terno', corRoupa: '#6b7280', corCamisa: '#dbeafe', corGravata: '#f97316', broche: 'coxinha' });
+export const AV_RODRIGO = AV_J({ genero: 'masculino', pele: '#f6d3b3', cabelo: 'curto', corCabelo: '#3b2416', roupa: 'terno', corRoupa: '#1e2a4a', corGravata: '#0f766e', sobrancelha: 'grossa', sorriso: 'largo' });
+export const AV_CELSO = AV_J({ genero: 'masculino', pele: '#e6b28e', cabelo: 'calvo', corCabelo: '#e8e8e8', roupa: 'terno', corRoupa: '#111111', corGravata: '#b91c1c', corpo: 'largo', expressao: 'serio', broche: 'fritas' });
 /** Jornalistas que mediam o debate (um é sorteado a cada partida). */
 export const JORNALISTAS = [
   { id: 'helena', nome: 'Poliana Cabrita', genero: 'feminino', voz: 'jornalistaF', avatar: AV_MEDIADORA },
   { id: 'ricardo', nome: 'Cezinha Tralha', genero: 'masculino', voz: 'jornalistaM', avatar: AV_MEDIADOR },
+  { id: 'maju', nome: 'Maju Caldinho', genero: 'feminino', voz: 'jornalistaF', avatar: AV_MAJU },
+  { id: 'sandra', nome: 'Sandra AnenBrega', genero: 'feminino', voz: 'jornalistaF', avatar: AV_SANDRA },
+  { id: 'fatima', nome: 'Fátima Berinjela', genero: 'feminino', voz: 'jornalistaF', avatar: AV_FATIMA },
+  { id: 'gloria', nome: 'Glória Marmita', genero: 'feminino', voz: 'jornalistaF', avatar: AV_GLORIA },
+  { id: 'william', nome: 'William Boné', genero: 'masculino', voz: 'jornalistaM', avatar: AV_WILLIAM },
+  { id: 'evaristo', nome: 'Evaristo Coxinha', genero: 'masculino', voz: 'jornalistaM', avatar: AV_EVARISTO },
+  { id: 'rodrigo', nome: 'Rodrigo Bocadinho', genero: 'masculino', voz: 'jornalistaM', avatar: AV_RODRIGO },
+  { id: 'celso', nome: 'Celso Fritas', genero: 'masculino', voz: 'jornalistaM', avatar: AV_CELSO },
 ];
 export const DIFICULDADES ={ facil: 'Fácil', medio: 'Médio', dificil: 'Difícil' };

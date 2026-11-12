@@ -136,7 +136,17 @@ export class Avatar {
     }
     if (c.roupa === 'polo') { vShape(.12, .14, tom(roupaCor, -.1), frente + .002); for (const s of [-1, 1]) { const g = m(rbox(.12, .05, .03, .01), mat(tom(roupaCor, .05)), s * .07, .76, frente - .01, this.torso); g.rotation.z = s * .3; } }
     if (c.roupa === 'social') m(rbox(.1, .08, .01, .005), mat(tom(camisaCor, -.06)), -W * .25, .55, frente + .002, this.torso);
-    if (c.broche) { // broche verde-amarelo
+    if (c.broche === 'coxinha') { // broche de coxinha: gota dourado-alaranjada
+      const g = new THREE.Group(); g.position.set(W * .24, .6, frente + .02); this.torso.add(g);
+      const massa = mat('#d9822b', { r: .6, m: .1 });
+      m(geo('coxBase', () => new THREE.SphereGeometry(.026, 14, 10)), massa, 0, -.012, 0, g);
+      m(geo('coxPonta', () => new THREE.ConeGeometry(.024, .05, 14)), massa, 0, .022, 0, g);
+    } else if (c.broche === 'fritas') { // broche de batata frita: caixinha vermelha com palitos amarelos
+      const g = new THREE.Group(); g.position.set(W * .24, .6, frente + .016); this.torso.add(g);
+      m(rbox(.05, .045, .016, .005), mat('#dc2626', { r: .5 }), 0, -.012, 0, g);
+      const bat = mat('#facc15', { r: .6 });
+      [-.016, -.006, .004, .014].forEach((x, i) => { const p = m(rbox(.008, .045, .008, .002), bat, x, .018 + (i % 2) * .006, -.002, g); p.rotation.z = (i - 1.5) * .12; });
+    } else if (c.broche) { // broche verde-amarelo
       m(rbox(.07, .05, .015, .008), mat('#16a34a', { r: .3, m: .3 }), W * .24, .6, frente + .01, this.torso);
       const d = m(rbox(.035, .035, .016, .004), mat('#facc15', { r: .3, m: .3 }), W * .24, .6, frente + .016, this.torso); d.rotation.z = Math.PI / 4;
     }
@@ -194,6 +204,7 @@ export class Avatar {
       const e = c.expressao;
       sb.rotation.z = e === 'bravo' ? s * .28 : e === 'serio' ? 0 : e === 'confiante' ? (s > 0 ? -.18 : 0) : s * -.12;
       if (e === 'confiante' && s > 0) sb.position.y += .025;
+      if (c.sobrancelha === 'grossa') sb.scale.set(1.15, 1.9, 1.2); // opcional: sobrancelhas marcantes
       this.sobr.push(sb);
     }
     // boca
@@ -204,6 +215,7 @@ export class Avatar {
       const t = new THREE.Mesh(geo('sorriso', () => new THREE.TorusGeometry(.065, .013, 6, 16, Math.PI)), mat(corBoca));
       t.rotation.z = Math.PI; t.position.y = .045; t.scale.set(1, c.expressao === 'confiante' ? .55 : .8, 1);
       if (c.expressao === 'confiante') { t.rotation.z = Math.PI + .2; t.position.x = .01; }
+      if (c.sorriso === 'largo') t.scale.set(1.4, 1.1, 1); // opcional: sorriso largo
       this.bocaFechada.add(t);
     } else {
       const b = m(rbox(.13, .025, .02, .008), mat(corBoca), 0, 0, 0, this.bocaFechada);
