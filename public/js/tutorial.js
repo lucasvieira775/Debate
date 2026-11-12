@@ -114,7 +114,7 @@ export function tocarTutorial(est, op = {}) {
       quadro: c => { if (c.k < .5) return; const s = Math.max(0, 60 - Math.floor(c.u - c.d * .5)); if (s !== S.seg) { S.seg = s; est.telaPodio(VOCE, { titulo: 'TEMPO', texto: `0${s / 60 | 0}:${String(s % 60).padStart(2, '0')}`, destaque: true }); if (s < 60) som(sfx.tique); } },
       cam: c => {
         if (c.k < .5) { const k = sm(c.k / .5); return cam(mix(V(-3.0, 1.6, 1.6), V(-2.4, 1.7, .7), k), V(-.2, 2.75, -5.5), 50); }
-        const k = sm((c.k - .5) / .5); cam(G(VOCE, lerp(.95, .8, k), lerp(2.6, 2.35, k), lerp(-.9, -.65, k)), G(VOCE, -.05, 1.26, .12), 30);
+        const k = sm((c.k - .5) / .5); cam(G(VOCE, lerp(1.15, 1.0, k), lerp(2.6, 2.45, k), lerp(-.8, -.6, k)), G(VOCE, -.05, 1.26, .12), 30);
       },
     },
     fala: {
@@ -214,7 +214,7 @@ export function tocarTutorial(est, op = {}) {
     final: {
       ini: () => { palco({ falante: VOCE }); est.setLED({ modo: 'titulo', sub: 'BOM DEBATE!' }); logo('AGORA É COM VOCÊ!', true); est.festejarPlateia(5000, 1); },
       ev: [[0, () => som(() => sfx.aplausos(3.5, .3))], [.12, () => som(sfx.vinheta)]],
-      cam: c => { const k = sm(c.k); cam(mix(V(.7, 2.25, 5.3), V(0, 7.5, 14.5), k), mix(V(0, 1.9, -3), V(0, 2.2, -5), k), 52); },
+      cam: c => { const k = sm(c.k); cam(mix(V(1.6, 2.7, 6.4), V(0, 7.5, 14.5), k), mix(V(0, 1.9, -3), V(0, 2.2, -5), k), 52); },
     },
   };
   function campeao(danca) { // no centro do palco (onde fica o púlpito do confronto), de frente para a mesa da mediação
@@ -252,7 +252,8 @@ export function tocarTutorial(est, op = {}) {
     if (S.bal && pd(S.bal.id)) {
       const p = W(S.bal.id, 0, 2.45, 0); est.camera.updateMatrixWorld(); p.project(est.camera); const r = est.canvas.getBoundingClientRect();
       bal.style.left = Math.min(r.right - bal.offsetWidth / 2 - 20, Math.max(r.left + bal.offsetWidth / 2 + 20, r.left + (p.x + 1) / 2 * r.width)) + 'px';
-      bal.style.top = Math.max(innerHeight * .08 + bal.offsetHeight + 34, r.top + (1 - p.y) / 2 * r.height) + 'px'; // nunca sai do quadro (barras de cinema) bal.style.visibility = p.z < 1 ? '' : 'hidden';
+      bal.style.top = Math.max(innerHeight * .08 + bal.offsetHeight + 34, r.top + (1 - p.y) / 2 * r.height) + 'px'; // nunca sai do quadro (barras de cinema)
+      bal.style.visibility = p.z < 1 ? '' : 'hidden';
     }
   }
   function terminar(pulou) {

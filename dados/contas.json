@@ -1898,5 +1898,21 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794500985160
+ },
+ "0902d947-37b4-4f02-bf42-15572b94382e": {
+  "uid": "0902d947-37b4-4f02-bf42-15572b94382e",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794502659086
+ },
+ "82c8680c-9cbf-4fa3-819d-0f3c1d6b565c": {
+  "uid": "82c8680c-9cbf-4fa3-819d-0f3c1d6b565c",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794503534898
  }
 }
