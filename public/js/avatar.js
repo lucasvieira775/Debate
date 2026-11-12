@@ -147,10 +147,6 @@ export class Avatar {
       m(rbox(.035, .15, .016, .006), ouro, 0, .42, frente + .02, this.torso); m(rbox(.1, .035, .016, .006), ouro, 0, .45, frente + .02, this.torso);
     }
     if (c.roupa === 'terno' || c.roupa === 'social' || c.roupa === 'colete' || pastor) { vShape(c.roupa === 'social' ? .0001 : .22, .34, camisaCor, frente + .002); gravata(); }
-    if (c.roupa === 'terno_aberto' || c.roupa === 'blazer' || saia) {
-      vShape(.26, .32, camisaCor, frente + .002);
-      m(rbox(.2, .05, .03, .015), mat(camisaCor), 0, .74, frente - .005, this.torso);
-    }
     if (temPalito) { // lapelas e botões
       const lap = mat(tom(roupaCor, -.06));
       for (const s of [-1, 1]) { const l = m(rbox(.07, .36, .02, .01), lap, s * .1, .56, frente + .008, this.torso); l.rotation.z = s * .38; }
