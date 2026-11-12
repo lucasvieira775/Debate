@@ -667,11 +667,11 @@ class Sala {
     this.later(12000, voltar); // se a narração falhar, não trava
     this.emit();
   }
-  pulavel() { const p = this.passo; return this.fase === 'debate' && !!p && (p.tipo === 'cumprimento' || p.tipo === 'intro' || p.tipo === 'pesquisa' || (p.tipo === 'fala' && this.fala?.status === 'avaliado')); }
+  podePular() { const p = this.passo; return this.fase === 'debate' && !!p && (p.tipo === 'cumprimento' || p.tipo === 'intro' || p.tipo === 'pesquisa' || (p.tipo === 'fala' && this.fala?.status === 'avaliado')); }
   votantesPular() { return this.humanos().filter(j => !j.banido && !j.saiu); }
-  pularInfo() { if (!this.pulavel()) return null; const v = this.votantesPular(); return { n: v.filter(j => this.pulos?.has(j.id)).length, total: v.length, ids: [...(this.pulos || [])] }; }
+  pularInfo() { if (!this.podePular()) return null; const v = this.votantesPular(); return { n: v.filter(j => this.pulos?.has(j.id)).length, total: v.length, ids: [...(this.pulos || [])] }; }
   avancar(pid) { // pular animação: só pula quando todos os jogadores humanos concordarem
-    if (!this.pulavel() || !this.porId(pid)) return;
+    if (!this.podePular() || !this.porId(pid)) return;
     (this.pulos ||= new Set()).add(pid);
     const inf = this.pularInfo();
     if (inf.n >= inf.total) { this.pulos.clear(); this.proximo(); } else this.emit();

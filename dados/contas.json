@@ -1152,6 +1152,15 @@
    "seguidores": 0,
    "criadaEm": 1794455512243,
    "posts": []
-  }
+  },
+  "danca": "robo"
+ },
+ "ac37aa90-8eae-4162-aefc-0f6efc6239d1": {
+  "uid": "ac37aa90-8eae-4162-aefc-0f6efc6239d1",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794455698338
  }
 }
