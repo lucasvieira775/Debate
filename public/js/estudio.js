@@ -11,6 +11,8 @@ import { PARTIDO, TEMAS, TEMA, AV_MEDIADORA, ETAPAS, avatarAleatorio } from '/sh
 import { desenharSimbolo, escurecer, fmtT, clamp } from './util.js';
 import { brasao } from '/shared/niveis.js';
 import { Acoes } from './acoes/coreografia.js';
+import { criarMaterialTelao, atualizarTelao, criarMolduraLuz } from './telaoFx.js';
+import { desenharVinheta, desenharOcioso, tocarSomVinheta, VINHETA_S } from './vinhetas.js';
 
 const CENTRO = new THREE.Vector3(0, 0, -3.2);   // mesa da mediadora
 const RAIO = 6.4;                                // raio do arco de púlpitos
@@ -95,7 +97,7 @@ export class Estudio {
     this.camera = new THREE.PerspectiveCamera(60, 1, .05, 120);
     this.rig = new THREE.Group(); this.rig.rotation.order = 'YXZ'; this.camFP = new THREE.Group(); this.camFP.rotation.y = Math.PI; this.rig.add(this.camFP);
 
-    this.construirPalco(); this.construirTelao(); this.construirPlateia(); this.construirLuzes(); this.construirMediadora(); this.construirDuelo(); this.construirConfete();
+    this.construirPalco(); this.construirTelao(); this.construirPlateia(); this.construirTelaoCurvo(); this.construirLuzes(); this.construirMediadora(); this.construirDuelo(); this.construirConfete();
     this.vitrine = null;
     this.acoes = new Acoes(this); // cadeirada, tomate, flores… (public/js/acoes/)
 
@@ -312,6 +314,33 @@ export class Estudio {
       const mo = new THREE.Mesh(rb(4.25, 2.5, .2, .08), new THREE.MeshStandardMaterial({ color: '#141a3d', roughness: .4, metalness: .5 })); mo.position.z = -.12; g.add(mo);
       const pe = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, 2.3, 8), new THREE.MeshStandardMaterial({ color: '#2a3045', metalness: .7, roughness: .4 })); pe.position.y = -2.3; g.add(pe);
     }
+  }
+  // ---------- TELÃO CURVO (faixa de LED acima da plateia, abaixo da treliça) ----------
+  construirTelaoCurvo() {
+    const s = this.scene, R = 16.5, ini = -125 * D2R, len = 250 * D2R, y0 = 5.15, y1 = 9.6, H = y1 - y0;
+    const W = 2048, Ht = 576, N = Math.max(1, Math.round(R * len / (H * W / Ht))); // tiles com proporção ≈ do canvas
+    const geo = new THREE.CylinderGeometry(R, R, H, 160, 1, true, ini, len);
+    const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setX(i, 1 - uv.getX(i)); // vista por dentro: sem espelhar
+    this.tc = { ...canvasTex(W, Ht), W, H: Ht, N, bloco: 0, t0: -99, tOc: -1 };
+    this.tc.mat = criarMaterialTelao(this.tc.tex, N);
+    const m = new THREE.Mesh(geo, this.tc.mat); m.position.set(0, (y0 + y1) / 2, -1.5); s.add(m); this.telaoCurvo = m;
+    // moldura: filete de metal escuro + linha de luz (amarela embaixo, azul em cima) e colunas nas pontas
+    const metal = new THREE.MeshStandardMaterial({ color: '#141a3d', roughness: .4, metalness: .5, side: THREE.DoubleSide });
+    const anel = (r, h, y, mt) => { const a = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 160, 1, true, ini, len), mt); a.position.set(0, y, -1.5); s.add(a); };
+    for (const y of [y0, y1]) anel(R - .04, .24, y, metal);
+    s.add(criarMolduraLuz(R - .08, y0, y1, ini, len, new THREE.Vector3(0, 0, -1.5), this.tc.mat)); // filetes de LED animados (cor do bloco, varredura)
+    for (const a of [ini, ini + len]) { const c = new THREE.Mesh(new THREE.BoxGeometry(.24, H + .24, .24), metal); c.position.set(Math.sin(a) * (R - .04), (y0 + y1) / 2, -1.5 + Math.cos(a) * (R - .04)); c.rotation.y = a; s.add(c); }
+  }
+  /** Dispara a vinheta do bloco no telão curvo; offsetMs = quanto dela já passou (sincronia com o servidor). */
+  vinheta(bloco, offsetMs = 0) {
+    const tc = this.tc; tc.bloco = bloco; tc.t0 = this.t - offsetMs / 1000;
+    if (offsetMs < VINHETA_S * 1000) tocarSomVinheta(bloco, offsetMs / 1000);
+  }
+  /** Por frame: vinheta (todo frame) ou quadro ocioso (~20 fps) + efeitos do material. */
+  animarTelaoCurvo(t, dt) {
+    const tc = this.tc, tv = t - tc.t0, emV = tv >= 0 && tv < VINHETA_S + .6;
+    if (emV || t - tc.tOc >= .05) { if (emV) desenharVinheta(tc.ctx, tc.W, tc.H, tc.bloco, tv); else { tc.tOc = t; desenharOcioso(tc.ctx, tc.W, tc.H, t); } tc.tex.needsUpdate = true; }
+    atualizarTelao(tc.mat, t, dt, { vinheta: emV ? tv / VINHETA_S : -1, bloco: tc.bloco });
   }
   construirPlateia() {
     const s = this.scene; const Ca = new THREE.Vector3(0, 0, -1.5);
@@ -1233,7 +1262,7 @@ export class Estudio {
   frame() {
     const agoraMs = performance.now(); const dt = Math.min(.05, (agoraMs - this.ultimoFrame) / 1000); this.ultimoFrame = agoraMs; this.t += dt; const t = this.t;
     if (this.excitacaoAte && performance.now() > this.excitacaoAte) { this.excitacao *= .95; if (this.excitacao < .02) { this.excitacao = 0; this.excitacaoAte = 0; } }
-    this.atualizarPlateia(t, dt);
+    this.atualizarPlateia(t, dt); this.animarTelaoCurvo(t, dt);
     // avatares
     this.andarAtores(dt); this.acoes.update(dt, t); this.animarPulpito(dt); this.animarCameras(dt, t);
     const prod = this.producao;
