@@ -572,7 +572,7 @@ export class Avatar {
       g.hist = [g.n, ...g.hist].slice(0, 2);
     }
     const ver = (n, ini, esp) => { const p = GESTOS[n].f(t - ini, e); return esp ? { esq: p.dir, dir: p.esq } : p; };
-    const R = this.posePe ? REP_PE : REP, a = ver(g.n, g.ini, g.esp), k = suave(Math.min(1, (t - g.ini) / TRANS_GESTO)), b = g.ant && k < 1 ? ver(g.ant.n, g.ant.ini, g.ant.esp) : null;
+    const R = this.posePe ? REP_PE : REP, a = ver(g.n, g.ini, g.esp), k = suave(Math.min(1, Math.max(0, (t - g.ini) / TRANS_GESTO))), b = g.ant && k < 1 ? ver(g.ant.n, g.ant.ini, g.ant.esp) : null;
     if (k >= 1) g.ant = null;
     const lado = l => lerpQ(R, b ? lerpQ(b[l] || R, a[l] || R, k) : a[l] || R, g.peso);
     return { esq: lado('esq'), dir: lado('dir') };
