@@ -20,6 +20,7 @@ function m(g, mt, x = 0, y = 0, z = 0, parent) {
   if (parent) parent.add(me); return me;
 }
 function tom(hex, f) { const c = new THREE.Color(hex); const hsl = {}; c.getHSL(hsl, THREE.SRGBColorSpace); c.setHSL(hsl.h, hsl.s, Math.max(Math.min(hsl.l, .06), Math.min(1, hsl.l + f)), THREE.SRGBColorSpace); return '#' + c.getHexString(); } // HSL em sRGB (em linear, tons escuros zeravam)
+const realce = (hex, f) => tom(hex, new THREE.Color(hex).getHSL({}, THREE.SRGBColorSpace).l > .75 ? -f : f); // clareia (ou escurece, se já for claro) p/ destacar detalhe
 const _qA = new THREE.Quaternion(), _qB = new THREE.Quaternion();
 const _qY = new THREE.Quaternion(), _eixoY = new THREE.Vector3(0, 1, 0);
 const esfera = r => geo('s' + r, () => new THREE.SphereGeometry(r, 18, 14));
@@ -94,10 +95,10 @@ export class Avatar {
     const pele = mat(c.pele, { r: .55 }), peleEsc = mat(tom(c.pele, -.08));
     const batina = c.roupa === 'batina', pastor = c.roupa === 'pastor';
     const roupaCor = batina ? '#16161b' : c.corRoupa, camisaCor = batina ? '#b91c1c' : c.corCamisa;
-    const temPalito = ['terno', 'terno_aberto', 'blazer', 'saia', 'colete', 'pastor'].includes(c.roupa);
-    const saia = c.roupa === 'saia';
-    const torsoCor = c.roupa === 'social' ? camisaCor : roupaCor;
-    const bracoCor = c.roupa === 'social' || c.roupa === 'colete' ? camisaCor : roupaCor;
+    const paleto = ['terno', 'terno_aberto', 'blazer', 'saia', 'pastor'].includes(c.roupa), aberto = c.roupa === 'terno_aberto';
+    const saia = c.roupa === 'saia', fem = c.roupa === 'blazer' || saia, colete = c.roupa === 'colete', social = c.roupa === 'social';
+    const torsoCor = social || colete ? camisaCor : roupaCor;
+    const bracoCor = torsoCor;
     const calca = mat(c.roupa === 'polo' || c.roupa === 'social' ? '#2b2f3a' : tom(roupaCor, -.04));
     const frente = .195;
 
@@ -115,16 +116,63 @@ export class Avatar {
     if (saia) { const sa = m(geo('saia' + W, () => new THREE.CylinderGeometry(W * .5, W * .62, .5, 20)), mat(tom(roupaCor, -.03), { r: .7 }), 0, .63, 0, R); sa.scale.z = .68; }
     // tronco
     this.torso = new THREE.Group(); this.torso.position.y = .86; R.add(this.torso);
-    m(rbox(W, .76, .38, .1), mat(torsoCor, { r: .7 }), 0, .38, 0, this.torso);
-    const gravata = () => { // gravata 3D: colarinho, nó trapezoidal, lâmina com bisel e listras, prendedor
-      const ext = (k, pts, o) => geo(k, () => { const s = new THREE.Shape(); pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); s.closePath(); return new THREE.ExtrudeGeometry(s, { curveSegments: 1, ...o }); });
-      const gm = matGravata(c.corGravata);
-      const lam = m(ext('gravLam', [[-.024, .69], [.024, .69], [.052, .4], [0, .325], [-.052, .4]], { depth: .012, bevelEnabled: true, bevelThickness: .007, bevelSize: .006, bevelSegments: 3 }), gm, 0, 0, frente + .006, this.torso);
-      lam.rotation.x = -.03;
-      const no = m(ext('gravNo', [[-.044, .75], [.044, .75], [.027, .672], [-.027, .672]], { depth: .028, bevelEnabled: true, bevelThickness: .012, bevelSize: .009, bevelSegments: 4 }), mat(tom(c.corGravata, -.04), { r: .45 }), 0, 0, frente + .006, this.torso);
-      no.castShadow = false;
-      m(rbox(.075, .012, .012, .004), mat('#c9ccd3', { r: .25, m: .9 }), 0, .5, frente + .03, this.torso); // prendedor
+    const mT = mat(torsoCor, { r: .7 });
+    if (fem) { m(rbox(W, .5, .38, .1), mT, 0, .51, 0, this.torso); m(geo('cintura' + W, () => new THREE.CylinderGeometry(W * .4, W * .47, .32, 24)), mT, 0, .16, 0, this.torso).scale.z = .37 / (W * .94); } // cintura marcada, quadril abrindo
+    else m(rbox(W, .76, .38, .1), mT, 0, .38, 0, this.torso);
+    const ext = (k, pts, o = {}) => geo(k, () => { const s = new THREE.Shape(); pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); s.closePath(); return new THREE.ExtrudeGeometry(s, { curveSegments: 1, depth: .008, bevelEnabled: false, ...o }); });
+    const par = (g, mt, z, pai, x = 0, y = 0) => [-1, 1].forEach(s => { const p = m(g, mt, s * x, y, z, pai); p.scale.x = s; }); // peça espelhada nos dois lados
+    const fr = new THREE.Group(); fr.scale.x = W / .67; this.torso.add(fr); // frente do traje acompanha a largura do corpo
+    const mCam = mat(camisaCor, { r: .65 }), mCamEsc = mat(tom(camisaCor, -.08), { r: .65 });
+    const colarinho = (ab) => { // gola da camisa em volta do pescoço + pontas
+      m(geo('golaCam', () => new THREE.CylinderGeometry(.105, .112, .07, 16)), mCam, 0, .775, 0, this.torso);
+      par(ext(ab ? 'golaAb' : 'golaPt', ab ? [[.03, .79], [.11, .79], [.09, .69]] : [[.004, .785], [.085, .79], [.055, .685]], { depth: .01 }), mCam, .19, fr);
     };
+    const gravata = (dz = 0) => { // gravata 3D: nó trapezoidal, lâmina com bisel e listras, prendedor
+      const gm = matGravata(c.corGravata), z = frente + .006 + dz;
+      const lam = m(ext('gravLam', [[-.024, .69], [.024, .69], [.052, .4], [0, .325], [-.052, .4]], { depth: .012, bevelEnabled: true, bevelThickness: .007, bevelSize: .006, bevelSegments: 3 }), gm, 0, 0, z, this.torso);
+      lam.rotation.x = -.03;
+      const no = m(ext('gravNo', [[-.044, .75], [.044, .75], [.027, .672], [-.027, .672]], { depth: .028, bevelEnabled: true, bevelThickness: .012, bevelSize: .009, bevelSegments: 4 }), mat(tom(c.corGravata, -.04), { r: .45 }), 0, 0, z, this.torso);
+      no.castShadow = false;
+      m(rbox(.075, .012, .012, .004), mat('#c9ccd3', { r: .25, m: .9 }), 0, .5, z + .024, this.torso); // prendedor
+    };
+    const cinto = () => { m(rbox(W * .98, .055, .39, .025), mat('#1c1917', { r: .4 }), 0, .035, 0, this.torso); m(rbox(.06, .045, .012, .005), mat('#c9a227', { r: .3, m: .8 }), 0, .035, frente + .006, this.torso); };
+    if (paleto) { // paletó: camisa em V, lapelas, botões e bolsos
+      const mL = mat(realce(roupaCor, .09), { r: .45 }), mEsc = mat(tom(roupaCor, -.07), { r: .7 });
+      const fundoV = aberto ? [[-.11, .705], [.11, .705], [.075, -.01], [-.075, -.01]] : fem ? [[-.1, .705], [.1, .705], [0, .37]] : [[-.11, .705], [.11, .705], [0, .31]];
+      m(ext('cam' + c.roupa, fundoV), mCam, 0, 0, .186, fr);
+      m(rbox(.2, .1, .14, .04), mCam, 0, .72, .115, this.torso); // camisa no alto do peito
+      const lap = aberto ? [[.11, .70], [.068, .34], [.172, .565], [.195, .64], [.152, .63], [.16, .70]]
+        : fem ? [[.1, .70], [0, .37], [.13, .53], [.165, .62], [.15, .70]]
+        : [[.11, .70], [0, .31], [.165, .575], [.19, .645], [.148, .632], [.16, .70]];
+      par(ext('lap' + c.roupa, lap, { depth: .01, bevelEnabled: true, bevelThickness: .004, bevelSize: .004, bevelSegments: 2 }), mL, .19, fr);
+      if (aberto) { // camisa aberta: botões, cinto, bordas do paletó e lenço no bolso
+        for (const y of [.6, .45, .3, .15]) m(esfera(.011), mCamEsc, 0, y, frente + .006, this.torso);
+        m(rbox(.15, .05, .012, .005), mat('#1c1917', { r: .4 }), 0, .04, frente + .002, this.torso); m(rbox(.045, .04, .014, .004), mat('#c9a227', { r: .3, m: .8 }), 0, .04, frente + .006, this.torso);
+        par(rbox(.014, .36, .012, .005), mL, frente + .002, this.torso, .07 * W / .67, .17);
+        for (const y of [.26, .15]) m(esfera(.019), mat('#1a1a1a', { r: .3 }), .1 * W / .67, y, frente + .008, this.torso);
+      } else for (const y of fem ? [.32] : [.26, .15]) m(esfera(.019), mat('#1a1a1a', { r: .3 }), 0, y, frente + .008, this.torso);
+      if (fem) par(rbox(.09, .026, .014, .006), mEsc, .158, this.torso, W * .2, .1);
+      else { par(rbox(.13, .035, .014, .006), mEsc, frente + .004, this.torso, W * .29, .13); m(rbox(.1, .022, .012, .005), mEsc, -W * .3, .5, frente + .004, this.torso); }
+      if (!fem) { const ln = m(rbox(.07, .03, .01, .004), mat(aberto ? c.corGravata : '#f8fafc', { r: .5 }), -W * .3, .525, frente + .004, this.torso); ln.rotation.z = .15; } // lenço
+      colarinho(aberto);
+    }
+    if (colete) { // colete por cima da camisa (ombros e mangas de camisa)
+      const mV = mat(roupaCor, { r: .6 });
+      m(rbox(W + .014, .6, .394, .05), mV, 0, .3, 0, this.torso);
+      m(ext('vColete', [[-.13, .6], [.13, .6], [0, .3]]), mCam, 0, 0, .19, fr);
+      par(ext('vColBorda', [[.13, .6], [.0, .3], [.02, .3], [.15, .6]], { depth: .006 }), mat(realce(roupaCor, .09), { r: .5 }), .197, fr);
+      for (let y = .26; y > .02; y -= .055) m(esfera(.013), mat('#1a1a1a', { r: .3 }), 0, y, frente + .009, this.torso);
+      par(rbox(.1, .022, .012, .005), mat(tom(roupaCor, -.08)), frente + .006, this.torso, W * .27, .16);
+      colarinho(false);
+    }
+    if (social) { colarinho(false); m(rbox(.035, .7, .01, .004), mCamEsc, 0, .38, frente + .002, this.torso); cinto(); }
+    if (c.roupa === 'polo') { // gola polo, carcela com botões
+      const mG = mat(realce(roupaCor, .07), { r: .7 });
+      m(geo('golaPolo', () => new THREE.CylinderGeometry(.108, .115, .05, 16)), mG, 0, .78, 0, this.torso);
+      par(ext('golaPolo2', [[.012, .78], [.12, .785], [.075, .67]], { depth: .012 }), mG, .19, fr);
+      m(rbox(.05, .18, .012, .006), mat(tom(roupaCor, -.05), { r: .7 }), 0, .66, frente + .002, this.torso);
+      for (const y of [.71, .63]) m(esfera(.011), mat('#f1f5f9', { r: .4 }), 0, y, frente + .01, this.torso);
+    }
     if (batina) { // batina: saia longa até os pés, botões e friso vermelhos, faixa na cintura, crucifixo dourado
       const vm = mat('#b91c1c', { r: .5 }), ouro = mat('#e8b923', { r: .25, m: .7 });
       const sa = m(geo('batina' + W, () => new THREE.CylinderGeometry(W * .5, W * .66, .8, 22)), mat(roupaCor, { r: .75 }), 0, .46, 0, R); sa.scale.z = .66;
@@ -137,37 +185,35 @@ export class Avatar {
       for (const s of [-1, 1]) { const ca = m(rbox(.016, .3, .01, .004), ouro, s * .07, .62, frente + .014, this.torso); ca.rotation.z = s * .22; }
       m(rbox(.035, .15, .016, .006), ouro, 0, .42, frente + .02, this.torso); m(rbox(.1, .035, .016, .006), ouro, 0, .45, frente + .02, this.torso);
     }
-    if (c.roupa === 'terno' || c.roupa === 'social' || c.roupa === 'colete' || pastor) gravata();
-    if (temPalito) { // botões
-      for (const y of [.3, .18]) m(esfera(.018), mat('#222'), 0, y, frente + .01, this.torso);
-    }
-    if (c.roupa === 'polo') { for (const s of [-1, 1]) { const g = m(rbox(.12, .05, .03, .01), mat(tom(roupaCor, .05)), s * .07, .76, frente - .01, this.torso); g.rotation.z = s * .3; } }
-    if (c.roupa === 'social') m(rbox(.1, .08, .01, .005), mat(tom(camisaCor, -.06)), -W * .25, .55, frente + .002, this.torso);
+    if (c.roupa === 'terno' || social || colete || pastor) gravata(social ? 0 : .014);
+    if (social) m(rbox(.1, .08, .01, .005), mCamEsc, -W * .25, .55, frente + .002, this.torso);
+    const zb = paleto ? .016 : colete ? .006 : 0; // broche por cima da lapela
     if (c.broche === 'coxinha') { // broche de coxinha: gota dourado-alaranjada
-      const g = new THREE.Group(); g.position.set(W * .24, .6, frente + .025); g.scale.setScalar(1.5); this.torso.add(g);
+      const g = new THREE.Group(); g.position.set(W * .24, .6, frente + .025 + zb); g.scale.setScalar(1.5); this.torso.add(g);
       const massa = mat('#c8741f', { r: .7, m: .05 }), emp = mat('#e9a54a', { r: .8 });
       m(geo('coxBase', () => new THREE.SphereGeometry(.026, 14, 10)), massa, 0, -.012, 0, g).scale.set(1.15, .85, .8);
       m(geo('coxPonta', () => new THREE.ConeGeometry(.026, .038, 14)), massa, 0, .016, 0, g);
       [[-.012, -.016], [.01, -.006], [.002, -.026], [-.004, .008], [.014, -.022]].forEach(([x, y]) => m(esfera(.0045), emp, x, y, .019, g)); // empanado
     } else if (c.broche === 'fritas') { // broche de batata frita: caixinha vermelha com palitos amarelos
-      const g = new THREE.Group(); g.position.set(W * .24, .6, frente + .018); g.scale.setScalar(1.3); this.torso.add(g);
+      const g = new THREE.Group(); g.position.set(W * .24, .6, frente + .018 + zb); g.scale.setScalar(1.3); this.torso.add(g);
       m(rbox(.05, .045, .016, .005), mat('#dc2626', { r: .5 }), 0, -.012, 0, g);
       const bat = mat('#facc15', { r: .6 });
       [-.016, -.006, .004, .014].forEach((x, i) => { const p = m(rbox(.008, .045, .008, .002), bat, x, .018 + (i % 2) * .006, -.002, g); p.rotation.z = (i - 1.5) * .12; });
     } else if (c.broche) { // broche verde-amarelo
-      m(rbox(.07, .05, .015, .008), mat('#16a34a', { r: .3, m: .3 }), W * .24, .6, frente + .01, this.torso);
-      const d = m(rbox(.035, .035, .016, .004), mat('#facc15', { r: .3, m: .3 }), W * .24, .6, frente + .016, this.torso); d.rotation.z = Math.PI / 4;
+      m(rbox(.07, .05, .015, .008), mat('#16a34a', { r: .3, m: .3 }), W * .24, .6, frente + .01 + zb, this.torso);
+      const d = m(rbox(.035, .035, .016, .004), mat('#facc15', { r: .3, m: .3 }), W * .24, .6, frente + .016 + zb, this.torso); d.rotation.z = Math.PI / 4;
     }
     // braços (pivô no ombro)
     this.bracos = [];
     for (const s of [-1, 1]) {
       const piv = new THREE.Group(); piv.position.set(s * (W / 2 + .07), .7, 0); this.torso.add(piv);
       const cot = new THREE.Group(); cot.position.y = -.3; piv.add(cot); // cotovelo
-      if (c.roupa === 'polo') { m(rbox(.17, .24, .19, .06), mat(roupaCor), 0, -.12, 0, piv); m(rbox(.13, .12, .14, .05), pele, 0, -.26, 0, piv); m(esfera(.068), pele, 0, 0, 0, cot); m(rbox(.13, .28, .14, .05), pele, 0, -.13, 0, cot); }
+      if (c.roupa === 'polo') { m(rbox(.17, .24, .19, .06), mat(roupaCor), 0, -.12, 0, piv); m(rbox(.18, .04, .2, .015), mat(tom(roupaCor, -.06), { r: .7 }), 0, -.23, 0, piv); m(rbox(.13, .12, .14, .05), pele, 0, -.26, 0, piv); m(esfera(.068), pele, 0, 0, 0, cot); m(rbox(.13, .28, .14, .05), pele, 0, -.13, 0, cot); }
       else {
         const mb = mat(bracoCor, { r: .7 });
-        m(rbox(.17, .32, .19, .06), mb, 0, -.15, 0, piv); m(esfera(.088), mb, 0, 0, 0, cot); m(rbox(.16, .27, .18, .06), mb, 0, -.13, 0, cot);
-        m(geo('punho', () => new THREE.CylinderGeometry(.072, .072, .05, 14)), mat(camisaCor), 0, -.25, 0, cot);
+        if (paleto) m(esfera(.11), mb, -s * .015, -.03, 0, piv).scale.set(1, .75, 1); // ombreira
+        m(rbox(.17, .32, .19, .06), mb, 0, -.15, 0, piv); m(esfera(.088), mb, 0, 0, 0, cot); m(rbox(.16, .245, .18, .06), mb, 0, -.118, 0, cot);
+        m(geo('punho', () => new THREE.CylinderGeometry(.074, .074, .045, 14)), bracoCor === camisaCor ? mCamEsc : mCam, 0, -.258, 0, cot); // punho da camisa aparecendo
       }
       const mao = this.mao(pele, s); mao.position.y = -.28; cot.add(mao);
       // folha de papel (só aparece ao folhear): na esquerda apoiada na palma, na direita presa na pinça
