@@ -58,8 +58,9 @@ img.xz-av{object-fit:cover;background:#1d2a4a}
 .btn-xz .xz-logo{font-size:11px}
 .btn-xz:hover{background:#1d9bf0;transform:scale(1.06)}
 .btn-xz:hover .xz-logo{color:#fff}
-.rank-tab .cand .btn-xz{margin-left:auto}
-.rank-podio .bloco .btn-xz{align-self:center;margin-top:4px;text-shadow:none}
+.rank-tab .cand .btn-xz{margin-left:-4px}
+.rank-podio .bloco .nm{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0}
+.rank-podio .bloco .btn-xz{text-shadow:none}
 .rank-podio .bloco .btn-xz span{font-size:12px;line-height:1}
 .rank-tab .cand .btn-xz{padding:2px 6px}
 .rank-abas{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}

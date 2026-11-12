@@ -188,8 +188,8 @@ button{cursor:pointer}
 .rank-podio .foto img{position:relative;width:var(--av2);height:var(--av2);border-radius:50%;border:5px solid #e3e5ff;background:radial-gradient(circle at 50% 35%,#8a8cf5,#4b46b8 60%,#2a1f7a);display:block;box-shadow:0 0 0 3px #6d6aa8,0 0 18px rgba(200,200,255,.5),inset 0 0 10px rgba(0,0,0,.3);z-index:1}
 .rank-podio .foto .louro{position:absolute;left:-2px;bottom:-12px;width:calc(var(--av2) * .6);height:calc(var(--av2) * 1.04);transform:rotate(-14deg);z-index:0;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))}
 .rank-podio .foto .louro.dir{left:auto;right:-2px;transform:scaleX(-1) rotate(-14deg)}
-.rank-podio .med{position:absolute;left:50%;bottom:-16px;transform:translateX(-50%);font-family:var(--fr);font-weight:700;font-size:21px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 30%,#ffffff,#c9cbe6 60%,#8f92b8);color:#1c1250;border:3px solid #5d5f8c;box-shadow:0 0 0 2px #e6e8ff,0 3px 6px rgba(0,0,0,.5);z-index:3}
-.rank-podio .bloco{position:relative;width:210px;min-height:var(--bl);padding:34px 14px 10px;display:flex;flex-direction:column;justify-content:center;clip-path:polygon(7% 0,93% 0,97% 20px,100% 100%,0 100%,3% 20px);background:linear-gradient(90deg,rgba(20,15,70,.45),transparent 9%,transparent 91%,rgba(20,15,70,.45)),linear-gradient(#ffffff 0,#e6e8ff 8px,#b7bae8 19px,#ffffff 20px,#c9cbf2 22px,#8c8fd2 45%,#5d5fae 75%,#45468f 100%)}
+.rank-podio .med{position:absolute;left:50%;bottom:-36px;transform:translateX(-50%);font-family:var(--fr);font-weight:700;font-size:21px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 30%,#ffffff,#c9cbe6 60%,#8f92b8);color:#1c1250;border:3px solid #5d5f8c;box-shadow:0 0 0 2px #e6e8ff,0 3px 6px rgba(0,0,0,.5);z-index:3}
+.rank-podio .bloco{position:relative;width:210px;min-height:var(--bl);padding:54px 14px 10px;display:flex;flex-direction:column;justify-content:center;clip-path:polygon(7% 0,93% 0,97% 20px,100% 100%,0 100%,3% 20px);background:linear-gradient(90deg,rgba(20,15,70,.45),transparent 9%,transparent 91%,rgba(20,15,70,.45)),linear-gradient(#ffffff 0,#e6e8ff 8px,#b7bae8 19px,#ffffff 20px,#c9cbf2 22px,#8c8fd2 45%,#5d5fae 75%,#45468f 100%)}
 .rank-podio .lugar.prata{filter:drop-shadow(0 0 1.5px #f0f0ff) drop-shadow(0 0 14px rgba(190,190,255,.45))}
 .rank-podio .bloco b{font-family:var(--fr);font-weight:600;font-size:18px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 2px 0 rgba(30,20,80,.7)}
 .rank-podio .bloco span{font-family:var(--fr);font-weight:700;font-size:32px;line-height:1.1;color:#fff;text-shadow:0 3px 0 rgba(30,20,80,.7)}
@@ -199,8 +199,8 @@ button{cursor:pointer}
 .rank-podio .ouro .foto img{width:var(--av1);height:var(--av1);border-color:#ffd84d;background:radial-gradient(circle at 50% 35%,#fff6c4,#fbd660 55%,#d99a1a);box-shadow:0 0 0 4px #b26b00,0 0 0 7px #ffe58a,0 0 30px rgba(250,204,21,.75)}
 .rank-podio .ouro .louro{width:calc(var(--av1) * .6);height:calc(var(--av1) * 1.02);bottom:-14px}
 .rank-podio .ouro .coroa{position:absolute;left:50%;top:calc(var(--av1) * -.32);transform:translateX(-50%);width:calc(var(--av1) * .5);z-index:4;filter:drop-shadow(0 3px 0 #7a4b00) drop-shadow(0 0 8px rgba(250,204,21,.7))}
-.rank-podio .ouro .med{width:52px;height:52px;font-size:25px;background:radial-gradient(circle at 50% 30%,#fff3b0,#facc15 55%,#c27803);border-color:#8a5200;box-shadow:0 0 0 2px #ffe58a,0 3px 8px rgba(0,0,0,.5)}
-.rank-podio .ouro .bloco{width:290px;min-height:calc(var(--bl) + 18px);padding-top:38px;background:linear-gradient(90deg,rgba(80,35,0,.5),transparent 9%,transparent 91%,rgba(80,35,0,.5)),linear-gradient(#fffbe0 0,#ffe27a 8px,#f0b21e 19px,#fff4b8 20px,#f7c23a 22px,#c98612 42%,#8f5608 72%,#6a3c03 100%)}
+.rank-podio .ouro .med{bottom:-44px;width:52px;height:52px;font-size:25px;background:radial-gradient(circle at 50% 30%,#fff3b0,#facc15 55%,#c27803);border-color:#8a5200;box-shadow:0 0 0 2px #ffe58a,0 3px 8px rgba(0,0,0,.5)}
+.rank-podio .ouro .bloco{width:290px;min-height:calc(var(--bl) + 18px);padding-top:62px;background:linear-gradient(90deg,rgba(80,35,0,.5),transparent 9%,transparent 91%,rgba(80,35,0,.5)),linear-gradient(#fffbe0 0,#ffe27a 8px,#f0b21e 19px,#fff4b8 20px,#f7c23a 22px,#c98612 42%,#8f5608 72%,#6a3c03 100%)}
 .rank-podio .ouro .bloco b{font-size:24px;text-shadow:0 2px 0 rgba(90,45,0,.85)}
 .rank-podio .ouro .bloco span{font-size:42px;text-shadow:0 3px 0 rgba(90,45,0,.85)}
 .rank-podio .bronze{filter:drop-shadow(0 0 1.5px #ffe0c8) drop-shadow(0 0 12px rgba(240,150,90,.4))}
@@ -208,7 +208,7 @@ button{cursor:pointer}
 .rank-podio .bronze .med{background:radial-gradient(circle at 50% 30%,#ffe0c8,#e0915a 55%,#8a4518);border-color:#6b3512}
 .rank-podio .bronze .bloco{min-height:calc(var(--bl) - 14px);background:linear-gradient(90deg,rgba(60,20,0,.45),transparent 9%,transparent 91%,rgba(60,20,0,.45)),linear-gradient(#fff0e4 0,#ffd2b0 8px,#d4844a 19px,#ffe0c8 20px,#dd9560 22px,#a85e2c 45%,#7a3d14 75%,#5c2a0c 100%)}
 .rank-tab{border:1.5px solid rgba(160,140,255,.55);border-radius:18px;background:rgba(30,16,90,.55);padding:2px 10px 8px;box-shadow:inset 0 0 20px rgba(100,80,220,.25)}
-.rank-tab .cab,.rank-tab .lin{display:grid;grid-template-columns:70px minmax(0,2.4fr) 1.3fr .9fr .9fr .8fr 1.4fr;align-items:center;gap:8px;text-align:center}
+.rank-tab .cab,.rank-tab .lin{display:grid;grid-template-columns:70px minmax(0,3fr) 1.2fr .9fr .9fr .7fr 1.3fr;align-items:center;gap:8px;text-align:center}
 .rank-tab .cab{font-family:var(--fr);font-weight:500;font-size:15px;color:#ece8ff;padding:8px 6px;border-bottom:1px solid rgba(180,160,255,.25);margin-bottom:2px}
 .rank-tab .cab span{display:flex;align-items:center;justify-content:center;gap:6px}
 .rank-tab .cab span:first-child{font-size:17px;font-weight:600}
@@ -219,7 +219,7 @@ button{cursor:pointer}
 .rank-tab .lin .ic{width:20px;height:20px}
 .rank-tab em{font-style:normal}
 .rank-tab .pos{display:block;width:56px;font-family:var(--fr);font-weight:700;font-size:21px;border-radius:10px;padding:3px 0;background:linear-gradient(#f4f4ff,#bfc2e6);color:#1c1250;border:2px solid #fff;box-shadow:0 2px 0 rgba(0,0,0,.35)}
-.rank-tab .cand{justify-content:flex-start !important;gap:12px;text-align:left;min-width:0}
+.rank-tab .cand{justify-content:flex-start !important;gap:8px;text-align:left;min-width:0}
 .rank-tab .cand.clic{cursor:pointer}
 .rank-tab .cand img{width:44px;height:44px;border-radius:50%;border:3px solid #fff;background:radial-gradient(circle at 50% 35%,#8a8cf5,#4b46b8 60%,#2a1f7a);flex:none;box-shadow:0 0 0 2px #5a4bc4}
 .rank-tab .cand b{font-size:18px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
