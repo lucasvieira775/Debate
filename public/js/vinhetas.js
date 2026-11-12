@@ -42,6 +42,7 @@ function cv(w, h, f) {
   const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w * K)); c.height = Math.max(1, Math.ceil(h * K));
   const g = c.getContext('2d'); g.scale(K, K); c.w = w; c.h = h; f?.(g, w, h); return c;
 }
+const cvE = (w, h, E, f) => cv(w * E, h * E, g => { g.scale(E, E); f(g, w, h); }); // camada desenhada em coordenadas w×h e ampliada E× (nítida)
 const m = (n, f) => C[n] || (C[n] = f());
 const img = (x, c, px, py, w = c.w, h = c.h) => x.drawImage(c, px, py, w, h);
 const medir = (fnt, txt) => { const g = m('medidor', () => document.createElement('canvas').getContext('2d')); g.font = fnt; return g.measureText(txt).width; };
@@ -215,11 +216,11 @@ function tituloCromo(txt, tam, tipo) {
   });
 }
 /** Faixa do subtítulo: { fundo, texto }. */
-function banda(b) {
+function banda(b, larg = 0) { // larg = largura desejada (px de projeto); a faixa é ampliada até 3,4× para ocupá-la
   return m('banda' + b, () => {
     const txt = TITULOS[b], fnt = b === 1 ? `900 66px ${FONTE_TXT}` : `italic 900 64px ${FONTE_TXT}`, bw = medir(fnt, txt) + 170, bh = 104, sk = 34, p = 14;
-    const W = bw + sk + p * 2, H = bh + p * 2 + 14, P = [[p + sk, p], [p + sk + bw, p], [p + bw, p + bh], [p, p + bh]];
-    const fundo = cv(W, H, g => {
+    const W = bw + sk + p * 2, H = bh + p * 2 + 14, P = [[p + sk, p], [p + sk + bw, p], [p + bw, p + bh], [p, p + bh]], E = larg ? Math.min(3.4, Math.max(1, larg / W)) : 1;
+    const fundo = cvE(W, H, E, g => {
       poly(g, P); g.shadowColor = 'rgba(0,4,30,.7)'; g.shadowBlur = 24; g.shadowOffsetY = 8;
       g.fillStyle = b === 3 ? grad(g, 0, p, 0, p + bh, [[0, '#f0364c'], [.5, '#c4122b'], [1, '#86071b']]) : grad(g, 0, p, 0, p + bh, [[0, '#ffffff'], [.5, '#f2f5fb'], [1, '#d5deee']]);
       g.fill(); g.shadowColor = 'transparent';
@@ -230,7 +231,7 @@ function banda(b) {
       g.restore();
       if (b === 2) { poly(g, [[p + sk * .2 + 40, p + bh + 6], [p + bw + 10, p + bh + 6], [p + bw + 8, p + bh + 12], [p + 38, p + bh + 12]]); g.fillStyle = '#e0182f'; g.fill(); }
     });
-    const texto = cv(W, H, g => {
+    const texto = cvE(W, H, E, g => {
       g.font = fnt; g.textAlign = 'center'; g.textBaseline = 'middle'; const tx = p + sk / 2 + bw / 2 + (b === 2 ? 14 : 0), ty = p + bh / 2 + 3;
       if (b === 3) { g.shadowColor = 'rgba(60,0,10,.8)'; g.shadowBlur = 8; g.shadowOffsetY = 3; g.fillStyle = '#fff'; }
       else g.fillStyle = grad(g, 0, p, 0, p + bh, [[0, '#14307e'], [1, '#081a4e']]);
@@ -239,7 +240,8 @@ function banda(b) {
     return { fundo, texto };
   });
 }
-const painel2 = () => m('painel2', () => cv(1020, 280, g => {
+const E2 = 1.55, E3 = 1.7, EL = 1.25; // ampliação do painel (bloco 2), da placa (bloco 3) e do logo no telão panorâmico
+const painel2 = () => m('painel2', () => cvE(1020, 280, E2, g => {
   const P = [[80, 12], [1008, 12], [940, 268], [12, 268]];
   poly(g, P); g.shadowColor = 'rgba(0,0,20,.7)'; g.shadowBlur = 30; g.fillStyle = grad(g, 0, 12, 0, 268, [[0, 'rgba(40,110,240,.95)'], [.5, 'rgba(14,58,170,.95)'], [1, 'rgba(8,34,110,.95)']]); g.fill(); g.shadowBlur = 0;
   g.save(); poly(g, P); g.clip(); g.fillStyle = 'rgba(255,255,255,.1)'; g.fillRect(0, 12, 1020, 110);
@@ -250,20 +252,20 @@ const painel2 = () => m('painel2', () => cv(1020, 280, g => {
   g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 3; g.beginPath(); g.moveTo(126, 12); g.lineTo(58, 268); g.moveTo(962, 12); g.lineTo(894, 268); g.stroke();
   g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(116, 12, 856, 2); g.fillRect(48, 266, 856, 2);
 }));
-const placa3 = () => m('placa3', () => cv(860, 290, g => {
+const placa3 = () => m('placa3', () => cvE(860, 290, E3, g => {
   const P = [[54, 18], [842, 18], [806, 272], [18, 272]];
   poly(g, P); g.shadowColor = 'rgba(0,0,20,.75)'; g.shadowBlur = 30; g.shadowOffsetY = 10;
   g.fillStyle = grad(g, 0, 18, 0, 272, [[0, '#ffffff'], [.42, '#dfe5ee'], [.5, '#aab5c6'], [.56, '#d6dde8'], [.8, '#f2f5f9'], [1, '#b9c3d1']]); g.fill(); g.shadowColor = 'transparent';
   g.save(); poly(g, P); g.clip(); for (let y = 18; y < 272; y += 3) { g.fillStyle = hash(y) > .5 ? 'rgba(255,255,255,.18)' : 'rgba(90,100,130,.08)'; g.fillRect(0, y, 860, 1); } g.restore();
   poly(g, P); g.lineJoin = 'round'; g.lineWidth = 14; g.strokeStyle = grad(g, 0, 18, 0, 272, [[0, '#ff4257'], [1, '#a60b20']]); g.stroke();
   poly(g, [[70, 32], [824, 32], [792, 258], [36, 258]]); g.lineWidth = 2.5; g.strokeStyle = 'rgba(255,255,255,.9)'; g.stroke();
-  const { face, sombra } = tituloCromo('BLOCO 3', 176, 'marinho'); img(g, sombra, 430 - sombra.w / 2, 150 - sombra.h / 2); img(g, face, 430 - face.w / 2, 148 - face.h / 2);
+  const { face, sombra } = tituloCromo('BLOCO 3', 176 * E3, 'marinho'), w = face.w / E3, h = face.h / E3; img(g, sombra, 430 - w / 2, 150 - h / 2, w, h); img(g, face, 430 - w / 2, 148 - h / 2, w, h);
 }));
 
 // ---------- logotipos ----------
 const logoOc = () => m('logoOc', () => {
   const f1 = `72px ${FONTE}`, a = 'DEBATE PRESIDENCIAL', b = '  ·  ELEIÇÕES 2026', wa = medir(f1, a) + 6 * 18, wb = medir(f1, b) + 6 * 17, W = wa + wb + 80;
-  return cv(W, 170, g => {
+  return cvE(W, 170, Math.min(4, Math.max(1, PW * .7 / W)), g => { // letreiro ocupa 70% da largura do telão
     g.font = f1; g.textBaseline = 'alphabetic'; g.shadowColor = 'rgba(0,8,40,.8)'; g.shadowBlur = 18; g.shadowOffsetY = 5;
     g.fillStyle = grad(g, 0, 40, 0, 110, [[0, '#ffffff'], [.55, '#e3ebf8'], [1, '#aebfdd']]); espacado(g, a, 40 + wa / 2, 105, 6);
     g.fillStyle = grad(g, 0, 40, 0, 110, [[0, '#fff3a8'], [1, '#ffc400']]); espacado(g, b, 40 + wa + wb / 2, 105, 6);
@@ -271,17 +273,7 @@ const logoOc = () => m('logoOc', () => {
     g.fillStyle = grad(g, cx - 330, 0, cx + 330, 0, [[0, 'rgba(0,168,80,0)'], [.2, '#00a850'], [.5, '#00a850'], [.5, '#ffd400'], [.8, '#ffd400'], [1, 'rgba(255,212,0,0)']]); g.fillRect(cx - 330, 128, 660, 7);
   });
 });
-const cab2 = () => m('cab2', () => cv(900, 140, g => {
-  g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.shadowColor = 'rgba(0,8,40,.85)'; g.shadowBlur = 12; g.shadowOffsetY = 4;
-  g.font = `58px ${FONTE}`; g.fillStyle = grad(g, 0, 15, 0, 70, [[0, '#ffffff'], [1, '#cfdcf2']]); espacado(g, 'ELEIÇÕES 2026', 450, 66, 4);
-  g.shadowColor = 'transparent'; g.fillStyle = '#00a850'; poly(g, [[392, 78], [450, 78], [446, 86], [388, 86]]); g.fill(); g.fillStyle = '#ffd400'; poly(g, [[452, 78], [512, 78], [508, 86], [448, 86]]); g.fill();
-  g.font = `800 30px ${FONTE_TXT}`; g.fillStyle = '#d6e4ff'; espacado(g, 'DEBATE PRESIDENCIAL', 450, 124, 13);
-}));
-const logo1 = () => m('logo1', () => cv(460, 90, g => {
-  g.fillStyle = '#00a850'; g.fillRect(0, 10, 8, 32); g.fillStyle = '#ffd400'; g.fillRect(0, 44, 8, 32);
-  g.textBaseline = 'alphabetic'; g.textAlign = 'left'; g.font = `900 30px ${FONTE_TXT}`; g.fillStyle = '#ffffff'; g.fillText('DEBATE PRESIDENCIAL', 22, 40); g.font = `30px ${FONTE}`; g.fillStyle = '#ffd400'; g.fillText('ELEIÇÕES 2026', 22, 76);
-}));
-const logo3 = () => m('logo3', () => cv(560, 430, g => {
+const logo3 = () => m('logo3', () => cvE(560, 430, EL, g => {
   img(g, mapa(), 90, 0); img(g, congresso(0), 130, 110, 300, 170);
   g.textAlign = 'center'; g.save(); g.translate(280, 352); g.transform(1, 0, -.18, 1, 0, 0); g.font = `112px ${FONTE}`; g.lineJoin = 'round';
   g.shadowColor = 'rgba(0,6,30,.9)'; g.shadowBlur = 16; g.strokeStyle = '#081a4a'; g.lineWidth = 12; g.strokeText('DEBATE', 0, 0); g.shadowColor = 'transparent';
@@ -356,32 +348,46 @@ function flashes(x, t, cx, cy) {
     if (w > 0 && w < 1) { const a = Math.sin(Math.PI * w); streak(x, lerp(L - 400, R + 400, eInOut(w)), cy, 1800, 220, a * 1.3); brilho(x, BRANCO, lerp(L - 400, R + 400, eInOut(w)), cy, 260, a * .6, 160); }
   });
 }
+// ---------- linha única: logo · "BLOCO N" · faixa do subtítulo, ocupando 70% da largura do telão ----------
+const CY = DH / 2, TAM1 = 480, TAM2 = Math.round(196 * E2);
+const TIT = { 1: () => tituloCromo('BLOCO 1', TAM1, 'prata'), 2: () => tituloCromo('BLOCO 2', TAM2, 'branco'), 3: () => ({ face: placa3(), sombra: null }) };
+const LARG_TIT = { 1: () => medir(`${TAM1}px ${FONTE}`, 'BLOCO 1') + TAM1 * .25, 2: () => painel2().w, 3: () => placa3().w };
+/** Posições da linha do bloco b: { bd (faixa), wT, xL (logo), cx (título), xB (faixa), x0/x1 (pontas) }. */
+const fila = b => m('fila' + b, () => {
+  const S = PW * .7, wL = logo3().w, wT = LARG_TIT[b](), bd = banda(b, S - wL - wT - 500), wB = bd.fundo.w, g = Math.max(160, (S - wL - wT - wB) / 2), tot = wL + wT + wB + 2 * g, x0 = 1024 - tot / 2;
+  return { bd, wT, xL: x0, cx: x0 + wL + g + wT / 2, xB: x0 + wL + g + wT + g + wB / 2, x0, x1: x0 + tot };
+});
+/** Logo do debate na ponta esquerda da linha: revela da esquerda p/ a direita. */
+function logoFila(x, t, xL, par) {
+  const lg = logo3();
+  alfa(x, eOutCubic(fase(t, .2, 1.1)) * (1 - saidaK(t) * .7), () => { x.beginPath(); x.rect(xL - 40, 0, (lg.w + 80) * eOutExpo(fase(t, .2, 1.3)), DH); x.clip(); img(x, lg, xL - par * .6, (DH - lg.h) / 2); });
+}
 const pulsoAzul = (x, t, cx, cy, a = 1) => add(x, () => brilho(x, AZUL, cx, cy, 950, a * (.16 + .07 * Math.sin(t * 3.1)), 360));
 
 // ---------- BLOCO 1: Temas Diversos ----------
 function bloco1(x, t) {
-  const cx = 1010, cy = 222, ei = eOutExpo(fase(t, 0, .9)), par = Math.max(0, t - .8) * 5, ef = ei * (1 - eInCubic(fase(t, 4.45, 5)));
+  const F = fila(1), cx = F.cx, cy = CY, ei = eOutExpo(fase(t, 0, .9)), par = Math.max(0, t - .8) * 5, ef = ei * (1 - eInCubic(fase(t, 4.45, 5)));
   img(x, fundo(1), L, 0);
   add(x, () => {
     for (let i = Math.floor((L + 120) / 340) - 1; -120 + i * 340 < R + 340; i++) desenhaFeixe(x, -120 + i * 340 + Math.sin(t * .35 + i) * 24, -60, .55 - (i % 7 + 7) % 7 * .02 - (1 - ei) * 1.2 + Math.sin(t * .5 + i * 2) * .035,
       (.2 + .12 * Math.sin(t * 1.1 + i * 1.9)) * (.35 + .65 * ei) + (1 - ei) * .3 * (t > .02), 1.25);
   });
   pulsoAzul(x, t, cx, 300, fase(t, .5, 1.2));
-  anel(x, t, cx, 515, 560, .55 + .2 * Math.sin(t * 2.4));
+  anel(x, t, cx, 530, F.wT * .6, .55 + .2 * Math.sin(t * 2.4));
   fitasAnim(x, ef, x => x.translate(L, 0)); fitasAnim(x, ef, x => { x.translate(R, DH); x.rotate(Math.PI); x.scale(.72, .72); });
-  const ec = eOutCubic(fase(t, .25, 1.3)); alfa(x, ec, () => img(x, congresso(0), 1390 + 90 * (1 - ec) - par, 213, 690, 391));
+  const ec = eOutCubic(fase(t, .25, 1.3)); alfa(x, ec, () => img(x, congresso(0), F.x1 + 80 + 90 * (1 - ec) - par, 185, 690, 391));
   const at = fase(t, .9, 1.3) * (1 - saidaK(t));
-  add(x, () => { brilho(x, OURO, cx, cy + 112, 560, at * .8, 50); brilho(x, '255,230,150', cx, cy + 112, 260, at * .7, 22); });
-  titulo(x, t, tituloCromo('BLOCO 1', 236, 'prata'), cx, cy);
-  faixa(x, t, banda(1), cx, 432);
+  add(x, () => { brilho(x, OURO, cx, cy + 200, F.wT * .6, at * .8, 60); brilho(x, '255,230,150', cx, cy + 200, F.wT * .3, at * .7, 26); });
+  logoFila(x, t, F.xL, par);
+  titulo(x, t, TIT[1](), cx, cy);
+  faixa(x, t, F.bd, F.xB, cy);
   particulas(x, t, 46, fase(t, 1, 2), 11);
-  alfa(x, fase(t, 1.2, 2) * (1 - saidaK(t)), () => img(x, logo1(), 56, 474));
   flashes(x, t, cx, cy);
 }
 
 // ---------- BLOCO 2: Debate frente a frente ----------
 function bloco2(x, t) {
-  const cx = 1024, cy = 268, ei = eOutExpo(fase(t, 0, .9)), par = Math.max(0, t - .8) * 5, ef = ei * (1 - eInCubic(fase(t, 4.45, 5)));
+  const F = fila(2), cx = F.cx, cy = CY, ei = eOutExpo(fase(t, 0, .9)), par = Math.max(0, t - .8) * 5, ef = ei * (1 - eInCubic(fase(t, 4.45, 5)));
   img(x, fundo(2), L, 0);
   add(x, () => {
     const pos = [140, 430, 1618, 1908]; for (let p = -150; p > L; p -= 580) pos.unshift(p); for (let p = DW + 150; p < R; p += 580) pos.push(p);
@@ -394,14 +400,14 @@ function bloco2(x, t) {
   pulsoAzul(x, t, cx, cy, fase(t, .4, 1.2));
   fitasAnim(x, ef, x => { x.translate(L, DH); x.scale(.66, -.66); });
   const ec = eOutCubic(fase(t, .2, 1.2));
-  alfa(x, ec, () => img(x, congresso(1), 120 - par, 228, 640, 363));
+  alfa(x, ec, () => img(x, congresso(1), F.x0 - 720 - par, 200, 640, 363));
   const ep = eOutExpo(fase(t, .15, .8)), eo = saidaK(t);
-  alfa(x, ep * (1 - eo), () => { const p = painel2(); x.translate(cx - 400 * (1 - ep), cy - 6); x.scale(1 + .2 * eo, 1 + .2 * eo); img(x, p, -p.w / 2, -p.h / 2); });
+  alfa(x, ep * (1 - eo), () => { const p = painel2(); x.translate(cx - 400 * (1 - ep), cy); x.scale(1 + .2 * eo, 1 + .2 * eo); img(x, p, -p.w / 2, -p.h / 2); });
   const eb = eOutCubic(fase(t, .35, 1.1));
-  alfa(x, eb, () => bandeiraOnda(x, t, 1618 + 160 * (1 - eb) + par * .4, 128));
-  const eh = eOutCubic(fase(t, .45, 1.05)); alfa(x, eh * (1 - eo), () => { const c = cab2(); img(x, c, cx - c.w * .4, -20 * (1 - eh) - 6, c.w * .8, c.h * .8); });
-  titulo(x, t, tituloCromo('BLOCO 2', 196, 'branco'), cx, cy);
-  faixa(x, t, banda(2), cx, 458);
+  alfa(x, eb, () => bandeiraOnda(x, t, F.x1 + 110 + 160 * (1 - eb) + par * .4, 128));
+  logoFila(x, t, F.xL, par);
+  titulo(x, t, TIT[2](), cx, cy + 6);
+  faixa(x, t, F.bd, F.xB, cy);
   particulas(x, t, 40, fase(t, 1, 2), 23);
   flashes(x, t, cx, cy);
 }
@@ -418,10 +424,10 @@ function bandeiraOnda(x, t, px, py) {
 
 // ---------- BLOCO 3: Considerações finais ----------
 function bloco3(x, t) {
-  const cx = 1100, cy = 205, ei = eOutExpo(fase(t, 0, .9)), par = Math.max(0, t - .8) * 4, ef = ei * (1 - eInCubic(fase(t, 4.45, 5)));
+  const F = fila(3), cx = F.cx, cy = CY, ei = eOutExpo(fase(t, 0, .9)), par = Math.max(0, t - .8) * 4, ef = ei * (1 - eInCubic(fase(t, 4.45, 5)));
   img(x, fundo(3), L, 0);
   add(x, () => {
-    [630, 700, 1500, 1570].forEach((px, i) => {
+    [-F.wT / 2 - 110, -F.wT / 2 - 40, F.wT / 2 + 40, F.wT / 2 + 110].map(d => cx + d).forEach((px, i) => {
       const a = eOutExpo(fase(t, .1 + i * .06, .7 + i * .06)) * (.75 + .25 * Math.sin(t * 2.3 + i * 1.4));
       desenhaFeixe(x, px, 470, Math.PI, a * .9, i % 2 ? .45 : .7, .45 * (.3 + .7 * eOutExpo(fase(t, .1 + i * .06, .8 + i * .06))));
       brilho(x, CIANO, px, 468, 90, a * .8, 16);
@@ -429,19 +435,18 @@ function bloco3(x, t) {
     for (let i = Math.floor((L - 200) / 330); 200 + i * 330 < R + 330; i++) desenhaFeixe(x, 200 + i * 330, -80, .3 * Math.sin(t * .3 + i * 1.3) - (1 - ei) * .9, .1 * ei + .25 * (1 - ei) * (t > .02), 1.1);
   });
   pulsoAzul(x, t, cx, cy + 60, fase(t, .4, 1.2));
-  const el = eOutCubic(fase(t, .2, 1.1)), lg = logo3();
-  alfa(x, el * (1 - saidaK(t) * .7), () => { x.save(); x.beginPath(); x.rect(0, 0, 40 + lg.w * eOutExpo(fase(t, .2, 1.3)) + 40, DH); x.clip(); img(x, lg, 40 - par * .6, 70); x.restore(); });
-  anel(x, t, cx, 515, 520, .45 + .2 * Math.sin(t * 2.4), CIANO);
+  logoFila(x, t, F.xL, par);
+  anel(x, t, cx, 530, F.wT * .6, .45 + .2 * Math.sin(t * 2.4), CIANO);
   fitasAnim(x, ef, x => { x.translate(R, 0); x.scale(-.72, .72); }); fitasAnim(x, ef, x => { x.translate(R, DH); x.rotate(Math.PI); x.scale(.62, .62); });
-  titulo(x, t, { face: placa3(), sombra: null }, cx, cy);
-  faixa(x, t, banda(3), cx, 412, true);
+  titulo(x, t, TIT[3](), cx, cy);
+  faixa(x, t, F.bd, F.xB, cy);
   particulas(x, t, 42, fase(t, 1, 2), 37);
   flashes(x, t, cx, cy);
 }
 const CENAS = { 1: bloco1, 2: bloco2, 3: bloco3 };
 // pré-renderiza as camadas das vinhetas aos poucos (1 por quadro ocioso) p/ a 1ª vinheta não engasgar
-const AQUECER = [() => fundo(1), () => fundo(2), () => fundo(3), () => congresso(0), () => congresso(1), fitas, bandeira, mapa, logo3, painel2, placa3, cab2, logo1,
-  () => tituloCromo('BLOCO 1', 236, 'prata'), () => tituloCromo('BLOCO 2', 196, 'branco'), () => banda(1), () => banda(2), () => banda(3), cone, feixe, risco, estrela];
+const AQUECER = [() => fundo(1), () => fundo(2), () => fundo(3), () => congresso(0), () => congresso(1), fitas, bandeira, mapa, logo3, painel2, placa3,
+  TIT[1], TIT[2], () => fila(1), () => fila(2), () => fila(3), cone, feixe, risco, estrela];
 const aquecer = () => { if ((C.aq ??= 0) < AQUECER.length) AQUECER[C.aq++](); };
 
 // ---------- ocioso (loop ambiente, emendável nas bordas do tile) ----------
@@ -469,8 +474,8 @@ function ocioso(x, t) {
   fitaOnda(x, t, 400, 38, 50, 1, .32, 0, '#008f45', '#2fe08a', .6);
   fitaOnda(x, t, 444, 30, 26, 2, .27, 1.3, '#f2b600', '#ffe866', .55);
   fitaOnda(x, t, 470, 22, 6, 3, .4, 2.6, 'rgba(255,255,255,.4)', 'rgba(255,255,255,.9)', .5);
-  const lg = logoOc(), p = (t % 7) / 1.8, lw = Math.min(1500, lg.w), lh = lg.h * lw / lg.w;
-  alfa(x, .92, () => varre(x, lg, 1024 - lw / 2, 245 - lh / 2, p < 1 ? eInOut(p) : 0, .7, lw, lh));
+  const lg = logoOc(), p = (t % 7) / 1.8, lw = Math.min(Math.max(1500, PW * .7), lg.w), lh = lg.h * lw / lg.w;
+  alfa(x, .92, () => varre(x, lg, 1024 - lw / 2, 232 - lh / 2, p < 1 ? eInOut(p) : 0, .7, lw, lh));
   add(x, () => brilho(x, AZUL, 1024, 330, 700, .18 + .05 * Math.sin(t * 1.3), 40));
   particulas(x, t, 26, .8, 51);
   aquecer();
