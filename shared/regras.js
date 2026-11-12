@@ -410,7 +410,7 @@ export const AV = {
   generos: { masculino: 'Masculino', feminino: 'Feminino', nao_binario: 'Não binário' },
   roupas: { terno: 'Terno e gravata', terno_aberto: 'Terno sem gravata', blazer: 'Blazer', saia: 'Blazer e saia', social: 'Camisa social e gravata', colete: 'Colete', polo: 'Camisa polo', batina: 'Batina de padre', pastor: 'Terno com Bíblia' },
   coresRoupa: ['#1e2a4a', '#2b2f36', '#111111', '#6b7280', '#7f1d1d', '#a8a29e', '#14532d', '#f5f5f4', '#1d4ed8', '#7c2d12'],
-  coresCamisa: ['#ffffff', '#dbeafe', '#fce7f3', '#f1f5f9', '#fef3c7', '#111827'],
+  coresCamisa: ['#ffffff', '#93c5fd', '#f9a8d4', '#fde68a', '#86efac', '#c4b5fd', '#fca5a5', '#fdba74', '#9ca3af', '#2563eb', '#b91c1c', '#15803d', '#7f1d1d', '#111827'],
   coresGravata: ['#b91c1c', '#1d4ed8', '#15803d', '#ca8a04', '#6b21a8', '#111827', '#f97316', '#0f766e'],
 };
 const CABELOS_GEN = {
