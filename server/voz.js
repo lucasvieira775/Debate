@@ -352,7 +352,7 @@ export class Dublagem {
         body: JSON.stringify({ text: texto, model_id: EL_MODELO, voice_settings: EL_AJUSTE,
           // next_text começa por consoante e depois de uma pausa: com "é ..." o modelo emendava a vogal e o take vinha cortado no meio dela
           // nome (termina em vírgula): contexto de enumeração, para sair com entonação suspensa (de continuação), não de ponto final
-          ...(curto ? /,$/.test(texto) ? { previous_text: 'Boa noite, Brasil! Esta noite, frente a frente, estão:', next_text: 'Pedro Souza, Carla Lima, e Paulo Torres.' }
+          ...(curto ? /,$/.test(texto) ? { previous_text: 'Então, vamos lá! Nesta noite, frente a frente, estão:', next_text: 'Pedro Souza, Carla Lima, e Paulo Torres.' }
             : { previous_text: 'Boa noite, Brasil! Agora, com a palavra, o candidato', next_text: 'Você tem sessenta segundos para a sua resposta.' } : {}) }),
       });
       if (!r.ok) {
