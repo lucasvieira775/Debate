@@ -55,13 +55,15 @@ img.xz-av{object-fit:cover;background:#1d2a4a}
 .sc-form input{flex:1;min-width:0;background:#120a3a;border:2px solid var(--borda);border-radius:12px;color:#fff;padding:8px 12px;font:inherit;font-size:15px}
 .sc-form input:focus{outline:none;border-color:var(--amarelo)}
 .btn-xz{flex:none;cursor:pointer;border:1px solid #1d9bf0aa;background:#000;border-radius:999px;padding:2px 8px;line-height:1;transition:.15s}
-.btn-xz .xz-logo{font-size:11px}
+.btn-xz{display:inline-flex;align-items:center;justify-content:center;height:20px;box-sizing:border-box}
+.btn-xz .xz-logo{font-size:11px;line-height:1;display:block}
+.btn-xz .xz-logo::first-letter{font-size:1.3em;line-height:1}
 .btn-xz:hover{background:#1d9bf0;transform:scale(1.06)}
 .btn-xz:hover .xz-logo{color:#fff}
 .rank-tab .cand .btn-xz{margin-left:-4px}
 .rank-podio .bloco .nm{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0}
 .rank-podio .bloco .btn-xz{text-shadow:none}
-.rank-podio .bloco .btn-xz span{font-size:12px;line-height:1}
+.rank-podio .bloco .btn-xz span{font-size:12px;line-height:1;text-shadow:none}
 .rank-tab .cand .btn-xz{padding:2px 6px}
 .rank-abas{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
 .rank-abas .btn.on{background:#f5c518;color:#111}
