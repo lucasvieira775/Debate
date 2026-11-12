@@ -690,11 +690,34 @@ document.addEventListener('click', e => { const b = e.target.closest?.('[data-fp
     janelaFanpage(r.fp, { img: r.avatar ? ret(r.avatar) : '', partido: p ? `${p.sigla} ${p.numero}` : '' }); }); });
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const nomeMes = id => { const [a, m] = String(id || '').split('-'); return m ? `${MESES[+m - 1]} de ${a}` : ''; };
+// ---------- ícones/arte do ranking (SVG inline) ----------
+const svgI = (d, cls = 'ic') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`, F = 'fill="currentColor"', ESC = '#2a1a6e';
+const ICR = {
+  cal: svgI(`<rect x="3.5" y="5" width="17" height="15.5" rx="3" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M3.5 9.5h17M8 2.8v4M16 2.8v4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><g ${F}>${[7, 10.7, 14.4].flatMap(x => [12, 15.7].map(y => `<rect x="${x}" y="${y}" width="2.6" height="2.4" rx=".6"/>`)).join('')}</g>`),
+  trofeu: svgI(`<path ${F} d="M7 3h10v2h3.5v2.5A4.5 4.5 0 0 1 16.3 12 5.5 5.5 0 0 1 13 14.6V17h3v2.5H8V17h3v-2.4A5.5 5.5 0 0 1 7.7 12 4.5 4.5 0 0 1 3.5 7.5V5H7zM5.5 7v.5a2.5 2.5 0 0 0 1.6 2.3A9 9 0 0 1 7 7zm13 0H17a9 9 0 0 1-.1 2.8 2.5 2.5 0 0 0 1.6-2.3z"/><rect x="6.5" y="20" width="11" height="2" rx="1" ${F}/>`),
+  user: svgI(`<circle cx="12" cy="7.5" r="4.3" ${F}/><path d="M3.5 21a8.5 7.5 0 0 1 17 0z" ${F}/>`),
+  alvo: svgI(`<circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" ${F}/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5" stroke="currentColor" stroke-width="2"/>`),
+  controle: svgI(`<path ${F} d="M7 6h10a5 5 0 0 1 4.9 4l1 5.2a3 3 0 0 1-5.3 2.4L15.5 15h-7l-2.1 2.6a3 3 0 0 1-5.3-2.4l1-5.2A5 5 0 0 1 7 6z"/><path d="M7.5 8.8v4.4M5.3 11h4.4" stroke="${ESC}" stroke-width="1.8" stroke-linecap="round"/><circle cx="15.6" cy="9.8" r="1.25" fill="${ESC}"/><circle cx="17.9" cy="12.2" r="1.25" fill="${ESC}"/>`),
+  pasta: svgI(`<rect x="2.5" y="7" width="19" height="13" rx="2.5" ${F}/><path d="M9 7V5.2a1.7 1.7 0 0 1 1.7-1.7h2.6A1.7 1.7 0 0 1 15 5.2V7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="5.5" y="10.5" width="5" height="6" rx="1" fill="${ESC}"/><path d="M13 12h5.5M13 15h4" stroke="${ESC}" stroke-width="1.7"/>`),
+  barras: svgI(`<g ${F}><rect x="3" y="14" width="4" height="7" rx="1"/><rect x="10" y="9" width="4" height="12" rx="1"/><rect x="17" y="4" width="4" height="17" rx="1"/></g>`),
+  predio: svgI(`<path ${F} d="M12 2 2 7v2h20V7zM4 10.5h3v7H4zm6.5 0h3v7h-3zm6.5 0h3v7h-3zM2.5 19h19v2.5h-19z"/>`),
+};
+const CORES_LOURO = { ouro: ['#fff3a6', '#f5b70a', '#9a5b00'], prata: ['#ffffff', '#c3c6e6', '#6b6f9e'], bronze: ['#ffd9b8', '#d4844a', '#7c3f12'] };
+/** Ramo de louro (abre para a direita, como "("); espelhar com CSS para o lado direito. */
+function louroSVG(tipo = 'ouro', cls = 'louro') {
+  const [c1, c2, c3] = CORES_LOURO[tipo], g = 'gl' + tipo, cx = 58, cy = 52, r = 42, pt = t => [cx + r * Math.cos(t * Math.PI / 180), cy + r * Math.sin(t * Math.PI / 180)];
+  const folha = (t, lado) => { const [x, y] = pt(t), n = lado * 7, a = t * Math.PI / 180; return `<ellipse cx="${(x + n * Math.cos(a)).toFixed(1)}" cy="${(y + n * Math.sin(a)).toFixed(1)}" rx="9.5" ry="4.2" transform="rotate(${(t + 90 - lado * 35).toFixed(0)} ${(x + n * Math.cos(a)).toFixed(1)} ${(y + n * Math.sin(a)).toFixed(1)})"/>`; };
+  const ts = [100, 122, 144, 166, 188, 210, 232]; const [x0, y0] = pt(80), [x1, y1] = pt(252);
+  return `<svg class="${cls}" viewBox="0 0 64 104" aria-hidden="true"><defs><linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset=".55" stop-color="${c2}"/><stop offset="1" stop-color="${c3}"/></linearGradient></defs>
+    <g fill="url(#${g})" stroke="${c3}" stroke-width="1.2"><path d="M${x0.toFixed(1)} ${y0.toFixed(1)}A${r} ${r} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}" fill="none" stroke="${c2}" stroke-width="3" stroke-linecap="round"/>${ts.map(t => folha(t, 1) + folha(t + 9, -1)).join('')}<ellipse cx="${(x1 + 3).toFixed(1)}" cy="${(y1 - 5).toFixed(1)}" rx="4" ry="9" transform="rotate(30 ${(x1 + 3).toFixed(1)} ${(y1 - 5).toFixed(1)})"/></g></svg>`;
+}
+const COROA = `<svg class="coroa" viewBox="0 0 64 50" aria-hidden="true"><defs><linearGradient id="gcoroa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3a6"/><stop offset=".5" stop-color="#facc15"/><stop offset="1" stop-color="#c26a05"/></linearGradient></defs><g stroke="#7a4b00" stroke-width="2.4" stroke-linejoin="round" fill="url(#gcoroa)"><path d="M8 40 4 13l15 12L32 6l13 19 15-12-4 27z"/><rect x="7" y="38" width="50" height="9" rx="3"/><circle cx="32" cy="6" r="3.6"/><circle cx="4" cy="13" r="3.2"/><circle cx="60" cy="13" r="3.2"/></g><circle cx="32" cy="30" r="4" fill="#ef4444" stroke="#7a1010" stroke-width="1.2"/><circle cx="19" cy="32" r="2.8" fill="#60a5fa"/><circle cx="45" cy="32" r="2.8" fill="#4ade80"/></svg>`;
+const CONGRESSO = `<svg class="rank-congresso" viewBox="0 0 230 92" aria-hidden="true"><defs><linearGradient id="gcong" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c4b8ff"/><stop offset="1" stop-color="#7b6be6"/></linearGradient></defs><g fill="url(#gcong)"><rect x="104" y="6" width="11" height="70" rx="1"/><rect x="120" y="6" width="11" height="70" rx="1"/><rect x="104" y="36" width="27" height="4"/><path d="M28 72a28 15 0 0 1 56 0z"/><path d="M150 54h72a36 15 0 0 1-72 0z"/><rect x="182" y="64" width="8" height="10"/><rect x="0" y="72" width="230" height="5" rx="2"/><rect x="14" y="79" width="206" height="3" rx="1.5" opacity=".6"/></g></svg>`;
 function telaRanking(ui) {
   const per = E.rankPer ||= 'semana';
-  ui.innerHTML = `<div class="tela">${topo('')}<div class="painel scroll rank-card">
-    <div class="rank-tit"><span class="louro">🌿</span><div><h2>RANKING</h2><div class="estrelas">★ ★ ★ ★</div></div><span class="louro dir">🌿</span></div>
-    <div class="rank-abas">${[['semana', '📅', 'Semanal'], ['mes', '🗓', 'Mensal'], ['geral', '🏆', 'Geral']].map(([k, ic, t]) => `<button class="${k === per ? 'on' : ''}" data-per="${k}"><i>${ic}</i>${t}</button>`).join('')}</div>
+  ui.innerHTML = `<div class="tela">${topo('')}<div class="painel scroll rank-card">${CONGRESSO}
+    <div class="rank-tit">${louroSVG('ouro')}<div><h2>RANKING</h2><div class="estrelas"><i></i>${'<b>★</b>'.repeat(4)}<i></i></div></div>${louroSVG('ouro', 'louro dir')}</div>
+    <div class="rank-abas">${[['semana', 'cal', 'Semanal'], ['mes', 'cal', 'Mensal'], ['geral', 'trofeu', 'Geral']].map(([k, ic, t]) => `<button class="${k === per ? 'on' : ''}" data-per="${k}">${ICR[ic]}${t}</button>`).join('')}</div>
     <div class="rank-info"><span class="i">i</span><p id="rank-info"></p></div><div id="rank"><p class="mut" style="text-align:center">Carregando…</p></div></div></div>`;
   ligarIr(ui);
   $$('[data-per]', ui).forEach(b => b.onclick = () => { E.rankPer = b.dataset.per; sfx.clique(); renderUI(); });
@@ -702,16 +725,17 @@ function telaRanking(ui) {
     const el = $('#rank'); if (!el || E.rankPer !== per) return;
     const lista = Array.isArray(d) ? d : d?.lista || [];
     const fimSem = d?.id && per === 'semana' ? new Date(new Date(d.id + 'T00:00').getTime() + 6 * 864e5).toLocaleDateString('pt-BR') : '';
-    $('#rank-info').innerHTML = per === 'semana' ? `Semana até ${fimSem} (domingo). O 1º lugar ganha <b>🪙 ${fmtN(d?.premioSemanal || 0)}</b> e o título de melhor candidato da semana na Xzona.`
-      : per === 'mes' ? `Ranking de ${esc(nomeMes(d?.id))}. O 1º lugar ganha <b>🪙 ${fmtN(d?.premio || 0)}</b>, fica em destaque no menu inicial e ganha o título de melhor candidato do mês na Xzona.`
+    $('#rank-info').innerHTML = per === 'semana' ? `<u>Semana</u> até ${fimSem} (domingo). O 1º lugar ganha <b>🪙 ${fmtN(d?.premioSemanal || 0)} moedas</b> e o título de melhor candidato(a) da semana na Xzona.`
+      : per === 'mes' ? `Ranking de <u>${esc(nomeMes(d?.id))}</u>. O 1º lugar ganha <b>🪙 ${fmtN(d?.premio || 0)} moedas</b>, fica em destaque no menu inicial e ganha o título de melhor candidato(a) do mês na Xzona.`
       : 'Pontuação acumulada de todos os tempos.';
     if (!lista.length) { el.innerHTML = '<p class="mut">Ninguém pontuou ainda neste período. Jogue uma partida para entrar no ranking!</p>'; return; }
     const img = r => r.avatar ? ret(r.avatar) : '';
     const top = [[lista[1], 2, 'prata'], [lista[0], 1, 'ouro'], [lista[2], 3, 'bronze']];
     const cargo = r => r.nivel ? CARGOS[r.nivel - 1].nome : '—', sigla = r => r.partido && PARTIDO[r.partido] ? PARTIDO[r.partido].sigla : '—';
-    el.innerHTML = `<div class="rank-podio">${top.map(([r, n, c]) => r ? `<div class="lugar ${c}">${n === 1 ? '<span class="coroa">👑</span>' : ''}<div class="foto"><img src="${img(r)}"><span class="med">${n}º</span></div><div class="bloco"><b>${htmlBrasao(r.nivel, 18)}${esc(r.nome)}</b><span>${fmtN(r.pts)} <small>pts</small></span>${btnXz(r.fp)}</div></div>` : '').join('')}</div>
-      <div class="rank-tab"><div class="cab"><span>#</span><span>👤 Candidato(a)</span><span>🏛 Cargo</span><span>🎮 Partidas</span><span>🏆 Vitórias</span><span>Sigla</span><span>📊 Pontuação</span></div>
-      ${lista.map((r, i) => `<div class="lin ${['ouro', 'prata', 'bronze'][i] || ''}"><span class="pos">${i + 1}º</span><span class="cand"><img src="${img(r)}"><b>${esc(r.nome)}</b>${btnXz(r.fp)}</span><span class="cargo">${htmlBrasao(r.nivel, 22)}${cargo(r)}</span><span>${r.partidas}</span><span>${r.vitorias}</span><span><em class="sig">${sigla(r)}</em></span><span><em class="pts">${fmtN(r.pts)} <small>pts</small></em></span></div>`).join('')}</div>`;
+    const fp = r => r.fp ? ` data-fpu="${esc(r.fp)}" title="Ver página na Xzona"` : ''; // clicar no candidato abre a fanpage
+    el.innerHTML = `<div class="rank-podio">${top.map(([r, n, c]) => r ? `<div class="lugar ${c}${r.fp ? ' clic' : ''}"${fp(r)}><div class="foto">${n === 1 ? COROA : ''}${louroSVG(c, 'louro')}${louroSVG(c, 'louro dir')}<img src="${img(r)}"><span class="med">${n}º</span></div><div class="bloco"><b>${esc(r.nome)}</b><span>${fmtN(r.pts)} <small>pts</small></span></div></div>` : '').join('')}</div>
+      <div class="rank-tab"><div class="cab"><span>#</span><span>${ICR.user}Candidato(a)</span><span>${ICR.alvo}Cargo</span><span>${ICR.controle}Partidas</span><span>${ICR.trofeu}Vitórias</span><span>${ICR.pasta}Sigla</span><span>${ICR.barras}Pontuação</span></div>
+      ${lista.map((r, i) => `<div class="lin ${['ouro', 'prata', 'bronze'][i] || ''}"><span><em class="pos">${i + 1}º</em></span><span class="cand${r.fp ? ' clic' : ''}"${fp(r)}><img src="${img(r)}"><b>${esc(r.nome)}</b></span><span class="cargo">${ICR.predio}${cargo(r)}</span><span>${ICR.controle}${r.partidas}</span><span class="vit">${ICR.trofeu}${r.vitorias}</span><span><em class="sig">${sigla(r)}</em></span><span><em class="pts">${fmtN(r.pts)} <small>pts</small></em></span></div>`).join('')}</div>`;
   });
 }
 function telaConfig(ui) {
