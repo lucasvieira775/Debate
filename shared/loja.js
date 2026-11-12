@@ -71,5 +71,5 @@ export const ITEM = Object.fromEntries(ITENS.map(i => [i.id, i]));
 // TESTES: tudo liberado (ações, roupas, danças...). VOLTAR PARA false AO HOSPEDAR (junto com MOEDAS_TESTE em server/contas.js).
 export const TUDO_LIBERADO = true;
 export const GRATIS = ITENS.filter(i => TUDO_LIBERADO || i.preco === 0).map(i => i.id);
-// Ações: depois de usar uma, espera 5 min para usar outra; cada ação só pode ser usada uma vez por debate.
-export const ACAO_ESPERA_MS = 5 * 60000;
+// Ações: depois de usar uma, espera 3 min para usar outra; cada ação só pode ser usada uma vez por debate.
+export const ACAO_ESPERA_MS = 3 * 60000;

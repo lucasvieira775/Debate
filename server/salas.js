@@ -829,9 +829,9 @@ class Sala {
   emote(j, item) {
     const it = ITEM[item]; if (!it || !j) return 'Item inválido.';
     if (!j.bot && !this.mgr.contas.tem(this.conta(j), item)) return 'Você não tem esse item.';
-    // limite: emotes, danças e provocações — 1 min entre usos (cada tipo)
-    const k = 'ult_' + it.tipo, espera = 60000 - (Date.now() - (j[k] || 0));
-    if (espera > 0) return `Aguarde ${Math.ceil(espera / 1000)} s para ${it.tipo === 'danca' ? 'dançar' : it.tipo === 'provocacao' ? 'provocar' : 'usar um emote'} de novo.`;
+    // limite: emotes e danças — 1 min entre usos (cada tipo); provocações (com som) — 3 min
+    const k = 'ult_' + it.tipo, espera = (it.tipo === 'provocacao' ? 180000 : 60000) - (Date.now() - (j[k] || 0)), sEsp = Math.ceil(espera / 1000);
+    if (espera > 0) return `Aguarde ${sEsp >= 60 ? `${sEsp / 60 | 0}:${String(sEsp % 60).padStart(2, '0')}` : sEsp + ' s'} para ${it.tipo === 'danca' ? 'dançar' : it.tipo === 'provocacao' ? 'provocar' : 'usar um emote'} de novo.`;
     j[k] = Date.now();
     this.io.to(this.code).emit('emote', { id: j.id, item });
   }
@@ -844,7 +844,7 @@ class Sala {
     if (!alvo || alvo === j || alvo.banido || alvo.saiu) return 'Escolha um adversário.';
     if (j.banido || j.saiu) return 'Você está fora do debate.';
     if ((j.acoes ||= new Set()).has(it.id)) return `Você já usou "${it.nome}" neste debate.`;
-    // espera de 5 min por conta (uid), não por sala: sair e entrar em outra sala não zera
+    // espera de 3 min por conta (uid), não por sala: sair e entrar em outra sala não zera
     const ults = this.mgr.ultAcao ||= new Map(), chave = j.uid || j.id;
     const espera = ACAO_ESPERA_MS - (Date.now() - Math.max(j.ultAcao || 0, ults.get(chave) || 0)), sEsp = Math.ceil(espera / 1000);
     if (espera > 0) return `Aguarde ${sEsp / 60 | 0}:${String(sEsp % 60).padStart(2, '0')} para usar outra ação.`;

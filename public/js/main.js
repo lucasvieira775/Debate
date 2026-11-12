@@ -214,9 +214,9 @@ socket.on('ganhos', g => { avisoGanhos(g); sfx.nota();
   if (g.xp?.depois > g.xp?.antes) setTimeout(() => { const c = CARGOS[g.xp.depois - 1]; animarPromocao({ n: c.n, nome: c.nome, recompensa: g.xp.premio || 0, bonus: c.bonus }); }, 2500); });
 socket.on('xzona', post => { if (emJogo()) postXzona(post); });
 socket.on('folheando', d => { est.folhear(d.id); if (d.id !== E.eu) sfx.clique(); });
-// mediação ou candidato falando: emotes, danças e provocações ficam mudos (só a animação)
+// mediação ou candidato falando: emotes e danças ficam mudos (só a animação); provocações tocam o som sempre (3 min de espera)
 const alguemFalando = () => !!(est.medFalando || narrador.tocando || ['ativo', 'encerrando'].includes(E.sala?.fala?.status));
-socket.on('emote', d => { const it = ITEM[d.item]; if (!it) return; est.emote(d.id, it); if (alguemFalando()) return; if (it.tipo === 'provocacao') { somItem(it.id, sfx.vaia); est.agitarPlateia(.5, 1500); } else if (it.tipo !== 'danca') somItem(it.id, sfx.clique); }); // dança no debate é muda: som só na comemoração
+socket.on('emote', d => { const it = ITEM[d.item]; if (!it) return; est.emote(d.id, it); if (it.tipo === 'provocacao') { somItem(it.id, sfx.vaia); est.agitarPlateia(.5, 1500); } else if (alguemFalando()) return; else if (it.tipo !== 'danca') somItem(it.id, sfx.clique); }); // dança no debate é muda: som só na comemoração
 socket.on('advertencia', d => {
   anunciar(`⚠ ${d.nome.toUpperCase()} ADVERTIDO(A) · ${d.n}/${d.max}`); sfx.martelo();
   toast(`${d.id === E.eu ? 'Você recebeu' : d.nome + ' recebeu'} ${d.dupla ? '2 advertências' : 'uma advertência'} da moderação: ${d.motivo} (${d.n}/${d.max}).${d.id === E.eu && d.n === d.max - 1 ? ' Mais uma e você está fora!' : ''}`, 'erro');
@@ -969,7 +969,7 @@ function renderHUD() {
       const bt = (i, at) => `<button ${at}="${i.id}" class="${tem(i.id) ? '' : 'bloq'}${E.acoesUsadas?.has(i.id) ? ' usada' : ''}" title="${esc(i.nome)}${tem(i.id) ? '' : ' (compre na loja)'}"><span>${i.emoji}</span><small>${esc(i.nome)}</small>${tem(i.id) ? '' : `<span class="em-preco">🔒 ${fmtN(i.preco)}</span>`}</button>`;
       const espera = Math.max(0, ACAO_ESPERA_MS - (Date.now() - (E.ultAcao || 0))), sEsp = Math.ceil(espera / 1000), mmss = `${sEsp / 60 | 0}:${String(sEsp % 60).padStart(2, '0')}`;
       const lista = ITENS.filter(i => i.tipo === aba).sort((a, b) => tem(b.id) - tem(a.id) || a.preco - b.preco), meus = lista.filter(i => tem(i.id)).length;
-      const info = aba === 'acao' ? (espera ? `⏳ próxima em ${mmss}` : '1× por debate') : aba === 'danca' ? 'também na vitória' : '';
+      const info = aba === 'acao' ? (espera ? `⏳ próxima em ${mmss}` : '1× por debate') : aba === 'danca' ? 'também na vitória' : aba === 'provocacao' ? 'com som · 3 min de espera' : '';
       p.innerHTML = `<div class="em-abas">${EM_ABAS.map(([k, e, n]) => `<button data-aba="${k}" class="${k === aba ? 'ativa' : ''}">${e}<small>${n}</small></button>`).join('')}</div>
         <div class="em-sub"><span>${meus}/${lista.length} liberados</span><span class="mut">${info}</span></div>
         <div class="em-grade">${lista.map(i => bt(i, aba === 'acao' ? 'data-ac' : 'data-em')).join('') || '<div class="em-vazio">Nada aqui ainda.</div>'}</div>`;
