@@ -19,7 +19,7 @@ function m(g, mt, x = 0, y = 0, z = 0, parent) {
   const me = new THREE.Mesh(g, mt); me.position.set(x, y, z); me.castShadow = true; me.receiveShadow = true;
   if (parent) parent.add(me); return me;
 }
-function tom(hex, f) { const c = new THREE.Color(hex); const hsl = {}; c.getHSL(hsl); c.setHSL(hsl.h, hsl.s, Math.max(0, Math.min(1, hsl.l + f))); return '#' + c.getHexString(); }
+function tom(hex, f) { const c = new THREE.Color(hex); const hsl = {}; c.getHSL(hsl, THREE.SRGBColorSpace); c.setHSL(hsl.h, hsl.s, Math.max(Math.min(hsl.l, .06), Math.min(1, hsl.l + f)), THREE.SRGBColorSpace); return '#' + c.getHexString(); } // HSL em sRGB (em linear, tons escuros zeravam)
 const _qA = new THREE.Quaternion(), _qB = new THREE.Quaternion();
 const _qY = new THREE.Quaternion(), _eixoY = new THREE.Vector3(0, 1, 0);
 const esfera = r => geo('s' + r, () => new THREE.SphereGeometry(r, 18, 14));
@@ -137,12 +137,13 @@ export class Avatar {
     if (c.roupa === 'polo') { vShape(.12, .14, tom(roupaCor, -.1), frente + .002); for (const s of [-1, 1]) { const g = m(rbox(.12, .05, .03, .01), mat(tom(roupaCor, .05)), s * .07, .76, frente - .01, this.torso); g.rotation.z = s * .3; } }
     if (c.roupa === 'social') m(rbox(.1, .08, .01, .005), mat(tom(camisaCor, -.06)), -W * .25, .55, frente + .002, this.torso);
     if (c.broche === 'coxinha') { // broche de coxinha: gota dourado-alaranjada
-      const g = new THREE.Group(); g.position.set(W * .24, .6, frente + .02); this.torso.add(g);
-      const massa = mat('#d9822b', { r: .6, m: .1 });
-      m(geo('coxBase', () => new THREE.SphereGeometry(.026, 14, 10)), massa, 0, -.012, 0, g);
-      m(geo('coxPonta', () => new THREE.ConeGeometry(.024, .05, 14)), massa, 0, .022, 0, g);
+      const g = new THREE.Group(); g.position.set(W * .24, .6, frente + .025); g.scale.setScalar(1.5); this.torso.add(g);
+      const massa = mat('#c8741f', { r: .7, m: .05 }), emp = mat('#e9a54a', { r: .8 });
+      m(geo('coxBase', () => new THREE.SphereGeometry(.026, 14, 10)), massa, 0, -.012, 0, g).scale.set(1.15, .85, .8);
+      m(geo('coxPonta', () => new THREE.ConeGeometry(.026, .038, 14)), massa, 0, .016, 0, g);
+      [[-.012, -.016], [.01, -.006], [.002, -.026], [-.004, .008], [.014, -.022]].forEach(([x, y]) => m(esfera(.0045), emp, x, y, .019, g)); // empanado
     } else if (c.broche === 'fritas') { // broche de batata frita: caixinha vermelha com palitos amarelos
-      const g = new THREE.Group(); g.position.set(W * .24, .6, frente + .016); this.torso.add(g);
+      const g = new THREE.Group(); g.position.set(W * .24, .6, frente + .018); g.scale.setScalar(1.3); this.torso.add(g);
       m(rbox(.05, .045, .016, .005), mat('#dc2626', { r: .5 }), 0, -.012, 0, g);
       const bat = mat('#facc15', { r: .6 });
       [-.016, -.006, .004, .014].forEach((x, i) => { const p = m(rbox(.008, .045, .008, .002), bat, x, .018 + (i % 2) * .006, -.002, g); p.rotation.z = (i - 1.5) * .12; });
@@ -276,7 +277,7 @@ export class Avatar {
   }
   cabelo(H, c) {
     const mc = mat(c.corCabelo, { r: .8 });
-    const topo = () => m(rbox(.54, .17, .52, .08), mc, 0, .55, -.005, H);
+    const topo = () => c.chapeu === 'bone' ? null : m(rbox(.54, .17, .52, .08), mc, 0, .55, -.005, H); // sob o boné o topo atravessaria o domo
     const nuca = (alt = .3) => m(rbox(.53, alt, .13, .06), mc, 0, .52 - alt / 2, -.2, H);
     const costeletas = () => { for (const s of [-1, 1]) m(rbox(.04, .14, .12, .015), mc, s * .255, .38, -.03, H); };
     switch (c.cabelo) {
@@ -426,7 +427,7 @@ export class Avatar {
     }
     if (c.chapeu === 'bone') {
       const cor = mat(c.corGravata, { r: .8 });
-      const d = m(geo('domo', () => new THREE.SphereGeometry(.285, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2)), cor, 0, .52, -.01, H); d.scale.set(1, .62, 1);
+      const d = m(geo('domo', () => new THREE.SphereGeometry(.3, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2)), cor, 0, .52, -.01, H); d.scale.set(1.05, .7, 1.05);
       m(rbox(.32, .025, .22, .01), cor, 0, .53, .31, H);
     } else if (c.chapeu === 'chapeu') {
       const palha = mat('#d8b46a', { r: .9 });
