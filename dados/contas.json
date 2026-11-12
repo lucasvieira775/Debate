@@ -1153,7 +1153,11 @@
    "criadaEm": 1794455512243,
    "posts": []
   },
-  "danca": "robo"
+  "danca": "robo",
+  "abandonos": [
+   1794458488003
+  ],
+  "xp": 0
  },
  "ac37aa90-8eae-4162-aefc-0f6efc6239d1": {
   "uid": "ac37aa90-8eae-4162-aefc-0f6efc6239d1",

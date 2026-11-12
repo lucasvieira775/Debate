@@ -472,6 +472,7 @@ window.__testeRevelacao = (nome = 'Fulano de Tal', partido = E.perfil.partido ||
 function celebrar(on) { clearTimeout(E.celebrarT); E.celebrar = on; if (on) E.celebrarT = setTimeout(() => celebrar(false), 15000); ajustarCamera(); E.resKey = ''; renderResultado(); }
 function aoNovoPasso(s) {
   const p = s.passo; if (!p) return;
+  if (p.tipo === 'vinheta') est.vinheta(p.bloco, Math.max(0, s.agora - (p.t0 || s.agora))); // vinheta do bloco no telão curvo, sincronizada pelo relógio do servidor
   if (p.tipo === 'intro') { anunciar(p.t2 ? (p.etapa === 2 ? '2º TURNO' : 'CONSIDERAÇÕES FINAIS') : `BLOCO ${p.etapa}`); if (p.etapa === 1) { sfx.aplausos(3, .3); est.festejarPlateia(3500); } }
   if (p.tipo === 'fala' && p.falante === E.eu) { setTimeout(() => { anunciar('SUA VEZ!'); sfx.vez(); }, s.roleta ? 2400 : 300); }
   if (p.tipo === 'escolha' && p.falante === E.eu) { anunciar('ESCOLHA SEU ADVERSÁRIO'); sfx.vez(); }
@@ -1300,6 +1301,7 @@ function ledDoEstado() {
   }
   const p = s.passo, f = s.fala; if (!p) return { modo: 'titulo' };
   const nome = id => jog(id)?.nome || '';
+  if (p.tipo === 'vinheta') return { modo: 'titulo', sub: `BLOCO ${p.bloco} · ${ETAPAS[p.etapa - 1].toUpperCase()}` };
   if (p.tipo === 'cumprimento') return { modo: 'texto', cabecalho: 'CUMPRIMENTOS', texto: 'Os candidatos se cumprimentam · o debate já vai começar' };
   if (p.tipo === 'intro') return { modo: 'titulo', sub: p.t2 ? `2º TURNO · ${p.etapa === 2 ? 'CONFRONTO DIRETO · TEMA LIVRE' : ETAPAS[p.etapa - 1].toUpperCase()}` : `BLOCO ${p.etapa} · ${ETAPAS[p.etapa - 1].toUpperCase()}` };
   if (p.tipo === 'pesquisa') return { modo: 'poll', titulo: p.titulo.toUpperCase(), lista: p.poll.map(x => ({ nome: nome(x.id), partido: jog(x.id)?.partido, pct: x.pct })), rodape: 'VOTOS VÁLIDOS · MARGEM DE ERRO DE 2 P.P.' };

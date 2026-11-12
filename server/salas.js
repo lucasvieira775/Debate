@@ -5,6 +5,7 @@ import {
   PARTIDO, PARTIDOS, AV, SEGUNDOS, DUR_MULT, TEMA, analisar, aplicar, apurar, novoStats, perf, percebida, contarConfronto,
   rotuloPos, sortearTema, shuffle, pick, avatarAleatorio, generoDe, DIFICULDADES, JORNALISTAS, alvosValidos, registrarAcao,
 } from '../shared/regras.js';
+const VINHETA_MS = 5600; // vinheta de abertura de cada bloco no telão curvo (cliente: public/js/vinhetas.js, ~5 s)
 const PULPITO_MS = 10000; // a produção leva ~8 s empurrando o púlpito do confronto até o centro (cliente: PULP_EMPURRA)
 const TEMPO_EXTRA_MS = 15000; // vítima de agressão durante a própria fala ganha +15 s
 const VAIA_AGRESSOR = .4; // nota a menos na próxima fala de quem agrediu (a plateia vaia)
@@ -175,7 +176,7 @@ class Sala {
       jogadores: this.jog.map(j => ({ id: j.id, nome: j.nome, avatar: j.avatar, partido: j.partido, pronto: j.pronto, conectado: j.conectado, slot: j.slot, bot: !!j.bot, dif: j.dif,
         banido: !!j.banido, saiu: !!j.saiu, ausenteAte: j.ausenteAte || null, adv: j.advertencias || 0, nota: this.fase !== 'lobby' && j.st.nFalas ? perf(j.st) : null, fanpage: j.bot ? null : this.mgr.contas.resumoFanpage(this.conta(j)), nivel: j.bot ? 0 : this.mgr.contas.nivel(this.conta(j)) })),
       i: this.i, total: this.fila.length,
-      passo: p && { tipo: p.tipo, etapa: p.etapa, t2: p.t2, kind: p.kind, falante: p.falante, alvo: p.alvo, tema: p.tema, segundos: p.segundos, titulo: p.titulo, poll: p.poll, escolhido: p.escolhido,
+      passo: p && { tipo: p.tipo, etapa: p.etapa, bloco: p.bloco, t0: p.t0, t2: p.t2, kind: p.kind, falante: p.falante, alvo: p.alvo, tema: p.tema, segundos: p.segundos, titulo: p.titulo, poll: p.poll, escolhido: p.escolhido,
         elegiveis: p.tipo === 'escolha' && !p.escolhido ? this.elegiveis(p) : undefined },
       duelo: this.duelo && { a: this.duelo.a, b: this.duelo.b, fase: this.duelo.fase }, pular: this.pularInfo(),
       fala: this.fala, temaAtual: this.temaAtual, roleta: this.roleta, autoEm: this.autoEm, textoJ: this.textoJ, narr: this.narr, perguntas: this.perguntas,
@@ -343,11 +344,14 @@ class Sala {
     this.jorn = pick(JORNALISTAS);
     // a mediação se apresenta e convida os candidatos a se cumprimentarem; depois apresenta os candidatos e abre o 1º bloco
     const f = [{ tipo: 'cumprimento', etapa: 1, partes: N.abertura(this.jorn) }];
+    f.push({ tipo: 'vinheta', etapa: 1, bloco: 1 });
     f.push({ tipo: 'intro', etapa: 1, partes: N.intro(ids.map(nome)) });
     ids.forEach(id => f.push({ tipo: 'fala', etapa: 1, kind: 'proposta', falante: id, tema: sortearTema(this.usados), var: sortearVariacao() }));
     // (sem pesquisas entre os blocos: a intenção de voto só aparece na apuração ao vivo, no fim)
+    f.push({ tipo: 'vinheta', etapa: 2, bloco: 2 });
     f.push({ tipo: 'intro', etapa: 2, partes: N.bloco2() });
     ids.forEach(id => f.push({ tipo: 'escolha', etapa: 2, falante: id }));
+    f.push({ tipo: 'vinheta', etapa: 3, bloco: 3 });
     f.push({ tipo: 'intro', etapa: 3, partes: N.bloco3() });
     shuffle(ids.slice()).forEach(id => f.push({ tipo: 'fala', etapa: 3, kind: 'final', falante: id, var: sortearVariacao() }));
     f.forEach(p => { if (p.tipo === 'fala') p.segundos = this.seg(p.kind); });
@@ -369,6 +373,7 @@ class Sala {
     this.fala = null; this.roleta = null; this.autoEm = null;
     const nome = id => this.porId(id)?.nome || '';
     if (p.tipo === 'cumprimento') { this.temaAtual = null; this.narrar(p.partes, ms => this.later(ms + 300, () => { this.auto(SEGUNDOS.cumprimento * 1000); this.emit(); })); } // contador só começa quando a mediação termina de falar
+    else if (p.tipo === 'vinheta') { this.temaAtual = null; p.t0 = Date.now(); this.auto(VINHETA_MS); } // vinheta do bloco no telão curvo (sincronizada por t0)
     else if (p.tipo === 'intro') { this.temaAtual = null; this.narrar(p.partes, ms => this.auto(Math.max(ms + 1200, p.etapa === 2 ? PULPITO_MS : 0))); } // bloco 2: dá tempo da produção trazer o púlpito
     else if (p.tipo === 'pesquisa') {
       this.temaAtual = null; p.poll = apurar(this.emAtivo(), .25, false, this.abst).res;
