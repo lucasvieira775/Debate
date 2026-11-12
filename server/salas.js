@@ -927,7 +927,7 @@ export class Salas {
     // falas fixas dos jornalistas e gritos da plateia: gerados aos poucos (baixa prioridade) e guardados em disco.
     // Se a cota acabar (plano gratuito), os pedidos param sozinhos e o jogo usa a voz do navegador.
     for (const jn of JORNALISTAS) for (const t of trechosFixos(jn)) this.dub.sintetizar(t, jn.voz, 'baixa');
-    // os 54 temas (com e sem a pergunta) nas duas vozes: depois de gerados, as falas de tema não dependem mais da API
+    // os temas estaduais e nacionais (com e sem a pergunta) nas duas vozes: depois de gerados, as falas de tema não dependem mais da API
     // (no ElevenLabs os temas não são pré-gerados, para poupar a cota de caracteres: saem na hora e ficam guardados)
     for (const t of trechosTemas()) for (const jn of JORNALISTAS) if (!this.dub.eleven(jn.voz)) this.dub.sintetizar(t, jn.voz, 'baixa');
     for (const [t, v] of Object.values(CORO).flat().flatMap(formasGrito).flatMap(t => VOZES_CORO.map(v => [t, v]))) this.dub.sintetizar(t, v, 'media', false, OPC_PLATEIA);
