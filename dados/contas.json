@@ -1819,7 +1819,7 @@
    "nome": "Mirian Leitão",
    "user": "mirianleite",
    "bio": "Sou ladrona!!!",
-   "seguidores": 128,
+   "seguidores": 109,
    "criadaEm": 1794495954515,
    "posts": [
     {
@@ -2177,5 +2177,85 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794507444248
+ },
+ "350768db-62e7-4d9f-a146-599624355755": {
+  "uid": "350768db-62e7-4d9f-a146-599624355755",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794507700438
+ },
+ "f6c24800-4a35-48a7-9e51-9b6163142d2a": {
+  "uid": "f6c24800-4a35-48a7-9e51-9b6163142d2a",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794507726847
+ },
+ "b716da3f-3b8b-4b90-bc89-38806a390c6c": {
+  "uid": "b716da3f-3b8b-4b90-bc89-38806a390c6c",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794507753017
+ },
+ "6e720824-d118-4cf6-af43-48594e0709e7": {
+  "uid": "6e720824-d118-4cf6-af43-48594e0709e7",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794507779176
+ },
+ "9d120105-d6a0-48c3-9f7b-2c84bfa7022a": {
+  "uid": "9d120105-d6a0-48c3-9f7b-2c84bfa7022a",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794507843501
+ },
+ "26bd85a9-9841-4273-8a80-f2f4f41d0b7e": {
+  "uid": "26bd85a9-9841-4273-8a80-f2f4f41d0b7e",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794507871289
+ },
+ "12e24c20-fd3c-4e4b-9881-3ac5d92036cd": {
+  "uid": "12e24c20-fd3c-4e4b-9881-3ac5d92036cd",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794507902246
+ },
+ "4b272bd1-24d9-4271-a07a-8950046352c4": {
+  "uid": "4b272bd1-24d9-4271-a07a-8950046352c4",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794507927669
+ },
+ "48da7ebe-62ab-49fb-8524-668c1b5ea372": {
+  "uid": "48da7ebe-62ab-49fb-8524-668c1b5ea372",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794507953590
+ },
+ "d8a66277-3eeb-494a-8cd5-6863ccef210f": {
+  "uid": "d8a66277-3eeb-494a-8cd5-6863ccef210f",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794507998891
  }
 }

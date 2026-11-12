@@ -864,7 +864,10 @@ const bloqueio = (campo, valor) => { const ids = itensDe(campo, valor), nv = niv
 const SEM = { oculos: 'nenhum', chapeu: 'nenhum', extra: 'nenhum' };
 const MINI = { oculos: [{ chapeu: 'nenhum', extra: 'nenhum' }, 'rosto'], chapeu: [{ oculos: 'nenhum', extra: 'nenhum' }, 'cabeca'], cabelo: [{ chapeu: 'nenhum' }, 'cabeca'],
   barba: [SEM, 'rosto'], extra: [{ chapeu: 'nenhum', oculos: 'nenhum' }, v => ['charuto', 'nariz'].includes(v) ? 'rosto' : 'busto'] };
-const retOpc = (a, campo, v) => { const [tira, foco] = MINI[campo] || [{}, 'rosto']; return retrato({ ...a, ...tira, [campo]: v }, null, typeof foco === 'function' ? foco(v) : foco); };
+const lum = h => { const n = parseInt(String(h).slice(1), 16) || 0; return ((n >> 16) * .3 + (n >> 8 & 255) * .59 + (n & 255) * .11) / 255; };
+const retOpc = (a, campo, v) => { const [tira, foco] = MINI[campo] || [{}, 'rosto'];
+  const contraste = campo === 'barba' && Math.abs(lum(a.corCabelo) - lum(a.pele)) < .25 ? { corCabelo: lum(a.pele) > .5 ? '#3b2a1e' : '#d6c3a5' } : {}; // barba da cor da pele sumia na miniatura
+  return retrato({ ...a, ...tira, ...contraste, [campo]: v }, null, typeof foco === 'function' ? foco(v) : foco); };
 const ICONE_ROUPA = { terno: '🤵', terno_aberto: '🧥', blazer: '💼', saia: '👗', social: '👔', colete: '🦺', polo: '👕', batina: '⛪', pastor: '📖' };
 /** O que a prova veste por cima do avatar salvo (conjunto = peça inteira; acessório = só o campo). */
 const provaAv = p => p.it.tipo === 'conjunto' ? { ...p.it.av, ...p.it.cores } : { [p.campo]: p.valor };
@@ -938,7 +941,7 @@ function renderPersConteudo() {
   const trava = pv?.it.travaNivel; // só prova: o cargo exigido ainda não foi alcançado
   if (pv) h = `<div class="prova"><div class="prova-txt">👀 Provando: <b>${pv.it.emoji} ${esc(pv.it.nome)}</b> · ${trava ? `🔒 Nível ${trava}<small>Disponível quando você chegar a ${trava}.</small>` : `🪙 ${pv.it.preco}`}${pv.it.tipo === 'conjunto' ? `<small>Este item é parte do ${esc(pv.it.nome)}: a compra inclui todas as peças.</small>` : ''}</div>
     <button class="btn peq" id="pv-x">↺ Desfazer</button>${trava ? '' : '<button class="btn peq amarelo" id="pv-ok">🛒 Comprar</button>'}</div>` + h;
-  el.innerHTML = h;
+  el.innerHTML = h; if (E.demoRolar) el.scrollTop = E.demoRolar; // ?demo=vitrine&rolar=N
   if (pv) { $('#pv-x', el).onclick = () => { sfx.clique(); desfazerProva(); reRenderPers(); }; if (!trava) $('#pv-ok', el).onclick = comprarProva; }
   $('#prova-av')?.remove(); // botão de compra embaixo do avatar enquanto prova
   if (pv && !trava) { const b = sobAvatar(`<button class="btn amarelo" data-ok>🛒 Comprar ${esc(pv.it.nome)} · 🪙 ${fmtN(pv.it.preco)}</button>`, 'prova-av'); $('[data-ok]', b).onclick = comprarProva; }
@@ -1457,7 +1460,7 @@ window.__debate = { E, est, socket };
 // modo de demonstração visual: ?demo=fp | ?demo=lado | ?demo=vitrine
 const demo = new URLSearchParams(location.search).get('demo');
 if (demo) setTimeout(() => {
-  if (demo === 'vitrine') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], xp: +new URLSearchParams(location.search).get('xp') || 0, cadastro: { nome: 'Demo' } }), set() {} }); E.persAba = new URLSearchParams(location.search).get('aba') || E.persAba; ir('personalizar'); const pr = new URLSearchParams(location.search).get('provar'); if (pr) pr.split(',').forEach(p => setAv(...p.split(':'))); const gi = new URLSearchParams(location.search).get('girar'); if (gi && est.vitrine) est.vitrine.root.rotation.y = +gi; const ro = new URLSearchParams(location.search).get('rolar'); if (ro) setTimeout(() => { const el = $('.pers-conteudo'); if (el) el.scrollTop = +ro; }, 2500); return; } // ?demo=vitrine&xp=38000 (Presidente: libera a faixa)&aba=roupas[&provar=roupa:batina,corRoupa:%23b91c1c]
+  if (demo === 'vitrine') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], xp: +new URLSearchParams(location.search).get('xp') || 0, cadastro: { nome: 'Demo' } }), set() {} }); E.persAba = new URLSearchParams(location.search).get('aba') || E.persAba; ir('personalizar'); const pr = new URLSearchParams(location.search).get('provar'); if (pr) pr.split(',').forEach(p => setAv(...p.split(':'))); const gi = new URLSearchParams(location.search).get('girar'); if (gi && est.vitrine) est.vitrine.root.rotation.y = +gi; const ro = new URLSearchParams(location.search).get('rolar'); if (ro) { E.demoRolar = +ro; renderPersConteudo(); } return; } // E.demoRolar: renderPersConteudo reaplica o scroll a cada render (setTimeout falhava no headless) // ?demo=vitrine&xp=38000 (Presidente: libera a faixa)&aba=roupas[&provar=roupa:batina,corRoupa:%23b91c1c]
   if (demo === 'config') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('config'); return; } // ?demo=config
   if (demo === 'emote') { const q = new URLSearchParams(location.search), it = ITEM[q.get('item')]; E.perfil.nome ||= 'Demo'; if (it.av) E.perfil.avatar = { ...E.perfil.avatar, ...it.av, ...it.cores, genero: 'masculino', barba: q.get('barba') || E.perfil.avatar.barba }; ir('personalizar'); $('#ui').style.opacity = 0; if (it.tipo === 'acao') { setTimeout(() => { est.testarNaVitrine(it); est.adiantarDemo(Number(q.get('t')) || 0); }, 400); return; } est.testarNaVitrine({ ...it, tipo: 'danca' }); if (est.vitrine?.anim) est.vitrine.anim.ini = -(Number(q.get('t')) || 0); return; } // &t=1 começa a animação 1 s adiantada // ?demo=emote&item=chorao
   if (demo === 'sala') { E.perfil.nome ||= 'Demo'; const js = bots().slice(0, 3).map((j, i) => ({ ...j, bot: false, pronto: i === 1, nivel: i + 1 })); E.eu = js[0].id; // ?demo=sala (lobby com chat)

@@ -24,6 +24,13 @@ const realce = (hex, f) => { const l = new THREE.Color(hex).getHSL({}, THREE.SRG
 const _qA = new THREE.Quaternion(), _qB = new THREE.Quaternion();
 const _qY = new THREE.Quaternion(), _eixoY = new THREE.Vector3(0, 1, 0);
 const esfera = r => geo('s' + r, () => new THREE.SphereGeometry(r, 18, 14));
+/** Bandeirinha do Brasil (broche / faixa): retângulo verde, losango amarelo e globo azul; largura ~7% do tronco. */
+function bandeirinha(pai, x, y, z, W) {
+  const g = new THREE.Group(); g.position.set(x, y, z); g.scale.setScalar(W * .07 / .05); pai.add(g);
+  m(rbox(.05, .035, .01, .004), mat('#16a34a', { r: .35, m: .2 }), 0, 0, 0, g);
+  m(rbox(.025, .025, .012, .003), mat('#facc15', { r: .35, m: .2 }), 0, 0, .002, g).rotation.z = Math.PI / 4;
+  m(geo('bandGlobo', () => new THREE.CylinderGeometry(.0085, .0085, .014, 16)), mat('#1d4ed8', { r: .35 }), 0, 0, .004, g).rotation.x = Math.PI / 2;
+}
 // texturas desenhadas para acessórios cômicos
 let texFolha = null, texListras = null;
 function texturaFolha() {
@@ -189,21 +196,21 @@ export class Avatar {
     }
     if (c.roupa === 'terno' || social || colete || pastor) gravata(social ? 0 : .014);
     if (social) m(rbox(.1, .08, .01, .005), mCamEsc, -W * .25, .55, frente + .002, this.torso);
+    const xBr = c.extra === 'faixa' ? W * .4 : W * .24; // com a faixa o broche vai p/ fora dela, perto do ombro
     const zb = paleto ? .016 : colete ? .006 : 0; // broche por cima da lapela
     if (c.broche === 'coxinha') { // broche de coxinha: gota dourado-alaranjada
-      const g = new THREE.Group(); g.position.set(W * .24, .6, frente + .025 + zb); g.scale.setScalar(1.5); this.torso.add(g);
+      const g = new THREE.Group(); g.position.set(xBr, .6, frente + .025 + zb); g.scale.setScalar(1.5); this.torso.add(g);
       const massa = mat('#c8741f', { r: .7, m: .05 }), emp = mat('#e9a54a', { r: .8 });
       m(geo('coxBase', () => new THREE.SphereGeometry(.026, 14, 10)), massa, 0, -.012, 0, g).scale.set(1.15, .85, .8);
       m(geo('coxPonta', () => new THREE.ConeGeometry(.026, .038, 14)), massa, 0, .016, 0, g);
       [[-.012, -.016], [.01, -.006], [.002, -.026], [-.004, .008], [.014, -.022]].forEach(([x, y]) => m(esfera(.0045), emp, x, y, .019, g)); // empanado
     } else if (c.broche === 'fritas') { // broche de batata frita: caixinha vermelha com palitos amarelos
-      const g = new THREE.Group(); g.position.set(W * .24, .6, frente + .018 + zb); g.scale.setScalar(1.3); this.torso.add(g);
+      const g = new THREE.Group(); g.position.set(xBr, .6, frente + .018 + zb); g.scale.setScalar(1.3); this.torso.add(g);
       m(rbox(.05, .045, .016, .005), mat('#dc2626', { r: .5 }), 0, -.012, 0, g);
       const bat = mat('#facc15', { r: .6 });
       [-.016, -.006, .004, .014].forEach((x, i) => { const p = m(rbox(.008, .045, .008, .002), bat, x, .018 + (i % 2) * .006, -.002, g); p.rotation.z = (i - 1.5) * .12; });
     } else if (c.broche) { // broche verde-amarelo
-      m(rbox(.07, .05, .015, .008), mat('#16a34a', { r: .3, m: .3 }), W * .24, .6, frente + .01 + zb, this.torso);
-      const d = m(rbox(.035, .035, .016, .004), mat('#facc15', { r: .3, m: .3 }), W * .24, .6, frente + .016 + zb, this.torso); d.rotation.z = Math.PI / 4;
+      bandeirinha(this.torso, xBr, .6, frente + .01 + zb, W);
     }
     // braços (pivô no ombro)
     this.bracos = [];
@@ -366,7 +373,7 @@ export class Avatar {
   }
   barba(H, c) {
     if (c.barba === 'nenhuma') return;
-    const mb = mat(c.corCabelo, { r: .9, op: c.barba === 'rala' ? .65 : undefined });
+    const mb = mat(c.barba === 'rala' ? tom(c.corCabelo, -.06) : c.corCabelo, { r: .9, op: c.barba === 'rala' ? .82 : undefined }); // rala: mais opaca e escura (sumia na miniatura)
     const bigode = (l = .17) => { const b = m(rbox(l, .045, .05, .02), mb, 0, .185, .245, H); return b; };
     if (c.barba === 'bigode') { bigode(.2); return; }
     if (c.barba === 'cavanhaque') { bigode(.15); m(rbox(.14, .11, .07, .03), mb, 0, .055, .225, H); return; }
@@ -441,20 +448,23 @@ export class Avatar {
     }
   }
   faixa(T, c) { // faixa presidencial: fita contínua no corte diagonal do tronco (ombro esquerdo → quadril direito), rente à roupa na frente, ombro, costas e quadril
-    const W = this.W, V = THREE.Vector3, F = 128, w = .13;
-    const gravata = ['terno', 'social', 'colete', 'pastor'].includes(c.roupa), xb = W * .25; // broche/bandeirinha
-    const obst = [...(gravata ? [[0, .51, .06, .19, .236], [0, .5, .045, .012, .248], [0, .715, .066, .055, .258]] : []), [xb, .6, .05, .035, .236]]; // [x, y, meia larg., meia alt., z da frente] de gravata, prendedor, nó e broche
+    const W = this.W, V = THREE.Vector3, F = 128, w = W * .15, S = THREE.MathUtils.smoothstep;
+    const gravata = ['terno', 'social', 'colete', 'pastor'].includes(c.roupa), xb = W * .4; // broche/bandeirinha (fora da faixa, perto do ombro)
+    const obst = gravata ? [[0, .51, .06, .19, .236], [0, .5, .045, .012, .248], [0, .715, .066, .055, .258]] : []; // [x, y, meia larg., meia alt., z da frente] de gravata, prendedor e nó
     const precisa = (x, y) => obst.reduce((z, [ox, oy, hx, hy, oz]) => { const d = Math.max(Math.abs(x - ox) - hx, Math.abs(y - oy) - hy); return Math.max(z, .21 + (oz + .006 - .21) * THREE.MathUtils.clamp(1 - d / .03, 0, 1)); }, .21);
-    const A = new V(W * .28, .77, 0), B = new V(-W / 2, .1, 0), C = A.clone().add(B).multiplyScalar(.5), d = B.clone().sub(A).normalize(), pn = new V(-d.y, d.x, 0);
+    const A = new V(W * .45, .77, 0), B = new V(-W / 2, .07, 0), C = A.clone().add(B).multiplyScalar(.5), d = B.clone().sub(A).normalize(), pn = new V(-d.y, d.x, 0); // ~50°: cruza o meio na barriga
     const caixa = p => { const q = new V(Math.abs(p.x) - (W / 2 - .1), Math.abs(p.y - .38) - .28, Math.abs(p.z) - .09); return new V(Math.max(q.x, 0), Math.max(q.y, 0), Math.max(q.z, 0)).length() + Math.min(Math.max(q.x, q.y, q.z), 0) - .1; }; // tronco: caixa arredondada
-    const folga = p => .016 + (p.z > 0 ? Math.max(...[-1, -.5, 0, .5, 1].map(s => precisa(p.x + pn.x * s * w / 2, p.y + pn.y * s * w / 2))) - .21 : 0) * THREE.MathUtils.smoothstep(p.z, 0, .12);
-    const f = p => caixa(p) - folga(p), pts = [], nor = [];
+    const f = p => caixa(p) - (.008 + .01 * S(p.z, .05, .15)), pts = [], nor = []; // rente nas laterais/costas; na frente passa da lapela
     for (let i = 0; i < F; i++) { // raio do centro do corte até a superfície (bisseção)
       const a = i / F * Math.PI * 2, dir = d.clone().multiplyScalar(Math.cos(a)).add(new V(0, 0, Math.sin(a)));
       let lo = 0, hi = 1.2; for (let k = 0; k < 28; k++) { const t = (lo + hi) / 2; f(C.clone().addScaledVector(dir, t)) < 0 ? lo = t : hi = t; }
       const p = C.clone().addScaledVector(dir, lo), e = .002; pts.push(p);
       nor.push(new V(caixa(p.clone().setX(p.x + e)) - caixa(p.clone().setX(p.x - e)), caixa(p.clone().setY(p.y + e)) - caixa(p.clone().setY(p.y - e)), caixa(p.clone().setZ(p.z + e)) - caixa(p.clone().setZ(p.z - e))).normalize());
     }
+    // na frente, afasta só o necessário p/ passar por cima de gravata/nó, numa curva suave (dilata + suaviza: sem ondular em S)
+    const sobe = pts.map(p => p.z > 0 ? (Math.max(...[-1, -.5, 0, .5, 1].map(s => precisa(p.x + pn.x * s * w / 2, p.y + pn.y * s * w / 2))) - .21) * S(p.z, .05, .15) : 0);
+    const viz = (arr, r, fn) => arr.map((_, i) => fn(Array.from({ length: 2 * r + 1 }, (_, k) => arr[(i + k - r + F) % F])));
+    viz(viz(sobe, 10, a => Math.max(...a)), 10, a => a.reduce((s, v) => s + v, 0) / a.length).forEach((h, i) => pts[i].addScaledVector(nor[i], h));
     const fita = (larg, off, cor) => { // tira: largura no plano da roupa (normal × tangente)
       const pos = [], idx = [];
       for (let i = 0; i <= F; i++) { const k = i % F, p = pts[k], n = nor[k], t = pts[(k + 1) % F].clone().sub(pts[(k + F - 1) % F]), b = n.clone().cross(t).normalize().multiplyScalar(larg / 2), c0 = p.clone().addScaledVector(n, off);
@@ -462,20 +472,15 @@ export class Avatar {
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
       const mt = mat(cor, { r: .55 }).clone(); mt.side = THREE.DoubleSide; return m(g, mt, 0, 0, 0, T);
     };
-    fita(w, 0, '#15803d'); fita(.056, .004, '#facc15');
-    let im = 0; pts.forEach((p, i) => { if (nor[i].z > .9 && Math.abs(p.y - .3) < Math.abs(pts[im].y - .3) || nor[im].z <= .9) im = i; }); // medalhão na frente, altura da barriga
+    fita(w, 0, '#15803d'); fita(w * .43, .004, '#facc15');
+    let im = 0; pts.forEach((p, i) => { if (nor[i].z > .9 && Math.abs(p.x + W * .09) < Math.abs(pts[im].x + W * .09) || nor[im].z <= .9) im = i; }); // medalhão na frente, quase no meio da barriga
     const pm = pts[im], nm = nor[im], q = new THREE.Quaternion().setFromUnitVectors(new V(0, 1, 0), nm), qz = new THREE.Quaternion().setFromUnitVectors(new V(0, 0, 1), nm);
     const ouroF = mat('#f5c242', { r: .35, m: .55, em: '#7a5a08', ei: .8 }); // menos metálico: sem reflexo o disco de frente ficava escuro
     const poe = (me, off, qq) => { me.position.copy(pm).addScaledVector(nm, off); me.quaternion.copy(qq); };
     poe(m(geo('brasao', () => new THREE.CylinderGeometry(.052, .052, .014, 24)), ouroF, 0, 0, 0, T), .01, q);
     poe(m(geo('brasaoAro', () => new THREE.TorusGeometry(.05, .007, 8, 28)), ouroF, 0, 0, 0, T), .017, qz);
     poe(m(geo('brasaoMeio', () => new THREE.CylinderGeometry(.026, .026, .01, 18)), mat('#eab308', { r: .3, m: .5, em: '#6b4e06', ei: .8 }), 0, 0, 0, T), .018, q);
-    if (!c.broche) { // bandeirinha do Brasil no peito (quem já usa o broche verde-amarelo fica só com ele)
-      const zb = .214; // logo à frente da lapela (.204)
-      m(rbox(.07, .05, .012, .006), mat('#16a34a', { r: .4 }), xb, .6, zb, T);
-      m(rbox(.034, .034, .014, .004), mat('#facc15', { r: .4 }), xb, .6, zb + .002, T).rotation.z = Math.PI / 4;
-      m(geo('bandC', () => new THREE.CylinderGeometry(.011, .011, .016, 14)), mat('#1d4ed8', { r: .4 }), xb, .6, zb + .004, T).rotation.x = Math.PI / 2;
-    }
+    if (!c.broche) bandeirinha(T, xb, .6, .212, W); // bandeirinha no peito (quem já usa o broche fica só com ele, no mesmo lugar)
   }
   corrente(T, c) { // corrente cubana de ouro: elos 3D alternando deitado/em pé, contorna o pescoço e cai em U no peito, com pingente maciço
     const ouro = mat('#f5c242', { r: .27, m: .9, em: '#5a4205', ei: .55 }); // emissivo leve: sem reflexo do ambiente o metal ficava marrom
@@ -495,9 +500,8 @@ export class Avatar {
       M.multiply(sc).setPosition(p); elos.setMatrixAt(i, M);
     }
     elos.computeBoundingSphere(); // senão o culling usa só a esfera de um elo na origem e a corrente some
-    m(geo('eloPing', () => new THREE.TorusGeometry(.014, .005, 8, 16)), ouro, 0, .538, .254, T).rotation.y = Math.PI / 2; // argola
-    m(rbox(.074, .1, .022, .007), ouro, 0, .474, .257, T); // pingente maciço
-    m(rbox(.052, .076, .008, .004), mat('#f8cf55', { r: .18, m: .95, em: '#5a4205', ei: .6 }), 0, .474, .267, T); // relevo central
+    m(geo('eloPing', () => new THREE.TorusGeometry(.012, .0045, 8, 16)), ouro, 0, .52, .254, T).rotation.y = Math.PI / 2; // argola
+    m(rbox(this.W * .065, this.W * .09, .018, .006), mat('#f7c948', { r: .3, m: .6, em: '#7a5a08', ei: .85 }), 0, .505 - this.W * .045, .256, T); // pingente de ouro maciço (~6% do tronco), claro e liso
   }
   chapeu(H, c) {
     if (c.chapeu === 'nenhum') return;
@@ -772,9 +776,9 @@ export function retrato(cfg, fundo = null, foco = 'rosto') {
   const av = new Avatar(cfg); rScene.add(av.root);
   av.root.updateMatrixWorld(true);
   const alto = cfg.chapeu === 'chapeu' || (cfg.cabelo === 'afro' && (cfg.chapeu || 'nenhum') === 'nenhum');
-  if (foco === 'busto') { // do queixo à barriga, um pouco de lado p/ ver a faixa contornando o corpo
-    const tY = av.torso.getWorldPosition(new THREE.Vector3()).y, s = (av.cabeca.getWorldPosition(new THREE.Vector3()).y - tY) / .84, y = tY + .55 * s;
-    rCam.position.set(.4 * s, y + .1 * s, 2.05 * s); rCam.lookAt(0, y, 0);
+  if (foco === 'busto') { // rosto inteiro + peito, um pouco de lado p/ ver a faixa contornando o corpo
+    const tY = av.torso.getWorldPosition(new THREE.Vector3()).y, s = (av.cabeca.getWorldPosition(new THREE.Vector3()).y - tY) / .84, y = tY + .82 * s;
+    rCam.position.set(.4 * s, y + .08 * s, 2.6 * s); rCam.lookAt(0, y, 0);
   } else if (foco === 'cabeca') { rCam.position.set(.32, 2.14, 2.35); rCam.lookAt(0, 2.07, 0); }
   else { rCam.position.set(.32, 2.04 + (alto ? .06 : 0), 2.0); rCam.lookAt(0, 1.97 + (alto ? .06 : 0), 0); }
   rScene.background = fundo ? new THREE.Color(fundo) : null;
