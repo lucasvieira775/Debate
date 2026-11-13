@@ -1326,7 +1326,7 @@ function renderResultado() {
 // ======================= telão e telas dos púlpitos =======================
 function ledDoEstado() {
   const s = E.sala;
-  if (!s) return { modo: 'titulo', sub: 'ELEIÇÕES 2026' };
+  if (!s) return { modo: 'titulo', sub: 'AO VIVO' };
   if (s.fase === 'lobby') return { modo: 'titulo', sub: `SALA #${s.code} · ${s.jogadores.length}/5 CANDIDATOS` };
   if (s.fase === 'resultado') {
     if (apurando(s.resultado)) return null; // durante a apuração ao vivo o telão é atualizado pela própria apuração

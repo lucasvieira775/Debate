@@ -1278,51 +1278,57 @@ export class Estudio {
     const { ctx, tex } = this.led, W = 2048, H = 768, d = this.ledDados || { modo: 'titulo' };
     this.fundoLED(ctx, W, H);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const faixaTopo = (txt) => { this.titulo(ctx, 300, 100, 320); ctx.fillStyle = 'rgba(5,12,40,.6)'; rr(ctx, 560, 30, 1440, 140, 28); ctx.fill(); ctx.fillStyle = '#fff'; this.caber(ctx, txt, 1300, 78); ctx.fillText(txt, 1280, 103); }; // encolhe sozinho: nunca passa da tarja
+    const MX = 96, LW = W - 2 * MX; // margem lateral única: tarja, cartões e barras alinham nas mesmas bordas
+    const esp = (px, fn) => { ctx.letterSpacing = px + 'px'; fn(); ctx.letterSpacing = '0px'; }; // rótulos em caixa alta, com espaçamento de TV
+    const faixaTopo = (txt) => { ctx.fillStyle = 'rgba(5,12,40,.62)'; rr(ctx, MX, 44, LW, 112, 22); ctx.fill(); this.titulo(ctx, MX + 136, 100, 200); ctx.fillStyle = '#facc15'; ctx.fillRect(MX + 264, 72, 4, 56);
+      ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; this.caber(ctx, txt, LW - 340, 50); ctx.fillText(txt, MX + 298, 103); ctx.textAlign = 'center'; }; // encolhe sozinho: nunca passa da tarja
+    const cartao = () => { ctx.fillStyle = 'rgba(5,12,40,.72)'; rr(ctx, MX, 236, LW, 424, 32); ctx.fill(); };
     const cartaoTema = (t, rotulo, girando) => {
-      ctx.fillStyle = 'rgba(5,12,40,.72)'; rr(ctx, 220, 220, 1608, 380, 40); ctx.fill();
-      ctx.lineWidth = 8; ctx.strokeStyle = girando ? '#facc15' : '#60a5fa'; ctx.stroke();
-      rr(ctx, 280, 290, 240, 240, 36); ctx.fillStyle = '#facc15'; ctx.fill();
-      ctx.fillStyle = '#0b1f6b'; ctx.font = `150px ${FONTE}`; ctx.fillText(t.uf, 400, 415);
-      ctx.textAlign = 'left'; ctx.fillStyle = '#93c5fd'; ctx.font = `bold 58px ${FONTE_TXT}`; ctx.fillText((rotulo + ' · ' + t.estado).toUpperCase(), 580, 290);
-      ctx.fillStyle = '#fff'; ctx.font = `96px ${FONTE}`; quebrar(ctx, t.titulo, 1180).slice(0, 2).forEach((l, i) => { this.caber(ctx, l, 1180, 96); ctx.fillText(l, 580, 400 + i * 104); });
+      cartao(); ctx.lineWidth = 5; ctx.strokeStyle = girando ? '#facc15' : '#60a5fa'; ctx.stroke();
+      rr(ctx, MX + 64, 348, 200, 200, 28); ctx.fillStyle = '#facc15'; ctx.fill();
+      ctx.fillStyle = '#0b1f6b'; ctx.font = `112px ${FONTE}`; ctx.fillText(t.uf, MX + 164, 454);
+      ctx.textAlign = 'left'; ctx.font = `68px ${FONTE}`; const ls = quebrar(ctx, t.titulo, 1460).slice(0, 2), y0 = 448 - (ls.length - 1) * 41;
+      ctx.fillStyle = '#93c5fd'; ctx.font = `bold 36px ${FONTE_TXT}`; esp(3, () => ctx.fillText((rotulo + ' · ' + t.estado).toUpperCase(), MX + 320, y0 - 50));
+      ctx.fillStyle = '#fff'; ls.forEach((l, i) => { this.caber(ctx, l, 1460, 68); ctx.fillText(l, MX + 320, y0 + 28 + i * 82); });
       ctx.textAlign = 'center';
     };
     switch (d.modo) {
-      case 'titulo': this.titulo(ctx, W / 2, 322, W * .7, 580); ctx.fillStyle = '#e0e7ff'; this.caber(ctx, d.sub || 'ELEIÇÕES 2026', W * .7, 74, FONTE_TXT, 'bold '); ctx.fillText(d.sub || 'ELEIÇÕES 2026', W / 2, 692); break;
+      case 'titulo': if (!d.sub) { this.titulo(ctx, W / 2, 372, 860); break; }
+        this.titulo(ctx, W / 2, 312, 800); ctx.font = `bold 42px ${FONTE_TXT}`;
+        esp(4, () => { this.caber(ctx, d.sub, 1500, 42, FONTE_TXT, 'bold '); const w = ctx.measureText(d.sub).width + 112; ctx.fillStyle = 'rgba(5,12,40,.62)'; rr(ctx, W / 2 - w / 2, 540, w, 84, 42); ctx.fill(); ctx.fillStyle = '#e0e7ff'; ctx.fillText(d.sub, W / 2 + 2, 584); }); break;
       case 'tema': faixaTopo(d.cabecalho || ''); cartaoTema(TEMA[d.tema], 'Tema', false); break;
       case 'roleta': faixaTopo('SORTEANDO O TEMA…'); cartaoTema(TEMAS[Math.random() * TEMAS.length | 0], 'Sorteio', true); break;
-      case 'texto': faixaTopo(d.cabecalho || ''); ctx.fillStyle = 'rgba(5,12,40,.72)'; rr(ctx, 220, 220, 1608, 400, 40); ctx.fill();
-        ctx.fillStyle = '#fff'; ctx.font = `88px ${FONTE}`; quebrar(ctx, d.texto, 1480).slice(0, 3).forEach((l, i, a) => { this.caber(ctx, l, 1480, 88); ctx.fillText(l, W / 2, 422 - (a.length - 1) * 52 + i * 104); }); break;
+      case 'texto': faixaTopo(d.cabecalho || ''); cartao();
+        ctx.fillStyle = '#fff'; ctx.font = `64px ${FONTE}`; quebrar(ctx, d.texto, 1640).slice(0, 3).forEach((l, i, a) => { this.caber(ctx, l, 1640, 64); ctx.fillText(l, W / 2, 451 - (a.length - 1) * 42 + i * 84); }); break;
       case 'fala': {
         const p = PARTIDO[d.partido] || PARTIDO.PUN;
-        ctx.fillStyle = p.cor; rr(ctx, 60, 40, 1500, 130, 30); ctx.fill();
-        desenharSimbolo(ctx, p.simbolo, 135, 105, 42, '#fff');
-        ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; this.caber(ctx, d.nome.toUpperCase(), 1080, 80); ctx.fillText(d.nome.toUpperCase(), 200, 110);
-        ctx.font = `bold 44px ${FONTE_TXT}`; ctx.textAlign = 'right'; ctx.fillText(`${p.sigla} ${p.numero}`, 1530, 108);
+        ctx.fillStyle = p.cor; rr(ctx, MX, 44, 1460, 112, 22); ctx.fill();
+        desenharSimbolo(ctx, p.simbolo, MX + 62, 100, 32, '#fff');
+        ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; this.caber(ctx, d.nome.toUpperCase(), 1000, 54); ctx.fillText(d.nome.toUpperCase(), MX + 120, 103);
+        ctx.font = `bold 34px ${FONTE_TXT}`; ctx.textAlign = 'right'; esp(2, () => ctx.fillText(`${p.sigla} ${p.numero}`, MX + 1424, 102));
         ctx.textAlign = 'center';
-        rr(ctx, 1600, 40, 390, 130, 30); ctx.fillStyle = d.alerta ? '#b91c1c' : '#0b1640'; ctx.fill();
-        ctx.fillStyle = '#fff'; ctx.font = `100px ${FONTE}`; ctx.fillText(d.tempo || '', 1795, 112);
-        if (d.rotulo) { ctx.fillStyle = '#facc15'; this.caber(ctx, d.rotulo.toUpperCase(), 1800, 56, FONTE_TXT, 'bold '); ctx.fillText(d.rotulo.toUpperCase(), W / 2, 226); }
-        ctx.fillStyle = 'rgba(5,12,40,.75)'; rr(ctx, 100, 272, 1848, 456, 36); ctx.fill();
-        ctx.fillStyle = '#fff'; ctx.font = `bold 84px ${FONTE_TXT}`;
-        const linhas = quebrar(ctx, d.texto || '…', 1740); linhas.slice(-4).forEach((l, i) => ctx.fillText(l, W / 2, 344 + i * 104));
+        rr(ctx, MX + 1484, 44, 372, 112, 22); ctx.fillStyle = d.alerta ? '#b91c1c' : '#0b1640'; ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = `76px ${FONTE}`; ctx.fillText(d.tempo || '', MX + 1670, 104);
+        if (d.rotulo) { ctx.fillStyle = '#facc15'; esp(2, () => { this.caber(ctx, d.rotulo.toUpperCase(), LW, 34, FONTE_TXT, 'bold '); ctx.fillText(d.rotulo.toUpperCase(), W / 2, 198); }); }
+        ctx.fillStyle = 'rgba(5,12,40,.75)'; rr(ctx, MX, 236, LW, 480, 28); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = `bold 60px ${FONTE_TXT}`; ctx.textAlign = 'left';
+        const linhas = quebrar(ctx, d.texto || '…', LW - 128); linhas.slice(-5).forEach((l, i) => ctx.fillText(l, MX + 64, 316 + i * 80)); ctx.textAlign = 'center';
         break;
       }
       case 'poll': case 'resultado': {
         faixaTopo(d.titulo || 'PESQUISA');
-        const lista = d.lista || []; const max = Math.max(...lista.map(x => x.pct), 1);
-        const h = Math.min(110, (d.rodape ? 490 : 550) / Math.max(1, lista.length) - 14);
+        const lista = d.lista || []; const max = Math.max(...lista.map(x => x.pct), 1), n = Math.max(1, lista.length), area = d.rodape ? 460 : 524;
+        const h = Math.min(84, area / n - 12), topo = 192 + (area - n * (h + 12) + 12) / 2; // bloco centralizado na área útil
         lista.forEach((x, i) => {
-          const y = 196 + i * (h + 14), p = PARTIDO[x.partido] || PARTIDO.PUN;
-          ctx.fillStyle = 'rgba(5,12,40,.7)'; rr(ctx, 160, y, 1730, h, 20); ctx.fill();
-          ctx.fillStyle = p.cor; rr(ctx, 600, y + 10, Math.max(10, (x.pct / max) * 1000), h - 20, 14); ctx.fill();
-          ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = `${h * .55}px ${FONTE}`; ctx.fillText(x.nome.slice(0, 14).toUpperCase(), 190, y + h / 2 + 3);
-          ctx.textAlign = 'right'; ctx.fillText(x.pct.toFixed(1).replace('.', ',') + '%', 1860, y + h / 2 + 3);
-          if (x.eleito) { ctx.fillStyle = '#22c55e'; rr(ctx, 1500, y + 14, 200, h - 28, 12); ctx.fill(); ctx.fillStyle = '#04210f'; ctx.textAlign = 'center'; ctx.font = `${h * .38}px ${FONTE}`; ctx.fillText(x.eleito === true ? 'ELEITO' : x.eleito, 1600, y + h / 2 + 2); }
+          const y = topo + i * (h + 12), p = PARTIDO[x.partido] || PARTIDO.PUN;
+          ctx.fillStyle = 'rgba(5,12,40,.7)'; rr(ctx, MX, y, LW, h, 16); ctx.fill();
+          ctx.fillStyle = p.cor; rr(ctx, 560, y + 12, Math.max(10, (x.pct / max) * 1000), h - 24, 10); ctx.fill();
+          ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = `${h * .46}px ${FONTE}`; ctx.fillText(x.nome.slice(0, 14).toUpperCase(), MX + 32, y + h / 2 + 2);
+          ctx.textAlign = 'right'; ctx.font = `${h * .5}px ${FONTE}`; ctx.fillText(x.pct.toFixed(1).replace('.', ',') + '%', MX + LW - 32, y + h / 2 + 2);
+          if (x.eleito) { const tag = x.eleito === true ? 'ELEITO' : x.eleito; ctx.fillStyle = '#22c55e'; rr(ctx, 1576, y + 14, 180, h - 28, 10); ctx.fill(); ctx.fillStyle = '#04210f'; ctx.textAlign = 'center'; this.caber(ctx, tag, 156, h * .34); ctx.fillText(tag, 1666, y + h / 2 + 2); }
           ctx.textAlign = 'center';
         });
-        if (d.rodape) { ctx.fillStyle = '#c7d2fe'; this.caber(ctx, d.rodape, W * .8, 46, FONTE_TXT, 'bold '); ctx.fillText(d.rodape, W / 2, H - 40); }
+        if (d.rodape) { ctx.fillStyle = '#c7d2fe'; esp(2, () => { this.caber(ctx, d.rodape, LW, 32, FONTE_TXT, 'bold '); ctx.fillText(d.rodape, W / 2, H - 58); }); }
         break;
       }
     }

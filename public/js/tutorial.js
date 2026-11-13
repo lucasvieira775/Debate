@@ -98,7 +98,7 @@ export function tocarTutorial(est, op = {}) {
   // ini(c) monta o palco; ev = [[k (0..1 do bloco), fn]]; quadro(c) a cada frame; cam(c) enquadramento. c.u = s no bloco, c.k = 0..1.
   const CENAS = {
     abertura: {
-      ini: () => { palco(); est.setLED({ modo: 'texto', cabecalho: 'AO VIVO · ELEIÇÕES 2026', texto: 'Quem fala melhor leva a faixa!' }); logo('COMO JOGAR'); },
+      ini: () => { palco(); est.setLED({ modo: 'texto', cabecalho: 'AO VIVO', texto: 'Quem fala melhor leva a faixa!' }); logo('COMO JOGAR'); },
       ev: [[0, () => { som(sfx.vinheta); est.festejarPlateia(4500, 1); }], [.3, () => som(() => sfx.aplausos(3, .25))], [.72, () => fx.querySelector('.tut-logo')?.classList.add('sai')]],
       cam: c => { const k = sm(c.k / .95); cam(mix(V(0, 8.5, 15.5), V(.4, 2.7, 7.4), k), mix(V(0, 1, -2), V(0, 2.3, -6), k), 52); },
     },

@@ -139,7 +139,7 @@ export const POSTS = {
     'Perdeu meu voto aí, {nome}. Respeito é o mínimo.',
     'O {nome} mandou um "{xing}" ao vivo em rede nacional 😱',
     'Chamar adversário de {xing}?? Que @#$% é essa, {nome}?',
-    '"{xing}" — {nome}, 2026. Vai pro livro de história (do jeito errado) 📚',
+    '"{xing}" — {nome}, no debate presidencial. Vai pro livro de história (do jeito errado) 📚',
     'Minha mãe ouviu o {nome} falar "{xing}" e mandou eu tampar o ouvido do meu irmão 🙉',
     'Bipe! 📢 O {nome} soltou um "{xing}" e a emissora não segurou.',
     'O {nome} achou que tava no grupo da pelada falando "{xing}" 🤦',

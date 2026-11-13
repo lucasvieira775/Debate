@@ -264,7 +264,7 @@ const placa3 = () => m('placa3', () => cvE(860, 290, E3, g => {
 
 // ---------- logotipos ----------
 const logoOc = () => m('logoOc', () => {
-  const f1 = `72px ${FONTE}`, a = 'DEBATE PRESIDENCIAL', b = '  ·  ELEIÇÕES 2026', wa = medir(f1, a) + 6 * 18, wb = medir(f1, b) + 6 * 17, W = wa + wb + 80;
+  const f1 = `72px ${FONTE}`, a = 'DEBATE PRESIDENCIAL', b = '  ·  AO VIVO', wa = medir(f1, a) + 6 * 18, wb = medir(f1, b) + 6 * 17, W = wa + wb + 80;
   return cvE(W, 170, Math.min(4, Math.max(1, PW * .7 / W)), g => { // letreiro ocupa 70% da largura do telão
     g.font = f1; g.textBaseline = 'alphabetic'; g.shadowColor = 'rgba(0,8,40,.8)'; g.shadowBlur = 18; g.shadowOffsetY = 5;
     g.fillStyle = grad(g, 0, 40, 0, 110, [[0, '#ffffff'], [.55, '#e3ebf8'], [1, '#aebfdd']]); espacado(g, a, 40 + wa / 2, 105, 6);
@@ -279,7 +279,7 @@ const logo3 = () => m('logo3', () => cvE(560, 430, EL, g => {
   g.shadowColor = 'rgba(0,6,30,.9)'; g.shadowBlur = 16; g.strokeStyle = '#081a4a'; g.lineWidth = 12; g.strokeText('DEBATE', 0, 0); g.shadowColor = 'transparent';
   g.fillStyle = grad(g, 0, -82, 0, 0, [[0, '#ffffff'], [.5, '#e6edf8'], [.56, '#aebcd6'], [1, '#ffffff']]); g.fillText('DEBATE', 0, 0); g.restore();
   g.fillStyle = '#00a850'; g.fillRect(170, 366, 110, 6); g.fillStyle = '#ffd400'; g.fillRect(280, 366, 110, 6);
-  g.font = `42px ${FONTE}`; g.fillStyle = grad(g, 0, 380, 0, 414, [[0, '#fff3a8'], [1, '#ffc400']]); g.shadowColor = 'rgba(0,6,30,.8)'; g.shadowBlur = 8; espacado(g, 'ELEIÇÕES 2026', 280, 414, 5);
+  g.font = `42px ${FONTE}`; g.fillStyle = grad(g, 0, 380, 0, 414, [[0, '#fff3a8'], [1, '#ffc400']]); g.shadowColor = 'rgba(0,6,30,.8)'; g.shadowBlur = 8; espacado(g, 'PRESIDENCIAL', 280, 414, 5);
 }));
 
 // ---------- peças animadas comuns ----------
