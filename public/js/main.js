@@ -1170,7 +1170,7 @@ function renderAcao(forcar) {
   el.innerHTML = `<div class="hud-box">
     <div class="status">${status}</div>
     <div class="acao-linha">
-      <button class="mic ${E.micOn ? 'on' : 'off'}" id="h-mic" title="Microfone (V)" ${!ativo && !micLiberado() ? 'disabled' : ''}>${E.micOn ? '⏸' : '🎙'}</button>
+      <button class="mic ${E.micOn ? 'on' : 'off'}" id="h-mic" title="Microfone (M)" ${!ativo && !micLiberado() ? 'disabled' : ''}>${E.micOn ? '⏸' : '🎙'}</button>
       ${podeDigitar ? `<textarea id="h-ta" class="${E.micOn ? 'gravando' : ''}" ${E.micOn ? 'readonly' : ''} placeholder="${ativo ? 'Digite sua fala…' : 'Clique no microfone para falar, ou comece a digitar…'}">${esc(E.meuTexto)}</textarea>` : `<div style="flex:1" class="mut">${esc(E.meuTexto) || 'Sua fala aparece aqui…'}</div>`}
       <div style="display:flex;flex-direction:column;gap:6px">
         <button class="btn verde" id="h-ok" ${ativo ? '' : 'disabled'} title="Confirmar (Ctrl+Enter)">✔ CONFIRMAR</button>
@@ -1418,7 +1418,7 @@ setInterval(tick, 200);
 // teclado
 addEventListener('keydown', e => {
   if (!emJogo() || /INPUT|TEXTAREA/.test(document.activeElement?.tagName)) return;
-  if (e.key === 'v' || e.key === 'V') alternarMic();
+  if ((e.key === 'm' || e.key === 'M') && !e.repeat && !e.ctrlKey && !e.altKey) alternarMic(); // V = câmera (estudio.js)
   if (e.key === 'Enter' && e.ctrlKey) confirmarFala();
 });
 
