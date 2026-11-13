@@ -124,7 +124,7 @@ export class Acoes {
     this.efeitos = this.efeitos.filter(e => { if (!e.demo) return true; try { e.limpar?.(); } catch {} return false; });
   }
   comecar(d, it, atk, alvo, demo) {
-    const est = this.est, orig = atk.lugar === 'duelo' ? 'duelo' : 'podio';
+    const est = this.est, orig = atk.lugar === 'duelo' || atk.lugar === 'poltrona' ? atk.lugar : 'podio'; // poltrona: eliminado assistindo (volta a sentar)
     const a = { d, it, atk, alvo, orig, demo, t: 0, fase: 'pega', ft: 0, bateu: false, atkVivo: true, vitViva: true, perto: it.golpe === 'perto' };
     a.eu = !demo && atk.id === est.meuId;
     a.av = atk.avatar; a.av.festa = false; a.av.empurra = false;
@@ -153,16 +153,19 @@ export class Acoes {
   /** Lugar (mundo) e direção de um candidato: no púlpito dele ou no púlpito central do 1x1. */
   ponta(p, lugar) {
     if (lugar === 'duelo') { const l = this.est.lugarDuelo(p.lado || 1); return { pos: l.pos.clone(), yaw: l.yaw, duelo: true, lado: p.lado || 1 }; }
+    const pl = lugar === 'poltrona' && this.est.poltronas?.[p.pol]; if (pl) return { pos: pl.pos.clone(), yaw: pl.yaw, duelo: false, poltrona: true };
     const c = this.est.casaAtor(p); return { pos: c.pos.setY(0), yaw: c.yaw, duelo: false };
   }
   loc(e, x, z) { const c = Math.cos(e.yaw), s = Math.sin(e.yaw); return V(e.pos.x + x * c + z * s, 0, e.pos.z - x * s + z * c); }
   ladoDe(e, w) { const dx = w.x - e.pos.x, dz = w.z - e.pos.z; return Math.sign(dx * Math.cos(e.yaw) - dz * Math.sin(e.yaw)) || 1; }
   saida(e, outro) {
     if (e.duelo) return [this.loc(e, e.lado * .95, 0)]; // pela frente do púlpito central
+    if (e.poltrona) return [this.loc(e, 0, .85), this.loc(e, 0, 1.6)]; // levanta e sai pela frente da poltrona (sem atravessar os braços)
     const sd = this.ladoDe(e, outro.pos); return [this.loc(e, sd * .85, 0), this.loc(e, sd * .85, 1.37)];
   }
   chegada(e, de, D) {
     if (e.duelo) return [this.loc(e, e.lado * (D + .6), 0), this.loc(e, e.lado * D, 0)];
+    if (e.poltrona) return [this.loc(e, 0, D + 1), this.loc(e, 0, Math.max(D, .95))]; // alvo sentado: chega pela frente da poltrona
     const sx = this.ladoDe(e, de.pos); return [this.loc(e, sx * 1.05, 1.47), this.loc(e, sx * 1.05, .3), this.loc(e, sx * D, 0)];
   }
   arco(a, b) {
@@ -175,7 +178,7 @@ export class Acoes {
       const A = a.casa, Bp = a.alvo.ator.position.clone().setY(0), dir = A.pos.clone().sub(Bp).setY(0).normalize().add(V(0, 0, -.15)).normalize(); // lado a lado (quase na mesma profundidade): o atacante não tapa o alvo
       a.alvoPos = Bp; return [A.pos.clone(), Bp.clone().addScaledVector(dir, DIST[a.it.id] || 1)];
     }
-    const A = this.ponta(a.atk, a.orig), Bp = this.ponta(a.alvo, a.alvo.lugar === 'duelo' ? 'duelo' : 'podio');
+    const A = this.ponta(a.atk, a.orig), Bp = this.ponta(a.alvo, a.alvo.lugar === 'duelo' || a.alvo.lugar === 'poltrona' ? a.alvo.lugar : 'podio');
     const sai = this.saida(A, Bp), chega = this.chegada(Bp, A, DIST[a.it.id] || 1);
     const pts = [A.pos, ...sai, ...this.arco(sai[sai.length - 1], chega[0]), ...chega];
     a.casa = A; a.alvoPos = Bp.pos;
@@ -335,6 +338,7 @@ export class Acoes {
     // ---------- golpe de perto ----------
     if (a.fase === 'pega' && a.ft >= T_PEGA) {
       const pts = this.rota(a), fim = pts[pts.length - 1];
+      av.sentar(null); // sentado na poltrona: levanta antes de andar (terminarAtk → colocarAtor senta de novo)
       this.caminho(a, pts, Math.atan2(a.alvoPos.x - fim.x, a.alvoPos.z - fim.z));
       this.irPara(a, 'ida');
     } else if (a.fase === 'ida') {

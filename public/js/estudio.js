@@ -1400,7 +1400,7 @@ export class Estudio {
       // balanço leve da cabeça ao caminhar (sobe/desce a cada passo e inclina de lado)
       const an = eu.avatar.andar, ph = eu.avatar.faseAndar;
       this.bob = (this.bob || 0) + ((an ? 1 : 0) - (this.bob || 0)) * (1 - Math.exp(-dt * 4));
-      this.rig.position.y = 2.0 + eu.avatar.descida + (Math.abs(Math.cos(ph)) - .6) * .03 * this.bob; this.rig.position.z = .1 + (eu.avatar._sz || 0); // sentado: o olho desce junto this.rig.rotation.z = Math.sin(ph) * .008 * this.bob;
+      this.rig.position.y = 2.0 + eu.avatar.descida + (Math.abs(Math.cos(ph)) - .6) * .03 * this.bob; this.rig.position.z = .1 + (eu.avatar._sz || 0); this.rig.rotation.z = Math.sin(ph) * .008 * this.bob; // sentado: o olho desce junto
       const agora = performance.now();
       if (this.onOlhar && agora - (this.ultOlhar || 0) > 100 && (Math.abs(this.olhar.y - (this.olharEnv?.y ?? 9)) > .01 || Math.abs(this.olhar.p - (this.olharEnv?.p ?? 9)) > .01)) {
         this.ultOlhar = agora; this.olharEnv = { ...this.olhar }; this.onOlhar(this.olhar.y, this.olhar.p);

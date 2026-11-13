@@ -750,7 +750,7 @@ class Sala {
   }
   // ---------- poltronas: eliminados do 1º turno assistem ao 2º turno sentados no palco ----------
   /** Disputou o 1º turno, ficou fora do 2º e segue na partida (não saiu nem foi banido); só depois do anúncio do 2º turno. */
-  eliminado(j) { const r = this.resultado; return !!j && !!r && !r.eleito1 && !!r.anunciado1 && !j.banido && !j.saiu && r.r1.res.some(x => x.id === j.id) && !this.finalistas().includes(j.id); }
+  eliminado(j) { const r = this.resultado; return !!j && !!r && !r.eleito1 && !!r.anunciado1 && !r.mostrar2 && !j.banido && !j.saiu && r.r1.res.some(x => x.id === j.id) && !this.finalistas().includes(j.id); }
   /** Dá a j a poltrona livre de menor índice. O servidor trata um evento por vez: cliques simultâneos nunca recebem a mesma.
    *  Idempotente (repetir o pedido / reconectar mantém a mesma). Sem poltrona livre: continua no púlpito. Devolve erro ou null. */
   sentar(j) {
