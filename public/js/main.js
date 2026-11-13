@@ -356,6 +356,7 @@ function janelaTrocarNome() {
 
 function onEstado(s) {
   const ant = E.sala; E.sala = s; E.offset = s.agora - Date.now();
+  if (!ant) pararAbertura(); // entrou numa sala/partida: a música/locutor da abertura do menu para
   const me = s.jogadores.find(j => j.id === E.eu);
   if (me && s.fase === 'lobby' && (me.partido !== E.perfil.partido || me.nome !== E.perfil.nome)) { E.perfil.partido = me.partido; E.perfil.nome = me.nome; salvar(); }
   est.setJogadores(s.jogadores, E.eu);
@@ -957,7 +958,7 @@ function renderHUD() {
   if (!$('#h-topo')) {
     hud.innerHTML = `
       <div class="hud-topo" id="h-topo"><div class="hud-box hud-bloco" id="h-bloco"></div><div class="hud-box hud-tema" id="h-tema"></div>
-        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end"><div class="hud-box hud-tempo" id="h-tempo"></div><button class="btn peq p" id="h-pular" hidden>Pular ▶</button></div></div>
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end"><div class="hud-box hud-tempo" id="h-tempo"></div></div></div>
       <div class="coluna-dir"><div class="perguntas p" id="h-perg"></div><div class="lateral p" id="h-lateral"></div></div>
       <div class="legenda" id="h-legenda"></div>
       <div class="acao p" id="h-acao"></div>
@@ -1016,7 +1017,6 @@ function renderHUD() {
     addEventListener('keydown', e => { if (e.key === 'Escape' && $('#h-jog') && !$('#h-jog').hidden) { e.preventDefault(); abrirJogadores(false); } });
     addEventListener('pointerdown', e => { const pj = $('#h-jog'); if (pj && !pj.hidden && !pj.contains(e.target) && !$('#h-jog-b').contains(e.target) && !e.target.closest?.('.janela-fundo')) abrirJogadores(false); }, true);
     $('#h-mudo').onclick = () => { voip.setMudo(!voip.mudo); $('#h-mudo').textContent = voip.mudo ? '🔇' : '🎙'; toast(voip.mudo ? 'Seu microfone do chat de voz está mudo.' : 'Chat de voz ativo (você só transmite quando é a sua vez).'); };
-    $('#h-pular').onclick = () => socket.emit('avancar');
     $('#h-ajuda-b').onclick = () => { $('#h-ajuda').hidden = false; }; $('#h-ajuda-x').onclick = () => { $('#h-ajuda').hidden = true; };
     $('#h-regras-b').onclick = () => { $('#h-regras').hidden = false; }; $('#h-regras-x').onclick = () => { $('#h-regras').hidden = true; };
     $('#h-som').onclick = () => { E.cfg.voz = !E.cfg.voz; salvarConfig(E.cfg); if (!E.cfg.voz) { calar(); pararNarracao(); } $('#h-som').textContent = E.cfg.voz ? '🔊' : '🔇'; };
@@ -1034,9 +1034,6 @@ function renderHUD() {
     $('#h-bloco').innerHTML = p.t2 ? `2º TURNO<small>${p.etapa === 2 ? 'Confronto · tema livre' : ETAPAS[p.etapa - 1]}</small>` : `BLOCO ${p.etapa}/3<small>${ETAPAS[p.etapa - 1]}</small>`;
     if (!s.roleta) $('#h-tema').innerHTML = s.temaAtual ? `<small>Tema atual · ${esc(TEMA[s.temaAtual].estado)}</small><b><span class="uf">${TEMA[s.temaAtual].uf}</span>${esc(TEMA[s.temaAtual].titulo)}</b>`
       : `<small>Debate presidencial</small><b>${p.tipo === 'cumprimento' ? 'Cumprimentos' : p.tipo === 'pesquisa' ? 'Pesquisa relâmpago' : p.kind === 'final' ? 'Considerações finais' : ETAPAS[p.etapa - 1]}</b>`;
-    const pu = s.pular, mim = eu(), bp = $('#h-pular'); // pular animação: todos os jogadores precisam concordar (n/total)
-    bp.hidden = !(pu && mim && !mim.banido && !mim.saiu);
-    if (pu) { const votei = pu.ids.includes(E.eu); bp.textContent = `${votei ? '✓ ' : ''}Pular ▶ ${pu.n}/${pu.total}`; bp.classList.toggle('votado', votei); bp.title = votei ? 'Aguardando os outros jogadores' : 'Todos precisam concordar para pular'; }
   }
   renderLateral(); renderPerguntas(); renderJogadores(); atualizarLegenda(); renderAcao(); renderResultado(); tick();
 }
