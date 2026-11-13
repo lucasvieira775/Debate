@@ -1331,7 +1331,7 @@ export class Estudio {
           const y = topo + i * (h + 12), p = PARTIDO[x.partido] || PARTIDO.PUN;
           ctx.fillStyle = 'rgba(5,12,40,.7)'; rr(ctx, MX, y, LW, h, 16); ctx.fill();
           ctx.fillStyle = p.cor; rr(ctx, 560, y + 12, Math.max(10, (x.pct / max) * 1000), h - 24, 10); ctx.fill();
-          ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = `${h * .46}px ${FONTE}`; ctx.fillText(x.nome.slice(0, 14).toUpperCase(), MX + 32, y + h / 2 + 2);
+          ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; this.caber(ctx, x.nome.slice(0, 14).toUpperCase(), 416, h * .46); ctx.fillText(x.nome.slice(0, 14).toUpperCase(), MX + 32, y + h / 2 + 2); // nome largo encolhe: nunca invade a barra (x 560)
           ctx.textAlign = 'right'; ctx.font = `${h * .5}px ${FONTE}`; ctx.fillText(x.pct.toFixed(1).replace('.', ',') + '%', MX + LW - 32, y + h / 2 + 2);
           if (x.eleito) { const tag = x.eleito === true ? 'ELEITO' : x.eleito; ctx.fillStyle = '#22c55e'; rr(ctx, 1576, y + 14, 180, h - 28, 10); ctx.fill(); ctx.fillStyle = '#04210f'; ctx.textAlign = 'center'; this.caber(ctx, tag, 156, h * .34); ctx.fillText(tag, 1666, y + h / 2 + 2); }
           ctx.textAlign = 'center';
