@@ -62,7 +62,7 @@ const minhaVez = () => E.sala?.fase === 'debate' && E.sala.passo?.tipo === 'fala
 /** O servidor decide quem pode falar (fechado enquanto a mediação fala; aberto a todos no cumprimento). */
 /** Aviso quando o jogador tenta falar/escrever fora da hora (no máx. 1 a cada 6 s). */
 let avisoBloqT = 0;
-function avisoBloqueado() { if (Date.now() - avisoBloqT < 6000) return; avisoBloqT = Date.now(); toast(E.sala?.narrando ? '🎙 A mediação está falando. Aguarde a sua vez.' : '🔇 Não é possível falar agora. Aguarde a sua vez.', 'erro'); }
+function avisoBloqueado() { if (Date.now() - avisoBloqT < 6000) return; avisoBloqT = Date.now(); toast(E.sala?.poltronas?.[E.eu] != null ? '🛋 Da poltrona você só fala nos intervalos, quando a mediação e os candidatos terminam.' : E.sala?.narrando ? '🎙 A mediação está falando. Aguarde a sua vez.' : '🔇 Não é possível falar agora. Aguarde a sua vez.', 'erro'); }
 const micLiberado = (s = E.sala) => !!s && (s.microfones === 'todos' || (Array.isArray(s.microfones) && s.microfones.includes(E.eu)));
 const ret = av => retrato(av);
 const vx = b => String(b).replace('.', ',');

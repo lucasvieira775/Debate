@@ -170,6 +170,8 @@ class Sala {
     if (this.fase !== 'debate' || this.passo?.tipo === 'cumprimento') return 'todos';
     const ids = [];
     if (this.passo && (this.passo.tipo === 'fala' || this.passo.tipo === 'escolha') && !this.porId(this.passo.falante)?.banido) ids.push(this.passo.falante);
+    // 2º turno: eliminados nas poltronas comentam nos intervalos (nunca durante a fala de um finalista)
+    if (this.turno2 && !['ativo', 'encerrando'].includes(this.fala?.status)) ids.push(...Object.keys(this.poltronas).filter(id => !this.porId(id)?.bot));
     return ids;
   }
   conta(j) { return j?.uid ? this.mgr.contas.conta(j.uid, j.nome) : null; }
