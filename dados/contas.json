@@ -2614,5 +2614,13 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794604228915
+ },
+ "f17fbd7b-6b43-46bf-92f2-947d7786ca87": {
+  "uid": "f17fbd7b-6b43-46bf-92f2-947d7786ca87",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794605353037
  }
 }

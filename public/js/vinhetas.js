@@ -358,9 +358,9 @@ const LARG_TIT = { 1: () => medir(`${TAM1}px ${FONTE}`, 'BLOCO 1') + TAM1 * .25,
 const ALT_TIT = { 1: () => TAM1 * .8, 2: () => painel2().h, 3: () => placa3().h };
 const fila = b => m('fila' + b, () => {
   if (CP) { // compacto: logo à esquerda (sL); à direita o "BLOCO N" (sT) em cima da faixa do subtítulo; tudo dentro de U, acima do piso (y 466)
-    const U = Math.min(PW - 100, 1500), sL = .7, g = 44, wL = logo3().w * sL, wC = U - wL - g, w0 = LARG_TIT[b](), hT = ALT_TIT[b](), sT = Math.min(wC / w0, 250 / hT), bd = banda(b, wC * .82);
-    const hB = bd.fundo.h, y0 = (520 - hT * sT - hB) / 2 + 14, x0 = 1024 - U / 2, cx = x0 + wL + g + wC / 2;
-    return { bd, wT: w0 * sT, sT, sL, xL: x0, yL: 266, cx, xB: cx, yT: y0 + hT * sT / 2 + (b === 1 ? TAM1 * .065 * sT : 0), yB: y0 + hT * sT + hB / 2, x0, x1: x0 + U }; // bloco 1: as letras ficam acima do centro do sprite
+    const U = Math.min(PW - 100, 1500), sL = .6, g = 44, wE = b === 1 ? 240 : b === 2 ? 220 : 0, wL = logo3().w * sL, wC = U - wL - g - (wE && wE + g), w0 = LARG_TIT[b](), hT = ALT_TIT[b](), sT = Math.min(wC / w0, 250 / hT), bd = banda(b, wC * .82);
+    const sB = Math.min(1, wC / bd.fundo.w), hB = bd.fundo.h * sB, y0 = (520 - hT * sT - hB) / 2 + 14, x0 = 1024 - U / 2, cx = x0 + wL + g + wC / 2;
+    return { bd, wT: w0 * sT, sT, sL, xL: x0, yL: 266, cx, xB: cx, yT: y0 + hT * sT / 2 + (b === 1 ? TAM1 * .065 * sT : 0), yB: y0 + hT * sT + hB / 2, x0, x1: x0 + U, xE: x0 + U - wE, wE, sB }; // xE/wE = coluna do enfeite (Congresso/bandeira) à direita; bloco 1: as letras ficam acima do centro do sprite
   }
   const S = PW * .7, wL = logo3().w, wT = LARG_TIT[b](), bd = banda(b, S - wL - wT - 500), wB = bd.fundo.w, g = Math.max(160, (S - wL - wT - wB) / 2), tot = wL + wT + wB + 2 * g, x0 = 1024 - tot / 2;
   return { bd, wT, sT: 1, sL: 1, xL: x0, yL: CY, cx: x0 + wL + g + wT / 2, xB: x0 + wL + g + wT + g + wB / 2, yT: CY, yB: CY, x0, x1: x0 + tot };
@@ -370,7 +370,9 @@ function logoFila(x, t, F, par) {
   const lg = logo3(), e = F.sL, xL = F.xL, w = lg.w * e, h = lg.h * e;
   alfa(x, eOutCubic(fase(t, .2, 1.1)) * (1 - saidaK(t) * .7), () => { x.beginPath(); x.rect(xL - 40, 0, (w + 80) * eOutExpo(fase(t, .2, 1.3)), DH); x.clip(); img(x, lg, xL - par * .6 * e, F.yL - h / 2, w, h); });
 }
-const pulsoAzul = (x, t, cx, cy, a = 1) => add(x, () => brilho(x, AZUL, cx, cy, 950, a * (.16 + .07 * Math.sin(t * 3.1)), 360));
+/** Faixa do subtítulo na posição da linha; no compacto encolhe (sB) para caber na coluna do título. */
+const faixaF = (x, t, F) => { if (!F.sB || F.sB === 1) return faixa(x, t, F.bd, F.xB, F.yB); x.save(); x.translate(F.xB, F.yB); x.scale(F.sB, F.sB); faixa(x, t, F.bd, 0, 0); x.restore(); };
+const pulsoAzul =(x, t, cx, cy, a = 1) => add(x, () => brilho(x, AZUL, cx, cy, 950, a * (.16 + .07 * Math.sin(t * 3.1)), 360));
 
 // ---------- BLOCO 1: Temas Diversos ----------
 function bloco1(x, t) {
@@ -383,12 +385,12 @@ function bloco1(x, t) {
   pulsoAzul(x, t, cx, 300, fase(t, .5, 1.2));
   anel(x, t, cx, 530, F.wT * .6, .55 + .2 * Math.sin(t * 2.4));
   fitasAnim(x, ef, x => x.translate(L, 0)); fitasAnim(x, ef, x => { x.translate(R, DH); x.rotate(Math.PI); x.scale(.72, .72); });
-  const ec = eOutCubic(fase(t, .25, 1.3)); alfa(x, ec, () => img(x, congresso(0), F.x1 + 80 + 90 * (1 - ec) - par, 185, 690, 391));
+  const ec = eOutCubic(fase(t, .25, 1.3)); alfa(x, ec, () => CP ? img(x, congresso(0), F.xE + 30 * (1 - ec), 266 - F.wE * .2, F.wE, F.wE * 391 / 690) : img(x, congresso(0), F.x1 + 80 + 90 * (1 - ec) - par, 185, 690, 391));
   const at = fase(t, .9, 1.3) * (1 - saidaK(t));
   add(x, () => { brilho(x, OURO, cx, cy + 200 * F.sT, F.wT * .6, at * .8, 60); brilho(x, '255,230,150', cx, cy + 200 * F.sT, F.wT * .3, at * .7, 26); });
   logoFila(x, t, F, par);
   titulo(x, t, TIT[1](), cx, cy, F.sT);
-  faixa(x, t, F.bd, F.xB, F.yB);
+  faixaF(x, t, F);
   particulas(x, t, 46, fase(t, 1, 2), 11);
   flashes(x, t, cx, cy, F.sT);
 }
@@ -412,10 +414,10 @@ function bloco2(x, t) {
   const ep = eOutExpo(fase(t, .15, .8)), eo = saidaK(t);
   alfa(x, ep * (1 - eo), () => { const p = painel2(); x.translate(cx - 400 * (1 - ep), cy); x.scale((1 + .2 * eo) * F.sT, (1 + .2 * eo) * F.sT); img(x, p, -p.w / 2, -p.h / 2); });
   const eb = eOutCubic(fase(t, .35, 1.1));
-  alfa(x, eb, () => bandeiraOnda(x, t, F.x1 + 110 + 160 * (1 - eb) + par * .4, 128));
+  alfa(x, eb, () => { if (CP) { x.translate(F.xE + 10 + 30 * (1 - eb), 160); x.scale(.52, .52); bandeiraOnda(x, t, 0, 0); } else bandeiraOnda(x, t, F.x1 + 110 + 160 * (1 - eb) + par * .4, 128); });
   logoFila(x, t, F, par);
   titulo(x, t, TIT[2](), cx, cy + 6 * F.sT, F.sT);
-  faixa(x, t, F.bd, F.xB, F.yB);
+  faixaF(x, t, F);
   particulas(x, t, 40, fase(t, 1, 2), 23);
   flashes(x, t, cx, cy, F.sT);
 }
@@ -447,7 +449,7 @@ function bloco3(x, t) {
   anel(x, t, cx, 530, F.wT * .6, .45 + .2 * Math.sin(t * 2.4), CIANO);
   fitasAnim(x, ef, x => { x.translate(R, 0); x.scale(-.72, .72); }); fitasAnim(x, ef, x => { x.translate(R, DH); x.rotate(Math.PI); x.scale(.62, .62); });
   titulo(x, t, TIT[3](), cx, cy, F.sT);
-  faixa(x, t, F.bd, F.xB, F.yB);
+  faixaF(x, t, F);
   particulas(x, t, 42, fase(t, 1, 2), 37);
   flashes(x, t, cx, cy, F.sT);
 }
