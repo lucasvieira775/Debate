@@ -13,7 +13,7 @@ import { brasao } from '/shared/niveis.js';
 import { Acoes } from './acoes/coreografia.js';
 import { limparTela } from './acoes/tela.js';
 import { criarMaterialTelao, atualizarTelao, criarMolduraLuz } from './telaoFx.js';
-import { desenharVinheta, desenharOcioso, tocarSomVinheta, VINHETA_S } from './vinhetas.js';
+import { desenharVinheta, desenharOcioso, aquecerVinhetas, tocarSomVinheta, VINHETA_S } from './vinhetas.js';
 
 const CENTRO = new THREE.Vector3(0, 0, -3.2);   // mesa da mediadora
 const RAIO = 6.4;                                // raio do arco de púlpitos
@@ -332,7 +332,7 @@ export class Estudio {
     s.add(criarMolduraLuz(R - .08, y0, y1, ini, len, new THREE.Vector3(0, 0, -1.5), this.tc.mat)); // filetes de LED animados (cor do bloco, varredura)
     for (const a of [ini, ini + len]) { const c = new THREE.Mesh(new THREE.BoxGeometry(.24, H + .24, .24), metal); c.position.set(Math.sin(a) * (R - .04), (y0 + y1) / 2, -1.5 + Math.cos(a) * (R - .04)); c.rotation.y = a; s.add(c); }
   }
-  /** Dispara a vinheta do bloco no telão curvo; offsetMs = quanto dela já passou (sincronia com o servidor). */
+  /** Dispara a vinheta do bloco no telão curvo e no telão do mediador (animarTelaoCurvo desenha os dois); offsetMs = quanto dela já passou (sincronia com o servidor). */
   vinheta(bloco, offsetMs = 0) {
     const tc = this.tc; tc.bloco = bloco; tc.t0 = this.t - offsetMs / 1000;
     if (offsetMs < VINHETA_S * 1000) tocarSomVinheta(bloco, offsetMs / 1000);
@@ -342,7 +342,15 @@ export class Estudio {
     const tc = this.tc, tv = t - tc.t0, emV = tv >= 0 && tv < VINHETA_S + .6;
     if (emV || t - tc.tOc >= (this.cfg.qualidade === 'alta' ? .05 : .1)) /* ocioso: 20 fps (alta) / 10 fps (baixa) */ { if (emV) desenharVinheta(tc.ctx, tc.W, tc.H, tc.bloco, tv, t); else { tc.tOc = t; desenharOcioso(tc.ctx, tc.W, tc.H, t); } tc.tex.needsUpdate = true; }
     atualizarTelao(tc.mat, t, dt, { vinheta: emV ? tv / VINHETA_S : -1, bloco: tc.bloco });
+    // a mesma vinheta no telão do mediador (mesmo relógio tc.t0), na composição compacta do canvas 2048×768
+    const led = this.led, noLED = this.vinhetaNoLED();
+    if (noLED && tv < VINHETA_S) { desenharVinheta(led.ctx, 2048, 768, tc.bloco, tv, tv, true); led.tex.needsUpdate = true; } // opaca: dispensa redesenhar o conteúdo por baixo
+    else if (noLED || led.emV) this.desenharLED(); // dissolve final (conteúdo do modo atual + vinheta por cima) e 1 quadro limpo ao terminar
+    else if (tc.tOc === t) aquecerVinhetas(2048, 768); // pré-renderiza as camadas aos poucos (no ritmo do quadro ocioso)
+    led.emV = noLED;
   }
+  /** A vinheta está passando no telão do mediador? (a revelação do vencedor tem prioridade sobre ela) */
+  vinhetaNoLED() { const tv = this.tc ? this.t - this.tc.t0 : -1; return tv >= 0 && tv < VINHETA_S + .6 && !this.revelacao; }
   construirPlateia() {
     const s = this.scene; const Ca = new THREE.Vector3(0, 0, -1.5);
     const ini = -125 * D2R, fim = 125 * D2R;
@@ -1332,6 +1340,7 @@ export class Estudio {
         break;
       }
     }
+    if (this.vinhetaNoLED()) desenharVinheta(ctx, W, H, this.tc.bloco, this.t - this.tc.t0, 0, true); // vinheta do bloco por cima (no fim, dissolve p/ o conteúdo acima)
     tex.needsUpdate = true;
     this.desenharLateral();
   }

@@ -1,13 +1,15 @@
 // Vinhetas de TV dos blocos no telão curvo: tudo procedural em canvas 2D (sem imagens), determinístico em t, + SFX WebAudio.
 // Coordenadas de projeto 2048×576 (quadro central); se o canvas for mais largo (telão panorâmico), a cena fica no centro e fundo/efeitos
 // se espalham pela largura toda (x de L a R, em unidades de projeto). Camadas estáticas pré-renderizadas em cache, só compostas por frame.
+// Telão mais "quadrado" do que a linha única comporta (ex.: o do mediador, 8:3): modo compacto (CP) — mesma cena, sem esticar: logo à esquerda,
+// "BLOCO N" sobre a faixa do subtítulo à direita (ver fila()).
 import { audioBase } from './voz.js';
 
 export const VINHETA_S = 5;
 export const TITULOS = { 1: 'Temas Diversos', 2: 'Debate frente a frente', 3: 'Considerações finais' };
 const FONTE = '"Lilita One", "Arial Black", Impact, sans-serif';
 const FONTE_TXT = '"Nunito", "Segoe UI", Arial, sans-serif';
-const DW = 2048, DH = 576, DISS = .6, TI = 1.03, TAU = Math.PI * 2; // TI = instante do impacto do "BLOCO N"
+const DW = 2048, DH = 576, LARG_CP = 3600, DISS = .6, TI = 1.03, TAU = Math.PI * 2; // TI = instante do impacto do "BLOCO N"; LARG_CP = largura de projeto abaixo da qual a linha única não cabe (→ compacto)
 
 // ---------- utilitários ----------
 const cl = (v, a = 0, b = 1) => v < a ? a : v > b ? b : v;
@@ -29,13 +31,13 @@ const add = (x, f) => { x.save(); x.globalCompositeOperation = 'lighter'; f(); x
 const alfa = (x, a, f) => { if (a <= .002) return; x.save(); x.globalAlpha *= Math.min(1, a); f(); x.restore(); };
 
 // ---------- cache de camadas (por tamanho de tile; refeito quando as fontes carregam) ----------
-let K = 1, C = {}, fontesOk = false, PW = DW, OX = 0, L = 0, R = DW, NT = 1; // PW = largura de projeto total; OX = sobra de cada lado do quadro central
+let K = 1, C = {}, fontesOk = false, PW = DW, OX = 0, L = 0, R = DW, NT = 1, CP = false; // PW = largura de projeto total; OX = sobra de cada lado do quadro central (negativa no compacto); CP = composição compacta
 const CACHES = {};
 function prep(W, H) {
   if (!fontesOk) try { fontesOk = !document.fonts || (document.fonts.check('40px "Lilita One"') && document.fonts.check('900 40px "Nunito"')); } catch { fontesOk = true; }
   const ch = W + 'x' + H + fontesOk;
-  C = CACHES[ch] ||= (pw => ({ K: Math.min(1.5, Math.max(.2, W / pw)), PW: pw }))(Math.max(DW, DH * W / H));
-  K = C.K; PW = C.PW; OX = (PW - DW) / 2; L = -OX; R = DW + OX; NT = PW / DW;
+  C = CACHES[ch] ||= (pw => ({ K: Math.min(1.5, Math.max(.2, W / pw)), PW: pw, CP: pw < LARG_CP }))(DH * W / H); // escala sempre uniforme (W/PW = H/DH)
+  K = C.K; PW = C.PW; CP = C.CP; OX = (PW - DW) / 2; L = -OX; R = DW + OX; NT = PW / DW;
 }
 const tf = (x, W, H) => x.setTransform(W / PW, 0, 0, H / DH, OX * W / PW, 0); // projeto → canvas (quadro central no meio)
 function cv(w, h, f) {
@@ -191,7 +193,7 @@ const fitas = () => m('fitas', () => cv(1200, 520, g => {
 }));
 function fitasAnim(x, e, tf) {
   const c = fitas(), put = (ee, a) => alfa(x, a, () => img(x, c, -(1 - ee) * 1300, -(1 - ee) * 430));
-  x.save(); tf(x);
+  x.save(); tf(x); if (CP) x.scale(.6, .6);
   if (e > 0 && e < .985) { const a = Math.min(1, (1 - e) * 5); put(e - .12, .32 * a); put(e - .24, .15 * a); }
   if (e > 0) put(e, 1); x.restore();
 }
@@ -302,10 +304,10 @@ function anel(x, t, cx, cy, rx, a, rgb = AZUL) {
 }
 const saidaK = t => eInCubic(fase(t, 4.4, 5));
 /** "BLOCO N": zoom-in com overshoot, rastro de zoom, reflexo varrendo; saída em zoom. */
-function titulo(x, t, tit, cx, cy) {
+function titulo(x, t, tit, cx, cy, e = 1) {
   if (t < .8) return;
   const xa = fase(t, .8, 1.4), eo = saidaK(t);
-  let s = (1 + 1.6 * (1 - eOutBack(xa))) * (1 + .5 * eo) * (1 + .012 * Math.sin(t * 2.2) * fase(t, 1.5, 2.2));
+  let s = e * (1 + 1.6 * (1 - eOutBack(xa))) * (1 + .5 * eo) * (1 + .012 * Math.sin(t * 2.2) * fase(t, 1.5, 2.2));
   const a = fase(t, .8, .92) * (1 - eo); if (a <= 0) return;
   const { face, sombra } = tit, put = (c, ss, al, p) => alfa(x, al, () => { x.translate(cx, cy); x.scale(ss, ss); p != null ? varre(x, c, -c.w / 2, -c.h / 2, p) : img(x, c, -c.w / 2, -c.h / 2); });
   if (sombra) put(sombra, s, a * .95);
@@ -329,7 +331,7 @@ function faixa(x, t, bd, cx, cy, refl = false) {
   if (refl) alfa(x, .2 * (1 - xo), () => { x.beginPath(); x.rect(L, 468, PW, DH - 468); x.clip(); x.translate(cx, 2 * (cy + h / 2 - 10) - cy); x.scale(1, -1); corpo(); });
 }
 /** Flashes globais, flare do impacto, flare que varre o título e o "whip" de saída. */
-function flashes(x, t, cx, cy) {
+function flashes(x, t, cx, cy, e = 1) {
   const f = Math.max(pulso(t, .52, .7, 1) * .55, t > TI ? (1 - fase(t, TI, TI + .42)) ** 2 * .42 : 0, pulso(t, 4.72, 4.9, 5.25) * .32);
   if (f > .003) alfa(x, f, () => { x.fillStyle = '#eef4ff'; x.fillRect(L, 0, PW, DH); });
   add(x, () => {
@@ -340,7 +342,7 @@ function flashes(x, t, cx, cy) {
     }
     const p = fase(t, 1.2, 1.9);
     if (p > 0 && p < 1) {
-      const fx = lerp(cx - 600, cx + 600, eInOut(p)), a = Math.sin(Math.PI * p);
+      const fx = lerp(cx - 600 * e, cx + 600 * e, eInOut(p)), a = Math.sin(Math.PI * p);
       brilho(x, BRANCO, fx, cy - 30, 170, a * .9); streak(x, fx, cy - 30, 1500, 64, a); brilho(x, CIANO, fx, cy - 30, 60, a);
       for (const [k2, r] of [[.5, 26], [.9, 46], [1.4, 18]]) brilho(x, AZUL, cx + (cx - fx) * k2, cy - 30 + 20 * k2, r, a * .5);
     }
@@ -352,21 +354,27 @@ function flashes(x, t, cx, cy) {
 const CY = DH / 2, TAM1 = 480, TAM2 = Math.round(196 * E2);
 const TIT = { 1: () => tituloCromo('BLOCO 1', TAM1, 'prata'), 2: () => tituloCromo('BLOCO 2', TAM2, 'branco'), 3: () => ({ face: placa3(), sombra: null }) };
 const LARG_TIT = { 1: () => medir(`${TAM1}px ${FONTE}`, 'BLOCO 1') + TAM1 * .25, 2: () => painel2().w, 3: () => placa3().w };
-/** Posições da linha do bloco b: { bd (faixa), wT, xL (logo), cx (título), xB (faixa), x0/x1 (pontas) }. */
+/** Posições da linha do bloco b: { bd (faixa), wT, xL/yL (logo), cx/yT (título), xB/yB (faixa), sT/sL (escalas do título e do logo), x0/x1 (pontas) }. */
+const ALT_TIT = { 1: () => TAM1 * .8, 2: () => painel2().h, 3: () => placa3().h };
 const fila = b => m('fila' + b, () => {
+  if (CP) { // compacto: logo à esquerda (sL); à direita o "BLOCO N" (sT) em cima da faixa do subtítulo; tudo dentro de U, acima do piso (y 466)
+    const U = Math.min(PW - 100, 1500), sL = .7, g = 44, wL = logo3().w * sL, wC = U - wL - g, w0 = LARG_TIT[b](), hT = ALT_TIT[b](), sT = Math.min(wC / w0, 250 / hT), bd = banda(b, wC * .82);
+    const hB = bd.fundo.h, y0 = (520 - hT * sT - hB) / 2 + 14, x0 = 1024 - U / 2, cx = x0 + wL + g + wC / 2;
+    return { bd, wT: w0 * sT, sT, sL, xL: x0, yL: 266, cx, xB: cx, yT: y0 + hT * sT / 2 + (b === 1 ? TAM1 * .065 * sT : 0), yB: y0 + hT * sT + hB / 2, x0, x1: x0 + U }; // bloco 1: as letras ficam acima do centro do sprite
+  }
   const S = PW * .7, wL = logo3().w, wT = LARG_TIT[b](), bd = banda(b, S - wL - wT - 500), wB = bd.fundo.w, g = Math.max(160, (S - wL - wT - wB) / 2), tot = wL + wT + wB + 2 * g, x0 = 1024 - tot / 2;
-  return { bd, wT, xL: x0, cx: x0 + wL + g + wT / 2, xB: x0 + wL + g + wT + g + wB / 2, x0, x1: x0 + tot };
+  return { bd, wT, sT: 1, sL: 1, xL: x0, yL: CY, cx: x0 + wL + g + wT / 2, xB: x0 + wL + g + wT + g + wB / 2, yT: CY, yB: CY, x0, x1: x0 + tot };
 });
 /** Logo do debate na ponta esquerda da linha: revela da esquerda p/ a direita. */
-function logoFila(x, t, xL, par) {
-  const lg = logo3();
-  alfa(x, eOutCubic(fase(t, .2, 1.1)) * (1 - saidaK(t) * .7), () => { x.beginPath(); x.rect(xL - 40, 0, (lg.w + 80) * eOutExpo(fase(t, .2, 1.3)), DH); x.clip(); img(x, lg, xL - par * .6, (DH - lg.h) / 2); });
+function logoFila(x, t, F, par) {
+  const lg = logo3(), e = F.sL, xL = F.xL, w = lg.w * e, h = lg.h * e;
+  alfa(x, eOutCubic(fase(t, .2, 1.1)) * (1 - saidaK(t) * .7), () => { x.beginPath(); x.rect(xL - 40, 0, (w + 80) * eOutExpo(fase(t, .2, 1.3)), DH); x.clip(); img(x, lg, xL - par * .6 * e, F.yL - h / 2, w, h); });
 }
 const pulsoAzul = (x, t, cx, cy, a = 1) => add(x, () => brilho(x, AZUL, cx, cy, 950, a * (.16 + .07 * Math.sin(t * 3.1)), 360));
 
 // ---------- BLOCO 1: Temas Diversos ----------
 function bloco1(x, t) {
-  const F = fila(1), cx = F.cx, cy = CY, ei = eOutExpo(fase(t, 0, .9)), par = Math.max(0, t - .8) * 5, ef = ei * (1 - eInCubic(fase(t, 4.45, 5)));
+  const F = fila(1), cx = F.cx, cy = F.yT, ei = eOutExpo(fase(t, 0, .9)), par = Math.max(0, t - .8) * 5, ef = ei * (1 - eInCubic(fase(t, 4.45, 5)));
   img(x, fundo(1), L, 0);
   add(x, () => {
     for (let i = Math.floor((L + 120) / 340) - 1; -120 + i * 340 < R + 340; i++) desenhaFeixe(x, -120 + i * 340 + Math.sin(t * .35 + i) * 24, -60, .55 - (i % 7 + 7) % 7 * .02 - (1 - ei) * 1.2 + Math.sin(t * .5 + i * 2) * .035,
@@ -377,17 +385,17 @@ function bloco1(x, t) {
   fitasAnim(x, ef, x => x.translate(L, 0)); fitasAnim(x, ef, x => { x.translate(R, DH); x.rotate(Math.PI); x.scale(.72, .72); });
   const ec = eOutCubic(fase(t, .25, 1.3)); alfa(x, ec, () => img(x, congresso(0), F.x1 + 80 + 90 * (1 - ec) - par, 185, 690, 391));
   const at = fase(t, .9, 1.3) * (1 - saidaK(t));
-  add(x, () => { brilho(x, OURO, cx, cy + 200, F.wT * .6, at * .8, 60); brilho(x, '255,230,150', cx, cy + 200, F.wT * .3, at * .7, 26); });
-  logoFila(x, t, F.xL, par);
-  titulo(x, t, TIT[1](), cx, cy);
-  faixa(x, t, F.bd, F.xB, cy);
+  add(x, () => { brilho(x, OURO, cx, cy + 200 * F.sT, F.wT * .6, at * .8, 60); brilho(x, '255,230,150', cx, cy + 200 * F.sT, F.wT * .3, at * .7, 26); });
+  logoFila(x, t, F, par);
+  titulo(x, t, TIT[1](), cx, cy, F.sT);
+  faixa(x, t, F.bd, F.xB, F.yB);
   particulas(x, t, 46, fase(t, 1, 2), 11);
-  flashes(x, t, cx, cy);
+  flashes(x, t, cx, cy, F.sT);
 }
 
 // ---------- BLOCO 2: Debate frente a frente ----------
 function bloco2(x, t) {
-  const F = fila(2), cx = F.cx, cy = CY, ei = eOutExpo(fase(t, 0, .9)), par = Math.max(0, t - .8) * 5, ef = ei * (1 - eInCubic(fase(t, 4.45, 5)));
+  const F = fila(2), cx = F.cx, cy = F.yT, ei = eOutExpo(fase(t, 0, .9)), par = Math.max(0, t - .8) * 5, ef = ei * (1 - eInCubic(fase(t, 4.45, 5)));
   img(x, fundo(2), L, 0);
   add(x, () => {
     const pos = [140, 430, 1618, 1908]; for (let p = -150; p > L; p -= 580) pos.unshift(p); for (let p = DW + 150; p < R; p += 580) pos.push(p);
@@ -402,14 +410,14 @@ function bloco2(x, t) {
   const ec = eOutCubic(fase(t, .2, 1.2));
   alfa(x, ec, () => img(x, congresso(1), F.x0 - 720 - par, 200, 640, 363));
   const ep = eOutExpo(fase(t, .15, .8)), eo = saidaK(t);
-  alfa(x, ep * (1 - eo), () => { const p = painel2(); x.translate(cx - 400 * (1 - ep), cy); x.scale(1 + .2 * eo, 1 + .2 * eo); img(x, p, -p.w / 2, -p.h / 2); });
+  alfa(x, ep * (1 - eo), () => { const p = painel2(); x.translate(cx - 400 * (1 - ep), cy); x.scale((1 + .2 * eo) * F.sT, (1 + .2 * eo) * F.sT); img(x, p, -p.w / 2, -p.h / 2); });
   const eb = eOutCubic(fase(t, .35, 1.1));
   alfa(x, eb, () => bandeiraOnda(x, t, F.x1 + 110 + 160 * (1 - eb) + par * .4, 128));
-  logoFila(x, t, F.xL, par);
-  titulo(x, t, TIT[2](), cx, cy + 6);
-  faixa(x, t, F.bd, F.xB, cy);
+  logoFila(x, t, F, par);
+  titulo(x, t, TIT[2](), cx, cy + 6 * F.sT, F.sT);
+  faixa(x, t, F.bd, F.xB, F.yB);
   particulas(x, t, 40, fase(t, 1, 2), 23);
-  flashes(x, t, cx, cy);
+  flashes(x, t, cx, cy, F.sT);
 }
 function bandeiraOnda(x, t, px, py) {
   const c = bandeira(), N = 40, sw = c.w / N;
@@ -424,7 +432,7 @@ function bandeiraOnda(x, t, px, py) {
 
 // ---------- BLOCO 3: Considerações finais ----------
 function bloco3(x, t) {
-  const F = fila(3), cx = F.cx, cy = CY, ei = eOutExpo(fase(t, 0, .9)), par = Math.max(0, t - .8) * 4, ef = ei * (1 - eInCubic(fase(t, 4.45, 5)));
+  const F = fila(3), cx = F.cx, cy = F.yT, ei = eOutExpo(fase(t, 0, .9)), par = Math.max(0, t - .8) * 4, ef = ei * (1 - eInCubic(fase(t, 4.45, 5)));
   img(x, fundo(3), L, 0);
   add(x, () => {
     [-F.wT / 2 - 110, -F.wT / 2 - 40, F.wT / 2 + 40, F.wT / 2 + 110].map(d => cx + d).forEach((px, i) => {
@@ -435,13 +443,13 @@ function bloco3(x, t) {
     for (let i = Math.floor((L - 200) / 330); 200 + i * 330 < R + 330; i++) desenhaFeixe(x, 200 + i * 330, -80, .3 * Math.sin(t * .3 + i * 1.3) - (1 - ei) * .9, .1 * ei + .25 * (1 - ei) * (t > .02), 1.1);
   });
   pulsoAzul(x, t, cx, cy + 60, fase(t, .4, 1.2));
-  logoFila(x, t, F.xL, par);
+  logoFila(x, t, F, par);
   anel(x, t, cx, 530, F.wT * .6, .45 + .2 * Math.sin(t * 2.4), CIANO);
   fitasAnim(x, ef, x => { x.translate(R, 0); x.scale(-.72, .72); }); fitasAnim(x, ef, x => { x.translate(R, DH); x.rotate(Math.PI); x.scale(.62, .62); });
-  titulo(x, t, TIT[3](), cx, cy);
-  faixa(x, t, F.bd, F.xB, cy);
+  titulo(x, t, TIT[3](), cx, cy, F.sT);
+  faixa(x, t, F.bd, F.xB, F.yB);
   particulas(x, t, 42, fase(t, 1, 2), 37);
-  flashes(x, t, cx, cy);
+  flashes(x, t, cx, cy, F.sT);
 }
 const CENAS = { 1: bloco1, 2: bloco2, 3: bloco3 };
 // pré-renderiza as camadas das vinhetas aos poucos (1 por quadro ocioso) p/ a 1ª vinheta não engasgar
@@ -483,12 +491,18 @@ function ocioso(x, t) {
 
 // ---------- API ----------
 /** Desenha o quadro da vinheta do `bloco` no instante `t` (s, 0..VINHETA_S+0.6) num tile W×H (opaco).
- *  `tOc` (opcional) = relógio usado pelo quadro ocioso no dissolve final (passe o mesmo t que vai para desenharOcioso, p/ emendar sem salto). */
-export function desenharVinheta(ctx, W, H, bloco, t, tOc = t) {
+ *  `tOc` (opcional) = relógio usado pelo quadro ocioso no dissolve final (passe o mesmo t que vai para desenharOcioso, p/ emendar sem salto).
+ *  `sobre` = telão com conteúdo próprio (o do mediador): em vez do ocioso, o dissolve final revela o que JÁ está desenhado em ctx. */
+export function desenharVinheta(ctx, W, H, bloco, t, tOc = t, sobre = false) {
   prep(W, H); bloco = CENAS[bloco] ? bloco : 1; t = Math.max(0, t || 0);
   ctx.save(); tf(ctx, W, H); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   const k = t > VINHETA_S ? eInOut(fase(t, VINHETA_S, VINHETA_S + DISS)) : 0;
-  if (k >= 1) ocioso(ctx, tOc);
+  if (sobre) { if (k < 1) {
+    const g = k > 0 ? m('diss', () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; }).getContext('2d') : ctx;
+    if (k > 0) tf(g, W, H); CENAS[bloco](g, Math.min(t, VINHETA_S + .1));
+    if (k > 0) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1 - k; ctx.drawImage(g.canvas, 0, 0); }
+  } }
+  else if (k >= 1) ocioso(ctx, tOc);
   else {
     CENAS[bloco](ctx, Math.min(t, VINHETA_S + .1));
     if (k > 0) {
@@ -499,6 +513,8 @@ export function desenharVinheta(ctx, W, H, bloco, t, tOc = t) {
   }
   ctx.restore();
 }
+/** Pré-renderiza (1 camada por chamada) o cache das vinhetas de um telão W×H que não passa pelo quadro ocioso. */
+export function aquecerVinhetas(W, H) { prep(W, H); aquecer(); }
 /** Quadro ambiente (loop) quando não há vinheta. */
 export function desenharOcioso(ctx, W, H, t) {
   prep(W, H); ctx.save(); tf(ctx, W, H); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
