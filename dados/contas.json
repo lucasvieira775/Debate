@@ -1303,9 +1303,9 @@
  },
  "a7be5498-0d2d-40ff-8360-ed1cbfc16039": {
   "uid": "a7be5498-0d2d-40ff-8360-ed1cbfc16039",
-  "moedas": 10040,
+  "moedas": 10055,
   "dicasExtra": 0,
-  "partidas": 1,
+  "partidas": 2,
   "vitorias": 1,
   "criadaEm": 1794485250517,
   "cadastro": {
@@ -1315,19 +1315,30 @@
    "criadoEm": 1794488309950
   },
   "nome": "Lulatron Bozossauro",
-  "xp": 331,
+  "xp": 402,
   "abandonos": [
-   1794494502542,
-   1794495434707,
-   1794495742498
+   1794600728030
   ],
   "extrato": [
    {
     "t": 1794497091586,
     "valor": 40,
     "motivo": "Partida de debate"
+   },
+   {
+    "t": 1794602134034,
+    "valor": 15,
+    "motivo": "Partida de debate"
    }
-  ]
+  ],
+  "fanpage": {
+   "nome": "Lulatron Bozossauro",
+   "user": "lulatron",
+   "bio": "",
+   "seguidores": 0,
+   "criadaEm": 1794602171022,
+   "posts": []
+  }
  },
  "17d3980c-bb5f-4792-917f-ad01407a9aa3": {
   "uid": "17d3980c-bb5f-4792-917f-ad01407a9aa3",
@@ -1804,10 +1815,10 @@
  "46721470-b119-492e-aea3-3eb2dcefd070": {
   "uid": "46721470-b119-492e-aea3-3eb2dcefd070",
   "nome": "Mirian Leitão",
-  "moedas": 10014,
+  "moedas": 10054,
   "dicasExtra": 0,
-  "partidas": 1,
-  "vitorias": 0,
+  "partidas": 2,
+  "vitorias": 1,
   "criadaEm": 1794495828854,
   "cadastro": {
    "idade": 38,
@@ -1819,9 +1830,19 @@
    "nome": "Mirian Leitão",
    "user": "mirianleite",
    "bio": "Sou ladrona!!!",
-   "seguidores": 109,
+   "seguidores": 655,
    "criadaEm": 1794495954515,
    "posts": [
+    {
+     "t": 1794602133871,
+     "texto": "Por que o povo tem que votar em mim? Vocês viram meu oponente aqui tentar me agredir, se pudessem dariam uma paulada em mim, e isso é inadmissível. Agredir mulher, gente? Agora virou moda agredir com cadeira? É uma falta de respeito enorme. Só por isso já deveria ser proibido de votar numa pessoa dessas. Eu vou criar o Ministério da Mulher para melhorar essa questão, investigando as agressões e os",
+     "tema": "",
+     "nota": 9.2,
+     "delta": 560,
+     "curtidas": 1123,
+     "reposts": 150,
+     "respostas": 49
+    },
     {
      "t": 1794497091595,
      "texto": "Olha, as cooperativas do Paraná já vendem muito, e isso é algo muito importante em nosso país. Acredito que meu governo deve fazer o seguinte: iremos dar 20 bilhões em créditos para as cooperativas e agroindústrias, vamos melhorar a taxação das exportações, industrializar alimentos e apoiar o pequeno produtor com mais recursos de crédito. Se você vem agora aqui com essa agressão, o que está aconte",
@@ -1834,11 +1855,16 @@
     }
    ]
   },
-  "xp": 196,
+  "xp": 534,
   "extrato": [
    {
     "t": 1794497091593,
     "valor": 14,
+    "motivo": "Partida de debate"
+   },
+   {
+    "t": 1794602133862,
+    "valor": 40,
     "motivo": "Partida de debate"
    }
   ]
@@ -2564,93 +2590,5 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794513401225
- },
- "5819c3e9-7786-4564-8eef-c7c5ec492355": {
-  "uid": "5819c3e9-7786-4564-8eef-c7c5ec492355",
-  "moedas": 10000,
-  "dicasExtra": 0,
-  "partidas": 0,
-  "vitorias": 0,
-  "criadaEm": 1794516204068
- },
- "801aff6f-44db-4427-9549-8d168501a7dc": {
-  "uid": "801aff6f-44db-4427-9549-8d168501a7dc",
-  "moedas": 10000,
-  "dicasExtra": 0,
-  "partidas": 0,
-  "vitorias": 0,
-  "criadaEm": 1794516619755
- },
- "94286fc6-6f2c-4a03-8a0f-41205134fafd": {
-  "uid": "94286fc6-6f2c-4a03-8a0f-41205134fafd",
-  "moedas": 10000,
-  "dicasExtra": 0,
-  "partidas": 0,
-  "vitorias": 0,
-  "criadaEm": 1794516849616
- },
- "d7321cee-17b6-48a1-b021-096fcb653b75": {
-  "uid": "d7321cee-17b6-48a1-b021-096fcb653b75",
-  "moedas": 10000,
-  "dicasExtra": 0,
-  "partidas": 0,
-  "vitorias": 0,
-  "criadaEm": 1794517675861
- },
- "94042616-91f6-4fc8-99f7-ea7e69f21512": {
-  "uid": "94042616-91f6-4fc8-99f7-ea7e69f21512",
-  "moedas": 10000,
-  "dicasExtra": 0,
-  "partidas": 0,
-  "vitorias": 0,
-  "criadaEm": 1794517826687
- },
- "eefeae23-aaea-403b-b807-0ffc51712fd1": {
-  "uid": "eefeae23-aaea-403b-b807-0ffc51712fd1",
-  "moedas": 10000,
-  "dicasExtra": 0,
-  "partidas": 0,
-  "vitorias": 0,
-  "criadaEm": 1794599551320
- },
- "4696c038-2f32-4b54-96be-6f877292f32c": {
-  "uid": "4696c038-2f32-4b54-96be-6f877292f32c",
-  "moedas": 10000,
-  "dicasExtra": 0,
-  "partidas": 0,
-  "vitorias": 0,
-  "criadaEm": 1794599569878
- },
- "5d2462d1-d7d6-4ea1-94d0-8cc11b3ef6f0": {
-  "uid": "5d2462d1-d7d6-4ea1-94d0-8cc11b3ef6f0",
-  "moedas": 10000,
-  "dicasExtra": 0,
-  "partidas": 0,
-  "vitorias": 0,
-  "criadaEm": 1794599588043
- },
- "664d820f-2b1f-4559-9632-ff0fbc4322eb": {
-  "uid": "664d820f-2b1f-4559-9632-ff0fbc4322eb",
-  "moedas": 10000,
-  "dicasExtra": 0,
-  "partidas": 0,
-  "vitorias": 0,
-  "criadaEm": 1794599605317
- },
- "d6e5dcd1-4a27-4ce9-8e3f-1d4c9e2d04ca": {
-  "uid": "d6e5dcd1-4a27-4ce9-8e3f-1d4c9e2d04ca",
-  "moedas": 10000,
-  "dicasExtra": 0,
-  "partidas": 0,
-  "vitorias": 0,
-  "criadaEm": 1794599621638
- },
- "4d00cf7f-b2ba-4f23-98ae-66967ae16009": {
-  "uid": "4d00cf7f-b2ba-4f23-98ae-66967ae16009",
-  "moedas": 10000,
-  "dicasExtra": 0,
-  "partidas": 0,
-  "vitorias": 0,
-  "criadaEm": 1794599639379
  }
 }
