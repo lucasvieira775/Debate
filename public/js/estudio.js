@@ -244,6 +244,7 @@ export class Estudio {
     for (const s of [-1, 1]) add(G.logo, M.logo, s * .152, .2, -.06, tilt).rotation.y = s * Math.PI / 2;
     add(G.lente, M.cinza, 0, .19, .42, tilt); add(G.anel, M.amarelo, 0, .19, .28, tilt);
     add(G.capuz, M.capuz, 0, .19, .73, tilt); add(G.vidro, M.vidro, 0, .19, .635, tilt);
+    const lente = new THREE.PerspectiveCamera(24, 16 / 9, .3, 60); lente.position.set(0, .19, .8); lente.rotation.y = Math.PI; tilt.add(lente); // o que esta câmera "grava" (vai para a tela lateral do mesmo lado)
     // visor (monitor traseiro) com para-sol e imagem ao vivo
     add(G.visor, M.preto, 0, .47, -.14, tilt); add(G.visorCapuz, M.capuz, 0, .47, -.29, tilt);
     add(G.tela, M.tela, 0, .47, -.241, tilt).rotation.y = Math.PI;
@@ -263,7 +264,7 @@ export class Estudio {
     ][i % 2]);
     op.root.position.set(0, -1.5, -.78); pan.add(op.root); this.fone(op.cabeca);
     const marinho = mat('#1e2444', { r: .7 }); op.pernas.forEach(pv => pv.traverse(o => { if (o.isMesh && o.material.color.getHexString() !== '141414') o.material = marinho; }));
-    return { g, pan, tilt, tallyMat, op, yaw: 0, pitch: 0, fase: i * 2.1 };
+    return { g, pan, tilt, tallyMat, op, lente, yaw: 0, pitch: 0, fase: i * 2.1 };
   }
   /** Fone de ouvido da equipe técnica (arco, conchas e microfone até a boca) na cabeça H de um Avatar. */
   fone(H) {
@@ -291,6 +292,8 @@ export class Estudio {
       c.yaw += (clamp(yaw, -.6, .6) + Math.sin(t * .7 + c.fase) * .012 - c.yaw) * k;
       c.pitch += (-Math.atan2(alvo.y - 1.36, Math.hypot(dx, dz)) + Math.sin(t * .5 + c.fase) * .01 - c.pitch) * k;
       c.pan.rotation.y = c.yaw; c.tilt.rotation.x = c.pitch;
+      const fov = fal ? 12 : this.duelo ? 16 : 24; // zoom no(a) candidato(a) que fala (vai para a tela lateral)
+      if (Math.abs(c.lente.fov - fov) > .05) { c.lente.fov += (fov - c.lente.fov) * k; c.lente.updateProjectionMatrix(); }
       // tally acesa quando a câmera do "ar" (direção de TV) está ao lado desta
       const noAr = this.modo !== 'fp' && Math.hypot(this.camera.position.x - p.x, this.camera.position.z - p.z) < 4;
       c.tallyMat.color.setHex(noAr ? 0xff1a1a : 0x3a0606); // setHex: sem parse de string a cada frame
@@ -307,11 +310,14 @@ export class Estudio {
     const moldura = new THREE.Mesh(rb(16.5, 6.5, .3, .12), new THREE.MeshStandardMaterial({ color: '#141a3d', roughness: .4, metalness: .5 }));
     moldura.position.set(0, 4.6, -10.6); s.add(moldura);
     const base = new THREE.Mesh(new THREE.BoxGeometry(16.6, .08, .1), new THREE.MeshBasicMaterial({ color: '#facc15' })); base.position.set(0, 1.33, -10.4); s.add(base);
-    // telas laterais
-    this.lat = canvasTex(1024, 576);
+    // telas laterais: mostram AO VIVO o que a câmera de estúdio do mesmo lado filma (render target) + tarja por cima (this.lat)
+    this.lat = canvasTex(1024, 576); this.telasLat = [];
     for (const sx of [-1, 1]) {
       const g = new THREE.Group(); g.position.set(sx * 11.3, 3.4, -6.2); g.rotation.y = -sx * .75; s.add(g);
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(4, 2.25), new THREE.MeshBasicMaterial({ map: this.lat.tex, toneMapped: false, color: '#c4c4c4' })); g.add(m);
+      const rt = new THREE.WebGLRenderTarget(640, 360, { samples: 2, type: THREE.HalfFloatType }); // linear/HDR: o tone mapping sai na tela
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(4, 2.25), new THREE.MeshBasicMaterial({ map: rt.texture, color: '#d8d8d8' })); g.add(m);
+      const sobre = new THREE.Mesh(new THREE.PlaneGeometry(4, 2.25), new THREE.MeshBasicMaterial({ map: this.lat.tex, transparent: true, toneMapped: false, depthWrite: false })); sobre.position.z = .01; g.add(sobre);
+      this.telasLat.push({ rt, m, sobre });
       const mo = new THREE.Mesh(rb(4.25, 2.5, .2, .08), new THREE.MeshStandardMaterial({ color: '#141a3d', roughness: .4, metalness: .5 })); mo.position.z = -.12; g.add(mo);
       const pe = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, 2.3, 8), new THREE.MeshStandardMaterial({ color: '#2a3045', metalness: .7, roughness: .4 })); pe.position.y = -2.3; g.add(pe);
     }
@@ -1344,17 +1350,30 @@ export class Estudio {
     tex.needsUpdate = true;
     this.desenharLateral();
   }
+  /** Tarja transparente das telas laterais (por cima do vídeo da câmera): AO VIVO + nome/tempo de quem fala. */
   desenharLateral() {
     const { ctx, tex } = this.lat, W = 1024, H = 576, d = this.ledDados || {};
-    this.fundoLED(ctx, W, H);
+    ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = '#dc2626'; rr(ctx, 30, 30, 210, 66, 14); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = `44px ${FONTE}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('AO VIVO', 135, 65);
     if (d.modo === 'fala') {
       const p = PARTIDO[d.partido] || PARTIDO.PUN;
-      ctx.fillStyle = p.cor; rr(ctx, 60, 180, 904, 150, 28); ctx.fill();
-      ctx.fillStyle = '#fff'; this.caber(ctx, d.nome.toUpperCase(), 840, 76); ctx.fillText(d.nome.toUpperCase(), 512, 258);
-      ctx.fillStyle = d.alerta ? '#fecaca' : '#fff'; ctx.font = `120px ${FONTE}`; ctx.fillText(d.tempo || '', 512, 430);
-    } else this.titulo(ctx, 512, 320, W * .7);
+      ctx.fillStyle = p.cor; rr(ctx, 40, H - 150, 700, 110, 22); ctx.fill();
+      ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; this.caber(ctx, d.nome.toUpperCase(), 640, 60); ctx.fillText(d.nome.toUpperCase(), 75, H - 95);
+      ctx.fillStyle = 'rgba(5,12,40,.85)'; rr(ctx, 760, H - 150, 224, 110, 22); ctx.fill();
+      ctx.textAlign = 'center'; ctx.fillStyle = d.alerta ? '#fca5a5' : '#fff'; ctx.font = `76px ${FONTE}`; ctx.fillText(d.tempo || '', 872, H - 92);
+    }
     tex.needsUpdate = true;
+  }
+  /** Cada tela lateral mostra o que a câmera de estúdio do mesmo lado está gravando (~15 quadros/s, uma tela por quadro). */
+  renderTelasLat(t) {
+    const T = this.telasLat, C = this.camerasTV; if (!T || !C || this.modo === 'vitrine') return;
+    if (t - (this.ultLat || 0) < 1 / 30) return; this.ultLat = t;
+    const i = this.ladoLat = 1 - (this.ladoLat || 0), tela = T[i], cam = C[i]?.lente; if (!cam) return;
+    const eu = this.podios.get(this.meuId)?.avatar, oculta = eu && !eu.cabeca.visible;
+    if (oculta) eu.ocultarCabeca(false); // a câmera de estúdio vê você inteiro(a), mesmo na 1ª pessoa
+    tela.m.visible = false; // sem realimentação: a tela não aparece no próprio vídeo
+    this.renderer.setRenderTarget(tela.rt); this.renderer.render(this.scene, cam); this.renderer.setRenderTarget(null);
+    tela.m.visible = true; if (oculta) eu.ocultarCabeca(true);
   }
 
   // ===================== LOOP =====================
@@ -1448,6 +1467,7 @@ export class Estudio {
       const kt = 1 - Math.exp(-dt * 1.6); C.pos.lerp(pos, kt); C.alvo.lerp(alvo, 1 - Math.exp(-dt * 2.4));
       this.camera.position.copy(C.pos); this.camera.lookAt(C.alvo);
     }
+    this.renderTelasLat(t);
     if (this.cfg.qualidade === 'alta') this.composer.render(); else this.renderer.render(this.scene, this.camera);
   }
 }

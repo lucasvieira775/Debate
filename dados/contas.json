@@ -2622,5 +2622,96 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794605353037
+ },
+ "4e150420-f95e-43b5-9cdb-3ad553f38aa6": {
+  "uid": "4e150420-f95e-43b5-9cdb-3ad553f38aa6",
+  "nome": "Lucas Bozopinto",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794613306771,
+  "cadastro": {
+   "idade": 32,
+   "nome": "Lucas Bozopinto",
+   "user": "lucasbozo",
+   "criadoEm": 1794613332210
+  },
+  "abandonos": [
+   1794613558203
+  ],
+  "xp": 0
+ },
+ "fb6c8eda-9335-4475-81c4-27501b9cce58": {
+  "uid": "fb6c8eda-9335-4475-81c4-27501b9cce58",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794613576946
+ },
+ "bda984d1-83ca-4ea9-b4e8-a177d71cbeb2": {
+  "uid": "bda984d1-83ca-4ea9-b4e8-a177d71cbeb2",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794613585651
+ },
+ "bb4a1e61-6262-413d-9655-59cb9d423c4d": {
+  "uid": "bb4a1e61-6262-413d-9655-59cb9d423c4d",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794613608965
+ },
+ "8b030a4a-d7a2-4398-94e4-d8dc6e84414e": {
+  "uid": "8b030a4a-d7a2-4398-94e4-d8dc6e84414e",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794613643830
+ },
+ "4de6a9f7-16b5-4ff1-9986-c20ce6534185": {
+  "uid": "4de6a9f7-16b5-4ff1-9986-c20ce6534185",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794613656278
+ },
+ "0a282113-6cd8-4058-b94d-40c8d2d45777": {
+  "uid": "0a282113-6cd8-4058-b94d-40c8d2d45777",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794613681968
+ },
+ "1acefc44-bd45-4e09-b131-28c79e4ef2c0": {
+  "uid": "1acefc44-bd45-4e09-b131-28c79e4ef2c0",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794613709737
+ },
+ "1e7dd034-5035-40bd-b6d3-241047f823dc": {
+  "uid": "1e7dd034-5035-40bd-b6d3-241047f823dc",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794613728262
+ },
+ "12682921-db7a-45bf-9913-7d1174350709": {
+  "uid": "12682921-db7a-45bf-9913-7d1174350709",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794613741630
  }
 }
