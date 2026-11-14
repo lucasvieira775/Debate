@@ -468,6 +468,6 @@ export const JORNALISTAS = [
   { id: 'william', nome: 'William Boné', genero: 'masculino', voz: 'jornalistaM', avatar: AV_WILLIAM },
   { id: 'evaristo', nome: 'Evaristo Coxinha', genero: 'masculino', voz: 'jornalistaM', avatar: AV_EVARISTO },
   { id: 'rodrigo', nome: 'Rodrigo Bocadinho', genero: 'masculino', voz: 'jornalistaM', avatar: AV_RODRIGO },
-  { id: 'celso', nome: 'Celso Fritas', genero: 'masculino', voz: 'jornalistaM', avatar: AV_CELSO },
+  { id: 'celso', nome: 'Bouris Coolzoi', genero: 'masculino', voz: 'jornalistaM', avatar: AV_CELSO },
 ];
 export const DIFICULDADES ={ facil: 'Fácil', medio: 'Médio', dificil: 'Difícil' };
