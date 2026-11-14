@@ -133,6 +133,16 @@ export class Contas {
     this.salvar();
     return { delta, total: f.seguidores, itens };
   }
+  /** Replay de fala nota 10: post próprio "🎬 Fala nota 10" com o texto e o id do replay. aoTexto(t) recebe cada versão do texto revisado. */
+  postReplay(c, { texto, tema, nota, replay }, aoTexto, revisar) {
+    const f = c?.fanpage; if (!f || this.banido(c)) return null;
+    const post = { t: Date.now(), texto: limparTxt(revisarLocal(texto), 400), tema: tema || '', nota, replay, titulo: '🎬 Fala nota 10', delta: 0,
+      curtidas: Math.round(200 + Math.random() * 900), reposts: Math.round(20 + Math.random() * 180), respostas: Math.round(10 + Math.random() * 120) };
+    f.posts.unshift(post); if (f.posts.length > SEGUIDORES.maxPosts) f.posts.length = SEGUIDORES.maxPosts;
+    aoTexto?.(post.texto); this.salvar();
+    revisar?.(texto).then(t => { if (t) { post.texto = limparTxt(t, 400); aoTexto?.(post.texto); this.salvar(); } }).catch(() => {});
+    return post;
+  }
   /** Ação da loja no debate: ajusta seguidores na hora (sem post). Retorna o delta ou null (sem fanpage). */
   seguidoresAcao(c, fator) {
     const f = c?.fanpage; if (!f || !fator) return null;

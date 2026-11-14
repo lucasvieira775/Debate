@@ -2,6 +2,7 @@
 import { $, $$, esc, fmtN, toast } from './util.js';
 import { ITENS, PACOTES_MOEDAS, GRATIS, possui, nivelOk } from '/shared/loja.js';
 import { CARGOS, htmlBrasao, nivelMax } from '/shared/niveis.js';
+import { abrirReplay } from './replay.js';
 
 // ---------------- Xzona ----------------
 const coresPerfil = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
@@ -43,10 +44,13 @@ export function htmlFanpage(fp, { img = '', partido = '' } = {}) {
     <div class="fp-stats"><span><b>${fmtN(fp.seguidores)}</b> seguidores</span><span><b>${fp.partidas}</b> debates</span><span><b>${fp.vitorias}</b> vitórias</span></div>
     <div class="fp-posts">${fp.posts.length ? fp.posts.map(p => `<div class="xz-post">${av}<div class="xz-corpo">
       <div class="xz-cab">${htmlBrasao(fp.nivel, 18)}<b>${esc(fp.nome)}</b><span class="xz-verif">✔</span> <span class="xz-user">@${esc(fp.user)} · ${quando(p.t)}</span></div>
-      <div class="xz-txt">“${esc(p.texto)}”${p.tema ? ` <span class="xz-tags">#${esc(p.tema.replace(/\s+/g, ''))}</span>` : ''} <span class="xz-tags">#DebateNaXzona</span></div>
+      ${p.titulo ? `<div class="xz-titulo">${esc(p.titulo)}</div>` : ''}<div class="xz-txt">“${esc(p.texto)}”${p.tema ? ` <span class="xz-tags">#${esc(p.tema.replace(/\s+/g, ''))}</span>` : ''} <span class="xz-tags">#DebateNaXzona</span></div>
+      ${p.replay && /^[a-f0-9]{16}$/.test(p.replay) ? `<button class="btn peq rp-play" data-replay="${p.replay}">▶ Assistir replay (nota 10)</button>` : ''}
       <div class="xz-acoes"><span>💬 ${fmtN(p.respostas)}</span><span>🔁 ${fmtN(p.reposts)}</span><span class="xz-like">♥ ${fmtN(p.curtidas)}</span><span class="${p.delta < 0 ? 'fp-neg' : 'fp-pos'}">${p.delta < 0 ? '' : '+'}${fmtN(p.delta)} seguidores</span></div></div></div>`).join('')
       : '<p class="mut" style="padding:14px">Nenhum post ainda. Sua melhor fala de cada debate será publicada aqui automaticamente.</p>'}</div></div>`;
 }
+// ▶ do replay (fanpage em janela ou em tela): delegação, abre o player 3D (replay.js)
+document.addEventListener('click', e => { const b = e.target.closest?.('.rp-play'); if (b) { e.stopPropagation(); abrirReplay(b.dataset.replay, janela); } });
 export function janelaFanpage(fp, op) { janela(`${htmlFanpage(fp, op)}<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn peq" id="fx">Fechar</button></div>`, (el, fechar) => { $('#fx', el).onclick = fechar; }); }
 
 // ---------------- anotação da assessoria (papel) ----------------

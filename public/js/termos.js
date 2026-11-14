@@ -2,7 +2,7 @@
 import { CADASTRO } from '/shared/cadastro.js';
 import { REGRAS_DEBATE, PUNICAO } from '/shared/moderacao.js';
 
-export const TERMOS_VERSAO = '1.1';
+export const TERMOS_VERSAO = '1.2'; // 1.2: replays com voz das falas nota 10
 const CHAVE = 'debate_termos';
 export const CONTATO = 'contato@pantanalessence.com.br';
 export const termosAceitos = () => { try { return JSON.parse(localStorage.getItem(CHAVE) || 'null')?.v === TERMOS_VERSAO; } catch { return false; } };
@@ -37,7 +37,8 @@ const SECOES = [
     <li>Jogadores podem ser <b>denunciados</b>. As denúncias (com as últimas falas do denunciado) são analisadas pela administração.</li>
     <li>Conforme a gravidade, a conta pode ser <b>suspensa temporariamente</b> ou <b>banida permanentemente</b>, com perda de moedas e itens, sem direito a reembolso.</li>    <li>Denúncias falsas ou abusivas também são punidas.</li></ul>`],
   ['7. Microfone, voz e conversa por voz', `<ul><li>O jogo pode pedir acesso ao <b>microfone</b>. Sua fala é convertida em texto pelo reconhecimento de voz do seu navegador e esse texto é enviado ao servidor para a partida.</li>
-    <li>Na conversa por voz entre jogadores, o áudio vai direto entre os participantes. <b>Não gravamos seu áudio.</b></li>
+    <li>Na conversa por voz entre jogadores, o áudio vai direto entre os participantes. Não gravamos essa conversa.</li>
+    <li><b>Suas falas com nota 10 podem ser gravadas (voz) e publicadas na sua Xzona</b>, como replay. Você pode desligar isso em Configurações (“Publicar replays das minhas falas nota 10”). Os replays ficam guardados por até 90 dias (máx. 10 por conta).</li>
     <li>Você pode jogar <b>digitando</b>, sem usar o microfone.</li>
     <li>Use fone de ouvido e não deixe o microfone captar outras pessoas sem a permissão delas.</li></ul>`],
   ['8. Inteligência artificial', `<p>Candidatos-robô, vozes, dicas da assessoria e outros conteúdos são gerados por <b>inteligência artificial</b> (inclusive serviços de terceiros, como o Google Gemini). Esse conteúdo pode conter erros ou frases estranhas e <b>não representa a opinião da empresa criadora</b>. Os textos das falas podem ser enviados a esses serviços para gerar respostas e vozes.</p>`],

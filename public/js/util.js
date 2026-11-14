@@ -25,7 +25,7 @@ export function lerPerfil() {
   return r;
 }
 export const salvarPerfil = p => LS.gravar('debate_perfil', p);
-export function lerConfig() { return { voz: true, sfx: .7, ambiente: .7, musica: .8, resolucao: 'auto', qualidade: 'alta', sens: 1, nomes: true, ...LS.ler('debate_cfg', {}) }; }
+export function lerConfig() { return { voz: true, sfx: .7, ambiente: .7, musica: .8, resolucao: 'auto', qualidade: 'alta', sens: 1, nomes: true, replays: true, ...LS.ler('debate_cfg', {}) }; }
 export const salvarConfig = c => LS.gravar('debate_cfg', c);
 export const lerSessao = () => LS.ler('debate_sessao', null);
 export const salvarSessao = s => LS.gravar('debate_sessao', s);

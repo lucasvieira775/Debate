@@ -5,3 +5,4 @@ dados/audio/falas/
 .claude/settings.local.json
 
 *.log
+dados/replays/

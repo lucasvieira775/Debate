@@ -26,6 +26,15 @@ app.get('/api/som/:id', async (req, res) => {
   arq ? res.set('Cache-Control', 'public, max-age=86400').sendFile(arq) : res.sendStatus(404);
 });
 
+// ---------- replays das falas nota 10 (dados/replays, fora do git) ----------
+// upload: token de uso único dado pelo servidor ao autor da fala; leitura: só .webm e .json (sem uid)
+app.post('/api/replay/:token', express.raw({ type: '*/*', limit: '3mb' }), (req, res) => { const r = salas.receberReplay(String(req.params.token), req.body); r.erro ? res.status(400).json(r) : res.json(r); });
+app.get('/replays/:arq', (req, res) => {
+  const m = /^([a-f0-9]{16})\.(webm|json)$/.exec(req.params.arq); if (!m) return res.sendStatus(404);
+  if (m[2] === 'json') { const r = salas.replays.publico(m[1]); return r ? res.json(r) : res.sendStatus(404); }
+  const f = salas.replays.arquivoAudio(m[1]); f ? res.type('audio/webm').set('Cache-Control', 'public, max-age=86400').sendFile(f) : res.sendStatus(404);
+});
+
 // ---------- servidores ICE do chat de voz (TURN é necessário em 4G/redes de celular) ----------
 // .env: CF_TURN_ID + CF_TURN_TOKEN (Cloudflare Realtime TURN, grátis até 1TB/mês) ou TURN_URL + TURN_USER + TURN_PASS
 const env = k => { if (process.env[k]) return process.env[k]; try { for (const l of fs.readFileSync(path.join(raiz, '.env'), 'utf8').replace(/^﻿/, '').split(/\r?\n/)) { const i = l.indexOf('='); if (i > 0 && l.slice(0, i).trim() === k) return l.slice(i + 1).trim().replace(/^["']|["']$/g, ''); } } catch { /* */ } return ''; };

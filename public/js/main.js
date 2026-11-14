@@ -7,6 +7,7 @@ import { tocarTutorial } from './tutorial.js';
 import { Voip } from './voip.js';
 import { SONS_ACAO } from './acoes/sons.js';
 import { termosAceitos, mostrarTermos } from './termos.js';
+import { Gravador } from './replay.js';
 import { PUNICAO, REGRAS_DEBATE } from '/shared/moderacao.js';
 import { postXzona, limparXzona, mostrarDica, esconderDica, recolherDica, aoLerDica,janela, janelaDenuncia, telaLoja, avisoGanhos, reais, htmlFanpage, janelaFanpage } from './extras.js';
 import { ITENS, ITEM, PACOTES_MOEDAS, itensDe, ACAO_ESPERA_MS, GRATIS, possui, nivelOk } from '/shared/loja.js';
@@ -47,6 +48,7 @@ const socket = io();
 const est = new Estudio($('#cena'), E.cfg);
 // passos, rodinhas e trava do púlpito; sons das ações (acoes/sons.js). Impacto da ação: som do ElevenLabs (se houver) ou o sintetizado
 est.onSom = (tipo, o) => tipo === 'acaoImpacto' ? somItem(o.item, () => SONS_ACAO['impacto_' + o.item]?.(o), Math.max(.35, Math.min(.9, (o.vol ?? .6) * 1.3))) : (sfx[tipo] || SONS_ACAO[tipo])?.(o);
+const grav = new Gravador(); // replay da fala nota 10 (replay.js)
 const voip = new Voip(socket, { onNivel: (id, v) => est.setFalaNivel(id, v), onFalha: () => { if (!E.voipFalhou) { E.voipFalhou = true; toast('Não deu para conectar a voz com outro jogador (rede do celular bloqueia). Tentando de novo…', 'erro'); } } });
 const atualizarConta = c => { if (!c) return; E.conta = c; if (c.cadastro && E.perfil.nome !== c.cadastro.nome) { E.perfil.nome = c.cadastro.nome; salvar(); }
   const a = E.perfil.avatar, tira = a && ['oculos', 'chapeu', 'extra', 'roupa'].filter(k => bloqueio(k, a[k])); // tira itens pagos que a conta não tem
@@ -91,7 +93,7 @@ function bots() {
 // ======================= microfone =======================
 let envT = 0, envTimer = null, nivelT = 0;
 function enviarTexto(t, conf = t) { // conf = parte já confirmada pelo reconhecimento (só ela pode punir durante a fala)
-  E.meuTexto = t; E.meuConf = conf; E.textoT = Date.now(); guiarBotoes();
+  E.meuTexto = t; E.meuConf = conf; E.textoT = Date.now(); grav.texto(t); guiarBotoes();
   const enviar = () => { envT = Date.now(); socket.emit('texto', { t: E.meuTexto, conf: E.meuConf }); };
   clearTimeout(envTimer);
   if (Date.now() - envT > 220) enviar(); else envTimer = setTimeout(enviar, 220);
@@ -216,6 +218,7 @@ socket.on('conta', atualizarConta);
 socket.on('ganhos', g => { avisoGanhos(g); sfx.nota();
   if (g.xp?.depois > g.xp?.antes) setTimeout(() => { const c = CARGOS[g.xp.depois - 1]; animarPromocao({ n: c.n, nome: c.nome, recompensa: g.xp.premio || 0, bonus: c.bonus }); }, 2500); });
 socket.on('xzona', post => { if (emJogo()) postXzona(post); });
+socket.on('pedirReplay', d => { if (E.cfg.replays !== false && d?.token) grav.enviar(d.token, d.i).then(r => { if (r?.ok) toast('🎬 Sua fala nota 10 virou replay na sua fanpage da Xzona!'); }); });
 socket.on('folheando', d => { est.folhear(d.id); if (d.id !== E.eu) sfx.clique(); });
 // mediação ou candidato falando: emotes e danças ficam mudos (só a animação); provocações tocam o som sempre (3 min de espera)
 const alguemFalando = () => !!(est.medFalando || narrador.tocando || ['ativo', 'encerrando'].includes(E.sala?.fala?.status));
@@ -373,6 +376,9 @@ function onEstado(s) {
   }
   // fim da minha resposta (confirmei / tempo acabou / já avaliada): guarda a anotação e a câmera volta (uma vez por passo)
   if (s.passo?.falante === E.eu && ['encerrando', 'avaliado'].includes(s.fala?.status)) fimDaResposta();
+  // replay da fala nota 10: grava a MINHA fala (voz real + boca + ritmo da legenda); só sobe se o servidor pedir
+  if (minhaVez() && s.fala?.status === 'ativo') { if (E.gravI !== s.i && E.cfg.replays !== false) { E.gravI = s.i; grav.iniciar(s.i, voip.stream?.getAudioTracks()[0], () => voip.nivelLocal()); grav.texto(E.meuTexto); } }
+  else if (grav.gravando) grav.parar();
   // chat de voz: entra assim que está numa sala; só transmite quando o microfone está liberado
   const humanos = s.jogadores.filter(j => !j.bot && j.conectado).map(j => j.id);
   if (!voip.stream && !E.voipTentou) { E.voipTentou = true; voip.iniciar().then(ok => { if (!ok) toast('Chat de voz desligado: microfone não liberado.', 'erro'); onEstado(E.sala); }); }
@@ -769,11 +775,13 @@ function painelConfig(ui, refazer) {
     <div class="cfg-linha"><span>Qualidade gráfica</span><div class="seletor"><button data-q="baixa">‹</button><span>${c.qualidade === 'alta' ? 'Alta (brilho e sombras)' : 'Baixa (mais leve)'}</span><button data-q="alta">›</button></div></div>
     <div class="cfg-linha"><span>Sensibilidade para olhar em volta</span><input type="range" min=".4" max="2" step=".1" value="${c.sens}" id="t-sens"></div>
     <div class="cfg-linha"><span>Mostrar nomes sobre os candidatos</span><button class="toggle ${c.nomes ? 'on' : ''}" id="t-nomes"></button></div>
+    <div class="cfg-linha"><span>Publicar replays das minhas falas nota 10<br><small class="mut">grava sua voz só na sua vez de falar</small></span><button class="toggle ${c.replays !== false ? 'on' : ''}" id="t-replays"></button></div>
     <div class="cfg-linha" style="border:0"><button class="btn peq amarelo" id="t-mic">🎙 Testar microfone</button><span id="t-mic-out" class="mut" style="flex:1;text-align:right;font-size:14px"></span></div>
     <p class="mut" style="font-size:13px;margin-bottom:0">Transcrição: ${temReconhecimento ? 'disponível' : 'indisponível neste navegador (use Chrome ou Edge)'} · Endereço ${contextoSeguro ? 'seguro ✔' : 'NÃO seguro (microfone bloqueado)'}</p>`;
   const g = () => { salvarConfig(c); est.cfg.sens = c.sens; est.cfg.nomes = c.nomes; };
   $('#t-voz', ui).onclick = () => { c.voz = !c.voz; g(); if (!c.voz) { calar(); pararNarracao(); } const s = $('#h-som'); if (s) s.textContent = c.voz ? '🔊' : '🔇'; refazer(); };
   $('#t-nomes', ui).onclick = () => { c.nomes = !c.nomes; g(); est.chaveJog = ''; est.setJogadores(E.sala ? E.sala.jogadores : bots(), E.eu); refazer(); };
+  $('#t-replays', ui).onclick = () => { c.replays = c.replays === false; g(); if (!c.replays) grav.parar(); refazer(); };
   $('#t-sfx').oninput = e => { c.sfx = +e.target.value; setVolume(c.sfx); ajustarAmbiente(); g(); }; $('#t-sfx').onchange = () => sfx.vez();
   $('#t-amb').oninput = e => { c.ambiente = +e.target.value; setVolumeAmbiente(c.ambiente); g(); }; $('#t-amb').onchange = () => sfx.aplausos(1.2, .2);
   $('#t-mus').oninput = e => { c.musica = +e.target.value; setVolumeMusica(c.musica); g(); }; $('#t-mus').onchange = () => sfx.vinheta();

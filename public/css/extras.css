@@ -289,3 +289,14 @@ img.xz-av{object-fit:cover;background:#1d2a4a}
 .tut-cartoes:not(.ban) b{display:none}
 .tut-logo.so p{white-space:nowrap}
 .tut.congelado *{animation-duration:1ms!important;animation-delay:0s!important;transition:none!important}
+
+/* ---------- replay da fala nota 10 ---------- */
+.xz-titulo{font-size:13px;font-weight:800;color:#facc15;margin:2px 0}
+.rp-play{margin:0 0 8px;background:#dc2626;color:#fff;font-size:13px;padding:6px 12px}
+.janela:has(.rp){width:min(980px,94*var(--vw))}
+.rp-tela{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden}
+.rp-tela canvas{position:absolute;inset:0;width:100%;height:100%}
+.rp-grande{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:84px;height:84px;border-radius:50%;border:0;background:rgba(220,38,38,.9);color:#fff;font-size:36px;cursor:pointer}
+.rp-grande[hidden]{display:none}
+.rp-bts{display:flex;gap:8px;align-items:center;margin-top:10px}
+.rp-info{flex:1;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

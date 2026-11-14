@@ -26,6 +26,7 @@ import { Pagamentos } from './pagamentos.js';
 import { PACOTES_MOEDAS } from '../shared/loja.js';
 import { gerarDica } from './dicas.js';
 import { revisarFala } from './revisao.js';
+import { Replays } from './replays.js';
 import { ITEM, AV_ITEM, ACAO_ESPERA_MS } from '../shared/loja.js';
 import { postsDaFala, postsDe } from '../shared/xzona.js';
 import * as xz from '../shared/xzona.js'; // xz.postsDaAcao (repercussão das ações), se existir
@@ -613,6 +614,7 @@ class Sala {
     const d = this.duelo, noDuelo = p.etapa === 2 && p.kind !== 'pergunta' && d?.fase === 'no' && (p.falante === d.a || p.falante === d.b);
     this.reagirPlateia(res, ofensa || nAdv > 0, noDuelo, generoDe(this.porId(p.falante)?.avatar));
     this.postarXzona(postsDaFala(this.dadosPost(this.porId(p.falante), p), res));
+    this.pedirReplay(quem, p, res, texto);
     if (nAdv || atencao) { this.emit(); this.narrar(nAdv ? N.advertencia(quem.nome) : N.ordem(), ms => this.auto(ms + 4000)); }
     else this.auto(8000);
     this.reacoesBots(p, res);
@@ -832,6 +834,12 @@ class Sala {
   }
   // ---------- Xzona (rede social fictícia) ----------
   dadosPost(j, p) { const t = p?.tema && TEMA[p.tema]; return { nome: j?.nome || '', partido: PARTIDO[j?.partido]?.sigla || '', num: PARTIDO[j?.partido]?.numero || '', estado: t?.estado, tema: t?.titulo, genero: generoDe(j?.avatar) }; }
+  /** Fala nota 10 de humano com fanpage: pede ao autor a gravação (voz + linha do tempo) com token de uso único. */
+  pedirReplay(j, p, res, texto) {
+    if (!j || j.bot || !j.uid || res.nota < 10 || !texto) return; const c = this.conta(j); if (!c?.fanpage || this.mgr.contas.banido(c)) return;
+    const token = this.mgr.replays.pedir({ uid: j.uid, nome: j.nome, avatar: j.avatar, partido: j.partido, tema: TEMA[p.tema]?.titulo || '', kind: p.kind, nota: Math.round(res.nota * 10) / 10, texto: texto.slice(0, 1200), textoBruto: texto });
+    this.socketDe(j.id)?.emit('pedirReplay', { token, i: this.i });
+  }
   postarXzona(posts) { posts.forEach((post, k) => setTimeout(() => this.io.to(this.code).emit('xzona', post), 1200 + k * 2600 + Math.random() * 800)); }
   // ---------- dica da assessoria ----------
   async pedirDica(j, op = {}) {
@@ -951,6 +959,7 @@ export class Salas {
     this.contas = new Contas(raiz);
     this.pagamentos = new Pagamentos(raiz, this.contas);
     this.dub = new Dublagem(raiz);
+    this.replays = new Replays(raiz);
     // vinheta de abertura e falas fixas dos dois jornalistas, geradas aos poucos e guardadas em disco
     this.dub.sintetizar(BOAS_VINDAS, 'locutor', 'alta');
     this.dub.vinheta();
@@ -1022,6 +1031,14 @@ export class Salas {
   rankingDe(periodo) {
     const sem = Salas.top(periodo === 'semana' ? this.per.semana?.ranking : periodo === 'mes' ? this.per.mes?.ranking : this.ranking);
     return sem.map(({ uid, ...r }) => { const c = uid && this.contas.contas[uid]; return { ...r, nivel: c ? this.contas.nivel(c) : 0, fp: c?.fanpage && !this.contas.banido(c) ? c.fanpage.user : null }; }); // uid não sai do servidor; fp = @ da fanpage
+  }
+  /** Upload do replay (rota POST /api/replay/:token): salva e publica o post "🎬 Fala nota 10" na fanpage. */
+  receberReplay(token, buf) {
+    const r = this.replays.receber(token, buf); if (r.erro) return r;
+    const c = this.contas.contas[r.meta.uid];
+    const post = this.contas.postReplay(c, { texto: r.meta.texto, tema: r.meta.tema, nota: r.meta.nota, replay: r.id }, t => this.replays.atualizarTexto(r.id, t), t => revisarFala(this.dub.chave, t));
+    if (!post) { this.replays.apagar(r.id); return { erro: 'sem fanpage' }; }
+    return { ok: true, id: r.id };
   }
   novaSala(publica) { let code; do code = gerarCodigo(); while (this.salas.has(code)); const s = new Sala(this, code, publica); this.salas.set(code, s); return s; }
 
