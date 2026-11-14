@@ -38,7 +38,7 @@ export function desenharGrobe(ctx, x, y, tam) {
   ctx.lineWidth = Math.max(2, tam * 0.035); ctx.strokeStyle = '#0d2f6e'; ctx.strokeText('Grobe', x, ty);
   ctx.shadowColor = 'transparent';
   const t = ctx.createLinearGradient(x, ty - tam * 0.15, x, ty + tam * 0.15);
-  t.addColorStop(0, '#ffffff'); t.addColorStop(1, '#d4dde8');
+  t.addColorStop(0, '#ffffff'); t.addColorStop(1, '#e6edf5');
   ctx.fillStyle = t; ctx.fillText('Grobe', x, ty);
   ctx.restore();
 }
