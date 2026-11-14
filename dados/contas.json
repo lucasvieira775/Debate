@@ -2847,6 +2847,20 @@
    "criadaEm": 1794623173942,
    "posts": [
     {
+     "t": 1794627480589,
+     "texto": "Educação não é gasto, é investimento! No meu governo, toda escola pública vai ter tempo integral, internet de verdade e professor bem pago. Vamos investir quarenta bilhões em cinco anos, com metas claras e prestação de contas todo mês. Porque um país que cuida da sua criança hoje não precisa construir presídio amanhã!",
+     "tema": "Educação",
+     "nota": 9.6,
+     "replay": "748dba8fe501e87b",
+     "dur": 25,
+     "thumb": true,
+     "titulo": "🎬 Fala nota 9,6",
+     "delta": 0,
+     "curtidas": 431,
+     "reposts": 136,
+     "respostas": 117
+    },
+    {
      "t": 1794624220753,
      "texto": "Bom, primeiramente, a pessoa vai à igreja e de novo agora vai jogar água em mim com gelo. Olha só, fica difícil debater com uma pessoa desse nível. Eu queria pedir perdão a você, telespectador, que está olhando para mim aí na tela, ali naquela câmera ali, para você ver. Eu queria pedir desculpa pela baixaria que foi este programa aqui hoje. Enquanto ela me agride com um balde de água e com tudo is",
      "tema": "",
@@ -2877,5 +2891,13 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794625036452
+ },
+ "bc86e4c1-b791-4e57-9f4f-f283693b75db": {
+  "uid": "bc86e4c1-b791-4e57-9f4f-f283693b75db",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794627433122
  }
 }
