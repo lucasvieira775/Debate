@@ -681,6 +681,7 @@ export class Avatar {
     for (const b of this.bracos) {
       const s = b.userData.lado;
       let [rx, rz, cot, ry, gm, mao, om = 0] = this.posePe ? REP_PE : REP;
+      if (this.posePe && s > 0 && this.cfg.roupa === 'pastor') rz += .14; // em pé, afasta o braço da Bíblia (senão o livro entra no quadril/coxa)
       if (this.empurra && !pose) { rx = -.95; rz = .1; cot = -.3; ry = 0; gm = 0; mao = 'aberta'; } // empurrando algo (equipe de produção)
       else if (an > .05 && !pose) { rx = -.15 - Math.sin(ph) * .45 * s * an; rz = .06; cot = -.35; ry = 0; gm = 0; }
       else if (this.cruza && !pose) [rx, rz, cot, ry, gm, mao, om] = s > 0 ? Q.cruzaE : Q.cruzaD; // parada de braços cruzados
