@@ -223,7 +223,7 @@ export const pontosTema = res => {
 };
 /** Pontos do tema que cabem a cada candidato (lado 0 = pares, lado 1 = ímpares), para dois candidatos com o mesmo tema não receberem a mesma dica. */
 export const pontosLado = (res, lado = 0) => { const { ctx, pontos } = pontosTema(res); return { ctx, pontos: pontos.length < 2 ? pontos : pontos.filter((_, i) => i % 2 === lado % 2) }; };
-/** Dicas de fala do "?": 5 ângulos diferentes sobre o tema, montados com os pontos do lado do candidato. */
+/** Dicas de fala do "?": 3 ângulos diferentes sobre o tema, montados com os pontos do lado do candidato. */
 export const dicasFala = (res, lado = 0) => {
   const { ctx, pontos: ps } = pontosLado(res, lado); if (!ps.length) return [res || ''];
   const ord = ps.concat(pontosTema(res).pontos.filter(x => !ps.includes(x))), p = i => ord[i % ord.length], lst = ps.length > 1 ? ps.slice(0, -1).join(', ') + ' e ' + ps.at(-1) : ps[0];
@@ -231,8 +231,6 @@ export const dicasFala = (res, lado = 0) => {
     `${ctx} Foque em: ${lst}.`,
     `Abra pelo problema e prometa uma meta com número e prazo para: ${p(0)}.`,
     `Mostre que a conta fecha. Diga quanto custa e de onde vem o dinheiro para: ${p(1)}.`,
-    `Conte o caso de alguém que sofre com o problema e amarre com a sua proposta de: ${p(2)}.`,
-    `Critique o que não funcionou até hoje e diga o que você faz diferente em: ${p(3)}.`,
   ];
 };
 export const SEGUNDOS ={ cumprimento: 10, proposta: 60, pergunta: 30, resposta: 60, replica: 45, treplica: 45, final: 60 };

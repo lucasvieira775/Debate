@@ -1145,7 +1145,7 @@ function renderPerguntas() {
   const itens = lista.slice().reverse().map(x => {
     const praMim = x.para === E.eu, para = jog(x.para)?.nome || '';
     const tit = x.mediador ? `🎙 ${esc(x.de)} → ${esc(para)} · ${rot[x.kind] || ''}` : `⚔ ${esc(x.de)} → ${esc(para)} · ${x.kind === 'replica' ? 'Réplica' : 'Pergunta'}`;
-    const t = x.tema && TEMA[x.tema], id = x.n + x.kind + x.para, res = x.mediador && t?.resumo;
+    const t = x.tema && TEMA[x.tema], id = x.n + x.kind + x.para, res = praMim && x.mediador && t?.resumo; // "?" só para quem recebeu a pergunta
     const ds = res && aj.has(id) ? dicasFala(t.resumo, x.lado || 0) : [], di = (dn[id] || 0) % (ds.length || 1);
     const ajuda = res ? `<button class="perg-ajuda ${aj.has(id) ? 'on' : praMim ? 'guia' : ''}" data-aj="${esc(id)}" title="Dica de fala">?</button>` : '';
     return `<div class="perg ${praMim ? 'minha' : ''} ${x.mediador ? '' : 'adv'}">${ajuda}<small>${tit}${t ? ` · ${t.uf}` : ''}</small><div>${esc(x.texto)}</div>${res && aj.has(id) ? `<div class="perg-resumo"><b>${esc(t.titulo)}</b><span class="dica-rot">DICA DE FALA:</span> ${esc(ds[di])}${ds.length > 1 ? `<button class="dica-outra" data-ot="${esc(id)}" title="Ver outra dica">↻ Outra dica (${di + 1}/${ds.length})</button>` : ''}</div>` : ''}</div>`;
