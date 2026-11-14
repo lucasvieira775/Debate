@@ -244,7 +244,7 @@ socket.on('saiuPartida', d => { if (d.id === E.eu) return; sfx.clique?.();
   anunciar(`🚪 ${d.nome.toUpperCase()} ABANDONOU O DEBATE`);
   toast(`🚪 ${d.nome} ${d.voluntario ? 'abandonou a partida' : 'não voltou a tempo e foi retirado(a) do debate'}. ${d.wo ? `${d.wo} vence por W.O.!` : 'O debate segue.'} Você pode denunciá-lo(a) por abandono em 👥 Jogadores.`, 'erro'); });
 socket.on('voltouPartida', d => { if (d.id !== E.eu) toast(`${d.nome} voltou ao debate!`); });
-socket.on('estado', s => { if (s.fase === 'lobby') E.acoesUsadas = null; onEstado(s); });
+socket.on('estado', s => { if (s.fase === 'lobby') { E.acoesUsadas = null; E.avisoFalaOk = false; } onEstado(s); });
 // ---------- ações (cadeirada, tomate, flores…): a animação roda em est.acao; no impacto, a mediação comenta ----------
 const acaoFalas = new Map(); // n → { t, url, impacto }
 socket.on('acao', d => { if (!ITEM[d.item]) return; for (const [k, f] of acaoFalas) if (Date.now() - f.em > 30000) acaoFalas.delete(k); // impacto que nunca veio (aba oculta, saiu da sala)
@@ -1173,13 +1173,16 @@ function renderAcao(forcar) {
     el.innerHTML = `<div class="hud-box" style="display:flex;align-items:center;gap:12px;justify-content:center"><img class="av" src="${ret(j.avatar)}"><span><b>${esc(j.nome)}</b> ${f.status === 'pronto' ? 'vai começar a falar…' : f.status === 'avaliado' ? 'terminou a fala.' : 'está falando. Ouça e prepare sua resposta!'}</span></div>`; return;
   }
   // minha vez
-  if (f.status === 'avaliado') { el.innerHTML = `<div class="hud-box" style="text-align:center">🔒 Fala registrada. Veja ao lado a avaliação dos comentaristas.</div>`; return; }
+  if (f.status === 'avaliado') { E.avisoFalaOk = true; el.innerHTML = `<div class="hud-box" style="text-align:center">🔒 Fala registrada. Veja ao lado a avaliação dos comentaristas.</div>`; return; }
   if (E.confirmando || f.status === 'encerrando') { el.innerHTML = `<div class="hud-box" style="text-align:center">⏳ Finalizando sua fala…</div>`; return; }
   const ativo = f.status === 'ativo';
   const status = !ativo ? (micLiberado() ? `🎤 <b>SUA VEZ!</b> O tempo começa quando você falar ou digitar. <span id="h-auto" class="mut"></span>` : `🎙 <b>SUA VEZ</b> — aguarde a mediação terminar de falar…`)
     : E.micOn ? `<span class="rec"></span><span id="h-micst">Ligando o microfone…</span><span class="vu"><div id="h-vu"></div></span>`
       : E.micErro ? `⚠ ${esc(E.micErro)}` : podeDigitar ? '⌨ Modo digitação: o tempo está correndo. Ligue o microfone quando quiser.' : '🎙 Ligue o microfone para falar.';
-  el.innerHTML = `<div class="hud-box">
+  // 1ª fala do candidato na partida: aviso de como falar (some depois que a fala é registrada)
+  const ultP = (E.sala.perguntas || []).findLast(x => x.para === E.eu), temDica = ultP?.mediador && TEMA[ultP.tema]?.resumo;
+  const aviso = E.avisoFalaOk ? '' : `<div class="aviso-fala">👉 Clique no símbolo do microfone <b class="mic-ico">🎙</b> para começar a falar, ou escreva no campo e depois clique em <b>✔ CONFIRMAR</b> para enviar.${temDica ? ' Você também pode clicar no <b class="perg-ico">?</b> (no painel de perguntas) para ter ideias de resposta.' : ''}</div>`;
+  el.innerHTML = `<div class="hud-box">${aviso}
     <div class="status">${status}</div>
     <div class="acao-linha">
       <button class="mic ${E.micOn ? 'on' : 'off'}" id="h-mic" title="Microfone (M)" ${!ativo && !micLiberado() ? 'disabled' : ''}>${E.micOn ? '⏸' : '🎙'}</button>

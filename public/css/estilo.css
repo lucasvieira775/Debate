@@ -303,6 +303,12 @@ body:has(.tela.vitrine) #cena{cursor:grab}body:has(.tela.vitrine) #cena:active{c
 .guia{animation:guia 4.5s ease-in-out infinite}
 .guia:disabled{animation:none}
 .perg-ajuda.guia{opacity:1;border-color:var(--amarelo);color:var(--amarelo);animation:dicaPulsa 1.2s ease-in-out infinite}
+.perg:has(.perg-ajuda.guia){min-height:66px}
+.perg-ajuda.guia::after{content:'⬆';position:absolute;left:50%;top:100%;margin-left:-9px;width:18px;font-size:20px;line-height:22px;color:var(--amarelo);text-shadow:0 0 6px rgba(0,0,0,.8);animation:setaSobe 1s ease-in-out infinite;pointer-events:none}
+@keyframes setaSobe{0%,100%{transform:translateY(8px)}50%{transform:translateY(1px)}}
+.aviso-fala{margin-bottom:8px;padding:8px 10px;border-radius:8px;border:2px solid var(--amarelo);background:rgba(255,210,63,.14);font-size:14px;line-height:1.45}
+.aviso-fala .mic-ico{display:inline-block;padding:0 5px;border-radius:50%;background:#2a2a40}
+.aviso-fala .perg-ico{display:inline-block;width:22px;height:22px;line-height:18px;text-align:center;border-radius:50%;border:2px solid var(--amarelo);color:var(--amarelo);font-weight:900}
 @keyframes dicaPulsa{50%{box-shadow:0 0 18px 4px rgba(255,210,63,.85);transform:scale(1.1)}}
 @keyframes guia{0%,100%{filter:drop-shadow(0 0 0 rgba(255,214,90,0))}50%{filter:drop-shadow(0 0 10px rgba(255,214,90,.85))}}
 .lateral{width:100%}
