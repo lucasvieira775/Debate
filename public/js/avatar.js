@@ -311,7 +311,7 @@ export class Avatar {
     if (c.brinco) for (const s of [-1, 1]) m(esfera(.022), mat('#e8c15a', { r: .25, m: .8 }), s * .27, .2, .02, H);
 
     // pose inicial
-    this.bracos.forEach(b => { const s = b.userData.lado; b.rotation.set(REP[0], s * REP[3], s * REP[1]); b.userData.cot.rotation.x = REP[2]; b.userData.mao.rotation.y = s * REP[4]; this.dedos(b, MAOS.relax, 1); });
+    this.bracos.forEach(b => { const s = b.userData.lado, bi = b.userData.biblia, P = bi ? BIBLIA : REP; b.rotation.set(P[0], s * P[3], s * P[1]); b.userData.cot.rotation.x = P[2]; b.userData.mao.rotation.y = s * P[4]; this.dedos(b, bi ? MAOS.livro : MAOS.relax, 1); }); // pastor já nasce segurando a Bíblia (retrato() não chama update)
     this.root.traverse(o => { if (o.isMesh) o.userData.avatar = this; });
   }
   /** Mão com palma, 4 dedos (2 falanges) e polegar; a palma fica voltada para o corpo. */
