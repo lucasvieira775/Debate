@@ -31,8 +31,8 @@ export const PARTIDOS = [
 export const PARTIDO = Object.fromEntries(PARTIDOS.map(p => [p.sigla, p]));
 
 export const SEGMENTOS = [
-  { id: 'esquerda', pos: -2, peso: .18 }, { id: 'centro-esquerda', pos: -1, peso: .17 }, { id: 'centro', pos: 0, peso: .28 },
-  { id: 'centro-direita', pos: 1, peso: .17 }, { id: 'direita', pos: 2, peso: .20 },
+  { id: 'esquerda', pos: -2, peso: .19 }, { id: 'centro-esquerda', pos: -1, peso: .16 }, { id: 'centro', pos: 0, peso: .30 },
+  { id: 'centro-direita', pos: 1, peso: .16 }, { id: 'direita', pos: 2, peso: .19 },
 ];
 
 export const TEMA_BASE = {
@@ -364,7 +364,7 @@ function utilidade(c, g) {
   const tolerancia = [.15, .7, 1.3, .7, .15][g.pos + 2];
   const mobiliza = Math.abs(g.pos) === 2 ? agr * .25 : 0;
   const acoes = -.4 * (st.agressao || 0) * tolerancia + .25 * (st.simpatia || 0) + .3 * (st.solid || 0); // agressão física: centro rejeita, extremos pouco ligam
-  return .6 * perf(st) - 1.5 * Math.pow(d, 1.25) - .7 * danoEf(st) - agr * tolerancia + mobiliza + acoes;
+  return .85 * perf(st) - 1.15 * Math.pow(d, 1.1) - .7 * danoEf(st) - agr * tolerancia + mobiliza + acoes;
 }
 
 /** Brasil polarizado: o eleitorado é quase meio a meio. Mano a mano, a margem vem sobretudo do desempenho
@@ -374,7 +374,11 @@ function utilidade(c, g) {
 const forcaCand = c => perf(c.st) - .6 * danoEf(c.st) - .2 * fugasEf(c.st) - .45 * (c.st.agressao || 0) + .3 * (c.st.simpatia || 0) + .3 * (c.st.solid || 0);
 function equilibrar(lista, brutos) {
   if (lista.length < 2) return brutos;
-  if (lista.length > 2) { const v = brutos.map(p => Math.pow(Math.max(p, .1), .8)), s = v.reduce((a, b) => a + b, 0); return v.map(x => x / s * 100); }
+  if (lista.length > 2) { // 3+: o lado sem candidato "próprio" não decide sozinho; parte do voto segue quem foi melhor no debate
+    const v = brutos.map(p => Math.pow(Math.max(p, .1), .8)), s = v.reduce((a, b) => a + b, 0);
+    const f = lista.map(c => Math.exp(1.1 * forcaCand(c))), sf = f.reduce((a, b) => a + b, 0);
+    return v.map((x, k) => .68 * x / s * 100 + .32 * f[k] / sf * 100);
+  }
   const [a, b] = lista, pa = percebida(a), pb = percebida(b);
   const polar = pa * pb < 0 ? 1 : (Math.abs(pa) < .5 || Math.abs(pb) < .5) ? 1.15 : 1.3; // esq×dir é o mais apertado
   const d = forcaCand(a) - forcaCand(b), ad = Math.abs(d);
@@ -393,7 +397,8 @@ export function apurar(lista, ruido, segundo, abstBase) {
     const tot = comparec * g.peso;
     const us = lista.map(c => utilidade(c, g) + gauss() * ruido);
     const best = Math.max(...us);
-    const bn = clamp(.03 + .045 * Math.max(0, 3.5 - best) + (segundo ? .02 : 0), .02, .45);
+    const dmin = Math.min(...lista.map(c => Math.abs(g.pos - percebida(c)))); // sem ninguém perto, esse eleitor anula/vota branco mais
+    const bn = clamp(.03 + .045 * Math.max(0, 3.5 - best) + .07 * Math.max(0, dmin - 1) + (segundo ? .02 : 0), .02, .45);
     const ex = us.map(u => Math.exp(u - best)); const sum = ex.reduce((a, b) => a + b, 0);
     lista.forEach((c, k) => votos.set(c.id, votos.get(c.id) + tot * (1 - bn) * ex[k] / sum));
     brancos += tot * bn * .4; nulos += tot * bn * .6;

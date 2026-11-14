@@ -864,8 +864,8 @@ class Sala {
     this.io.to(this.code).emit('folheando', { id: j.id }); // todos veem o candidato folheando as anotações
     this.enviarConta(j);
     // Variedade: cada candidato começa num ângulo diferente e avança a cada dica do mesmo tema; o que já foi entregue vai como "não repita".
-    const tk = p.tema || 'final', v = (j.dicasVistas ||= {})[tk] ||= { n: 0, ant: [] }, lado = Math.max(0, this.jog.indexOf(j));
-    const dica = await gerarDica(this.mgr.dub.chave, { tema: p.tema, kind: p.kind, partido: j.partido, alvo: p.alvo && this.porId(p.alvo), n: (lado + v.n) % 5, lado, evitar: v.ant });
+    const tk = p.tema || 'final', v = (j.dicasVistas ||= {})[tk] ||= { n: 0, ant: [], o: Math.floor(Math.random() * 20) }, lado = Math.max(0, this.jog.indexOf(j));
+    const dica = await gerarDica(this.mgr.dub.chave, { tema: p.tema, kind: p.kind, partido: j.partido, alvo: p.alvo && this.porId(p.alvo), n: (v.o + lado * 7 + v.n) % 20, lado, evitar: v.ant });
     v.n++; v.ant = v.ant.concat(dica.abertura, dica.pontos).slice(-8);
     return { dica, origem, gratisRestantes: ECONOMIA.dicasGratis - (j.dicasUsadas || 0) };
   }
