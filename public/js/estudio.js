@@ -39,7 +39,7 @@ const FONTE = '"Lilita One", "Arial Black", Impact, sans-serif';
 const FONTE_TXT = '"Nunito", "Segoe UI", Arial, sans-serif';
 const D2R = Math.PI / 180;
 // replay das agressões nas telas laterais: grava as 2 câmeras de estúdio e reprisa em câmera lenta depois do impacto
-const REPLAY = { itens: new Set(['cadeirada', 'paulada', 'tomate', 'torta', 'balde']), fps: 20, antes: 1.4, depois: 1.1, lenta: .4, trans: .55, W: 384, H: 216 };
+const REPLAY = { itens: new Set(['cadeirada', 'paulada', 'tomate', 'torta', 'balde']), fps: 20, antes: 1.4, depois: 1.1, espera: 10, lenta: .4, trans: .55, W: 384, H: 216 };
 
 function rb(w, h, d, r = .05) { return new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w / 2 - .001, h / 2 - .001, d / 2 - .001)); }
 function canvasTex(w, h) {
@@ -286,16 +286,20 @@ export class Estudio {
   animarCameras(dt, t) {
     const k = 1 - Math.exp(-dt * 1.4), alvo = _v;
     const fal = this.falante && this.podios.get(this.falante);
-    const ag = this.agressao(); // agressão: as câmeras de estúdio pegam a vítima (é o que vai para o replay)
-    if (ag) ag.alvo.ator.getWorldPosition(alvo).setY(1.5); else if (this.duelo) alvo.set(DUELO.x, 1.5, DUELO.z); else if (fal) fal.ator.getWorldPosition(alvo).setY(1.6); else alvo.set(0, 1.5, -1);
-    for (const c of this.camerasTV || []) {
+    // agressão (vai para o replay): cada câmera sorteia se acompanha quem agride ou a vítima. No arremesso uma fica em cada um
+    // (o atacante não sai do lugar); de perto as duas podem seguir o atacante, que chega até a vítima.
+    const ag = this.agressao();
+    if (ag && !ag.focoCam) { const s = Math.random() < .5; ag.focoCam = ag.perto ? [Math.random() < .5, Math.random() < .5] : [s, !s]; }
+    for (const [i, c] of (this.camerasTV || []).entries()) {
+      if (ag) (ag.focoCam[i] ? ag.atk : ag.alvo).ator.getWorldPosition(alvo).setY(1.5); else if (this.duelo) alvo.set(DUELO.x, 1.5, DUELO.z); else if (fal) fal.ator.getWorldPosition(alvo).setY(1.6); else alvo.set(0, 1.5, -1);
       const p = c.g.position, dx = alvo.x - p.x, dz = alvo.z - p.z;
       const ocioso = ag || fal || this.duelo ? 0 : Math.sin(t * .23 + c.fase) * .22;
       let yaw = Math.atan2(dx, dz) - c.g.rotation.y + ocioso; yaw = Math.atan2(Math.sin(yaw), Math.cos(yaw));
       c.yaw += (clamp(yaw, -1.1, 1.1) + Math.sin(t * .7 + c.fase) * .012 - c.yaw) * k;
       c.pitch += (-Math.atan2(alvo.y - 1.36, Math.hypot(dx, dz)) + Math.sin(t * .5 + c.fase) * .01 - c.pitch) * k;
       c.pan.rotation.y = c.yaw; c.tilt.rotation.x = c.pitch;
-      const fov = ag ? 17 : fal ? 12 : this.duelo ? 16 : 24; // zoom no(a) candidato(a) que fala (vai para a tela lateral)
+      const close = Math.sin(t * .11 + c.fase * 1.7) > -.25; // quem fala: às vezes close, às vezes plano mais aberto (cada câmera no seu ritmo)
+      const fov = ag ? 17 : fal ? (close ? 12 : 20) : this.duelo ? 16 : 24;
       if (Math.abs(c.lente.fov - fov) > .05) { c.lente.fov += (fov - c.lente.fov) * k; c.lente.updateProjectionMatrix(); }
       // tally acesa quando a câmera do "ar" (direção de TV) está ao lado desta
       const noAr = this.modo !== 'fp' && Math.hypot(this.camera.position.x - p.x, this.camera.position.z - p.z) < 4;
@@ -1409,11 +1413,13 @@ export class Estudio {
       T.forEach((tela, i) => { const q = R.quadros[i][k]; this.filmar(tela, C[i].lente, q); tela.m.material.map = tela.m.userData.mix.map2.value = q.texture; });
       return;
     }
-    if (R && R.fase !== 'sai') return; // reprisando: as telas mostram os quadros gravados (atualizarReplay)
+    if (R && !this.aoVivoLat(R)) return; // reprisando: as telas mostram os quadros gravados (atualizarReplay)
     if (t - (this.ultLat || 0) < 1 / 30) return; this.ultLat = t;
     const i = this.ladoLat = 1 - (this.ladoLat || 0), cam = C[i]?.lente; if (!cam) return;
-    if (!R || R.u > REPLAY.trans / 2) this.filmar(T[i], cam, T[i].rt);
+    this.filmar(T[i], cam, T[i].rt);
   }
+  /** As telas mostram o ao vivo: esperando o replay, 1ª metade da vinheta de entrada e 2ª metade da de saída. */
+  aoVivoLat(R) { const meio = R.u > REPLAY.trans / 2; return R.fase === 'espera' || (R.fase === 'entra' && !meio) || (R.fase === 'sai' && meio); }
   /** Renderiza a cena pela lente de uma câmera de estúdio num render target. */
   filmar(tela, cam, rt) {
     const eu = this.podios.get(this.meuId)?.avatar, oculta = eu && !eu.cabeca.visible;
@@ -1436,22 +1442,24 @@ export class Estudio {
     }
     const T = this.telasLat, F = REPLAY.fps;
     if (R.fase === 'grava') {
-      if (R.a.bateu && R.nImp < 0) R.nImp = R.n;
+      if (R.a.bateu && R.nImp < 0) { R.nImp = R.n; R.tImp = t; }
       const morreu = !this.acoes.lista.includes(R.a);
       if (R.nImp < 0 && morreu) return this.fimReplay(); // abortou sem impacto: nada a reprisar
-      if (R.nImp >= 0 && (R.n - R.nImp >= REPLAY.depois * F || morreu)) {
+      if (R.nImp >= 0 && (R.n - R.nImp >= REPLAY.depois * F || morreu)) { // gravação pronta: as telas voltam ao vivo até a hora do replay
         const ini = Math.max(R.n - R.max + 1, R.nImp - Math.round(REPLAY.antes * F), 0);
-        R.seq = Array.from({ length: R.n - ini }, (_, j) => (ini + j) % R.max); R.fase = 'entra'; R.t0 = t;
+        R.seq = Array.from({ length: R.n - ini }, (_, j) => (ini + j) % R.max); R.fase = 'espera';
+        for (const tela of T) { tela.m.material.map = tela.m.userData.mix.map2.value = tela.rt.texture; tela.m.userData.mix.mixK.value = 0; }
       }
       return R;
     }
+    if (R.fase === 'espera') { if (t - R.tImp < REPLAY.espera) return R; R.fase = 'entra'; R.t0 = t; }
     R.u = t - R.t0;
     if (R.fase === 'entra' && R.u >= REPLAY.trans) { R.fase = 'toca'; R.t0 = t; R.u = 0; }
     else if (R.fase === 'toca' && R.u >= R.seq.length / F / REPLAY.lenta) { R.fase = 'sai'; R.t0 = t; R.u = 0; }
     else if (R.fase === 'sai' && R.u >= REPLAY.trans) return this.fimReplay();
-    // o que cada tela mostra: na 1ª metade da vinheta de entrada o último quadro ao vivo; depois os quadros (lentos e fundidos); na 2ª metade da saída, o ao vivo
-    const meio = R.u > REPLAY.trans / 2, ao = R.fase === 'sai' && meio;
-    const pos = R.fase === 'entra' ? (meio ? 0 : R.seq.length - 1) : R.fase === 'toca' ? R.u * F * REPLAY.lenta : R.seq.length - 1;
+    // o que cada tela mostra: ao vivo (aoVivoLat) ou os quadros (lentos e fundidos); na 2ª metade da saída, o ao vivo
+    const ao = this.aoVivoLat(R);
+    const pos = R.fase === 'entra' ? 0 : R.fase === 'toca' ? R.u * F * REPLAY.lenta : R.seq.length - 1;
     T.forEach((tela, i) => {
       const mix = tela.m.userData.mix, mt = tela.m.material;
       if (ao) { mt.map = mix.map2.value = tela.rt.texture; mix.mixK.value = 0; return; }
