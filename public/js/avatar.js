@@ -237,17 +237,20 @@ export class Avatar {
       if (s > 0) { pipoca = baldePipoca(); pipoca.rotation.z = s * Math.PI / 2; pipoca.position.set(-s * .028, -.07, 0); mao.add(pipoca); }
       else pipoca = m(esfera(.024), mat('#fff6d8', { r: .9 }), -s * .025, -.19, .05, mao);
       pipoca.visible = false;
-      if (pastor && s > 0) { // Bíblia Sagrada na mão esquerda (capa preta, páginas brancas, cruz dourada): pendurada pela borda de cima,
-        // presa entre os dedos (capa de dentro) e o polegar (capa de fora) — ver MAOS.livro
-        const bi = new THREE.Group(); bi.position.set(s * .054, -.255, .005); mao.add(bi);
-        mao.userData.pol.position.set(s * .02, -.06, .05); // polegar nasce mais baixo e por fora, para alcançar a capa
-        m(rbox(.06, .3, .22, .012), mat('#151210', { r: .5 }), 0, 0, 0, bi);
-        m(rbox(.044, .28, .02, .004), mat('#f5efe0', { r: .9 }), 0, 0, .104, bi);
+      let biblia;
+      if (pastor && s > 0) { // Bíblia Sagrada na mão esquerda (capa preta, páginas brancas, cruz dourada), agarrada pela lombada com pegada em C:
+        // lombada encostada na palma, os 4 dedos dobrados sobre a capa da frente e o polegar sobre a de trás (MAOS.livro + pose BIBLIA).
+        // Eixos da mão: x = normal da palma (livro sai para -s·x), y = antebraço (espessura do livro), z = altura do livro
+        const bi = biblia = new THREE.Group(); bi.position.set(-s * .137, -.064, .09); mao.add(bi);
+        mao.userData.pol.position.set(-s * .004, -.011, .05); // polegar nasce mais perto do pulso, para deitar na capa de trás
+        m(rbox(.22, .055, .3, .012), mat('#151210', { r: .5 }), 0, 0, 0, bi);
+        const pg = mat('#f5efe0', { r: .9 });
+        m(rbox(.02, .04, .284, .004), pg, -s * .102, 0, 0, bi); for (const k of [-1, 1]) m(rbox(.2, .04, .02, .004), pg, -s * .006, 0, k * .142, bi); // páginas
         const ouro = mat('#f2c230', { r: .3, m: .5, em: '#5a4205', ei: 1 });
-        m(rbox(.004, .15, .03, .002), ouro, s * .031, -.02, 0, bi); m(rbox(.004, .03, .1, .002), ouro, s * .031, .02, 0, bi); // cruz na capa de fora
-        m(rbox(.064, .28, .012, .004), ouro, 0, 0, -.108, bi); // lombada dourada
+        m(rbox(.03, .004, .15, .002), ouro, -s * .025, -.029, .01, bi); m(rbox(.1, .004, .03, .002), ouro, -s * .025, -.029, .05, bi); // cruz na capa da frente
+        m(rbox(.012, .057, .284, .004), ouro, s * .108, 0, 0, bi); // lombada dourada (na palma)
       }
-      piv.userData = { lado: s, cot, mao, folha, pipoca, base: piv.position.clone() }; this.bracos.push(piv);
+      piv.userData = { lado: s, cot, mao, folha, pipoca, biblia, base: piv.position.clone() }; this.bracos.push(piv);
     }
     // pescoço e cabeça
     this.pescoco = m(geo('pesc', () => new THREE.CylinderGeometry(.085, .095, .14, 14)), peleEsc, 0, .8, 0, this.torso);
@@ -683,23 +686,24 @@ export class Avatar {
     for (const b of this.bracos) {
       const s = b.userData.lado;
       let [rx, rz, cot, ry, gm, mao, om = 0] = this.posePe ? REP_PE : REP;
-      if (this.posePe && s > 0 && this.cfg.roupa === 'pastor') rz += .14; // em pé, afasta o braço da Bíblia (senão o livro entra no quadril/coxa)
+      const pe = pose && (s > 0 ? pose.esq : pose.dir), livro = !!b.userData.biblia && (!pe || pe === REP || pe === SENTADO.braco); // pastor: o braço esquerdo só larga a Bíblia em poses que usam esse braço
       if (this.empurra && !pose) { rx = -.95; rz = .1; cot = -.3; ry = 0; gm = 0; mao = 'aberta'; } // empurrando algo (equipe de produção)
       else if (an > .05 && !pose) { rx = -.15 - Math.sin(ph) * .45 * s * an; rz = .06; cot = -.35; ry = 0; gm = 0; }
       else if (this.cruza && !pose) [rx, rz, cot, ry, gm, mao, om] = s > 0 ? Q.cruzaE : Q.cruzaD; // parada de braços cruzados
       else if (pose) { const p0 = s > 0 ? pose.esq : pose.dir, p = this.posePe && p0 === REP ? REP_PE : p0; if (p) [rx, rz, cot = -.25, ry = 0, gm = 0, mao = 'relax', om = 0] = p; }
       else if (gf) [rx, rz, cot, ry, gm, mao, om] = s > 0 ? gf.esq : gf.dir;
+      if (livro) [rx, rz, cot, ry, gm, mao, om] = BIBLIA;
       const bs = b.userData.base, ko = kb;
       b.position.x += (bs.x - s * .03 * om - b.position.x) * ko; b.position.y += (bs.y + .03 * om - b.position.y) * ko; b.position.z += (bs.z + .1 * om - b.position.z) * ko;
       // ângulos suavizados guardados à parte; nos emotes, o braço gira no eixo vertical para compensar a largura
       // do ombro (poses calculadas com ombro em x=.38), assim a mão cai no mesmo lugar em corpos magros/largos
       const ud = b.userData, r = ud.r ||= b.rotation.clone();
       r.x += (rx - r.x) * kb; r.z += (s * rz - r.z) * kb; r.y += (s * ry - r.y) * kb;
-      ud.comp = (ud.comp || 0) + ((pose ? s * (.38 - Math.abs(bs.x)) / .45 : 0) - (ud.comp || 0)) * kb;
+      ud.comp = (ud.comp || 0) + ((pose && !livro ? s * (.38 - Math.abs(bs.x)) / .45 : 0) - (ud.comp || 0)) * kb;
       b.quaternion.setFromEuler(r).premultiply(_qY.setFromAxisAngle(_eixoY, ud.comp));
       const { cot: c, mao: mo } = b.userData;
       c.rotation.x += (cot - c.rotation.x) * kb; mo.rotation.y += (s * gm - mo.rotation.y) * kb;
-      if (s > 0 && this.cfg.roupa === 'pastor' && !pose) mao = 'livro'; // segura a Bíblia pela borda (fora de emotes)
+      if (ud.biblia) { const kl = ud.kl = (ud.kl ?? 1) + ((livro ? 1 : 0) - (ud.kl ?? 1)) * kb; ud.biblia.visible = kl > .05; ud.biblia.scale.setScalar(kl); } // some (guardada) quando a mão esquerda faz outra coisa
       this.dedos(b, MAOS[mao] || MAOS.relax, kb);
       b.userData.folha.visible = !!pose?.folha;
       const pip = b.userData.pipoca; pip.visible = !!pose?.pipoca && (s > 0 || (pose.pipoca > 1.25 && pose.pipoca < 1.95));
@@ -759,7 +763,7 @@ const MAOS = {
   pinca: { c: [.75, .9, 1.1, 1.25], p: [-.9, .75, .3], l: .2 },
   cobre: { c: [.25, .25, .3, .3], p: [-.3, .2, 0], l: .15 }, // dedos juntos e levemente curvos (cobrir rosto/boca)
   apoio: { c: [.15, .22, .3, .38], p: [-.5, .3, .2], l: .5 }, // repouso no púlpito
-  livro: { c: [-.05, -.05, -.05, -.05], p: [-.15, -.55, .25], l: .1 }, // segura um livro pela borda: dedos retos na capa de dentro, polegar na de fora
+  livro: { c: [1.4, 1.45, 1.45, 1.4], f2: .08, p: [0, 1.4, .1], l: .2 }, // pegada em C: dedos dobrados de um lado do livro, polegar do outro, lombada na palma
   fala: { c: [.05, .06, .1, .15], p: [-.85, -.1, 0], l: .8 },
   solta: { c: [.12, .12, .15, .2], p: [-1.2, -.5, 0], l: 2.4 },
   faca: { c: [0, 0, 0, 0], p: [-.1, .5, 0], l: 0 },
@@ -786,6 +790,7 @@ const Q = {
   passA: [-.59, 1.19, -1.44, -.12, 1.1, 'punho'], passB: [-.4, .55, -.8, 0, 0, 'punho'],
 };
 const REP = Q.rep; // braço em repouso (palma para baixo, apoiada no púlpito)
+const BIBLIA = [.3, .1, -1.95, 0, 0, 'livro', 0]; // pastor: braço esquerdo dobrado, Bíblia em pé junto ao peito com a capa para a frente
 const REP_PE = [-.08, .07, -.2, 0, 0, 'relax']; // em pé sem púlpito (posePe: vitrine, demo da loja): braços soltos ao lado do corpo
 const nq = x => [x[0], x[1], x[2] ?? -.25, x[3] ?? 0, x[4] ?? 0, x[5] ?? 'relax', x[6] ?? 0];
 function lerpQ(a, b, k) { const B = nq(b); return nq(a).map((v, i) => i === 5 ? (k < .5 ? v : B[i]) : v + (B[i] - v) * k); }
