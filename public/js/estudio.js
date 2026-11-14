@@ -210,8 +210,8 @@ export class Estudio {
   }
   /** Câmera que cobre a agressão: a que estava no ar (se lateral) ou a lateral mais de frente para a vítima. Ela abre o zoom devagar a partir do FOV atual. */
   camAgressao(ag) {
-    if (!ag.cam) { const c = this.prog?.c && !this.prog.c.med ? this.prog.c : this.camFrente(ag.alvo); ag.cam = c; ag.fov0 = c.lente.fov; ag.tCam = this.t; }
-    return ag.cam;
+    if (!ag.camTV) { const c = this.prog?.c && !this.prog.c.med ? this.prog.c : this.camFrente(ag.alvo); ag.camTV = c; ag.fov0 = c.lente.fov; ag.tCam = this.t; }
+    return ag.camTV;
   }
   // ---------- câmeras de estúdio (pedestal com rodízios) + cinegrafistas ----------
   /** Materiais/geometrias/texturas compartilhados pelas câmeras de TV (criados uma vez). */
@@ -330,7 +330,7 @@ export class Estudio {
       let yaw = Math.atan2(dx, dz) - c.g.rotation.y + ocioso; yaw = Math.atan2(Math.sin(yaw), Math.cos(yaw));
       const trem = c.med || close ? .2 : 1; // teleobjetiva/close: tremida bem menor (no close qualquer balanço aparece)
       const lim = apu ? 1.25 : 1.1; // as laterais giram um pouco mais para alcançar o telão
-      c.yaw += (clamp(yaw, -lim, lim) +Math.sin(t * .7 + c.fase) * .012 * trem - c.yaw) * k;
+      c.yaw += (clamp(yaw, -lim, lim) + Math.sin(t * .7 + c.fase) * .012 * trem - c.yaw) * k;
       c.pitch += (-Math.atan2(alvo.y - (p.y + 1.75), hd) + Math.sin(t * .5 + c.fase) * .01 * trem - c.pitch) * k; // lente a ~1,75 m acima da base
       c.pan.rotation.y = c.yaw; c.tilt.rotation.x = c.pitch;
       const noProg = this.prog?.c === c;
@@ -1239,7 +1239,7 @@ export class Estudio {
   setModo(modo) {
     const antes = this.modo; this.modo = modo; this.camTVok = false;
     if (modo !== 'vitrine') this.pararDemo?.(); // saiu da loja no meio da demonstração de uma ação
-    if ((modo === 'vitrine' || modo === 'menu') && antes !== modo) { this.acoes?.limpar(); this.modo = modo; } // (limpar pode chamar setModo('fp')) saiu da partida no meio de uma ação: nada sobra na cena
+    if ((modo === 'vitrine' || modo === 'menu') && antes !== modo) { this.acoes?.limpar(); this.limparReplays(); this.modo = modo; } // (limpar pode chamar setModo('fp')) saiu da partida no meio de uma ação: nada sobra na cena
     if (modo === 'fp') {
       const pd = this.podios.get(this.meuId);
       if (pd) { pd.ator.add(this.rig); this.rig.position.set(0, 2.0, .1); this.camFP.add(this.camera); this.posCamFP(); }
@@ -1576,6 +1576,12 @@ export class Estudio {
   fimReplay() {
     const R = this.replay; this.replay = null; if (R) this.buffersReplay.push(R.quadros); // o buffer volta a ficar livre para a próxima gravação
     this.telasAoVivo(); this.ultLat = 0; this.desenharLateral(); return null;
+  }
+  /** Saiu da partida: descarta a gravação e a fila (os replays de uma sala não passam no menu nem na sala seguinte). */
+  limparReplays() {
+    const pend = [this.grav, ...(this.filaReplay || [])].filter(Boolean); if (!pend.length && !this.replay) return;
+    for (const x of pend) this.buffersReplay.push(x.quadros);
+    this.grav = null; this.filaReplay = []; this.fimReplay();
   }
 
   // ===================== LOOP =====================
