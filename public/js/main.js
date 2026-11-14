@@ -218,7 +218,8 @@ socket.on('conta', atualizarConta);
 socket.on('ganhos', g => { avisoGanhos(g); sfx.nota();
   if (g.xp?.depois > g.xp?.antes) setTimeout(() => { const c = CARGOS[g.xp.depois - 1]; animarPromocao({ n: c.n, nome: c.nome, recompensa: g.xp.premio || 0, bonus: c.bonus }); }, 2500); });
 socket.on('xzona', post => { if (emJogo()) postXzona(post); });
-socket.on('pedirReplay', d => { if (E.cfg.replays !== false && d?.token) grav.enviar(d.token, d.i).then(r => { if (r?.ok) toast('🎬 Sua fala nota 10 virou replay na sua fanpage da Xzona!'); }); });
+socket.on('pedirReplay', d => { if (!d?.token) return; if (E.cfg.replays === false) return console.warn('[replay] fala nota 10, mas "Publicar replays" está desligado nas Configurações');
+  grav.enviar(d.token, d.i, d.meta).then(r => { if (r?.ok) { if (r.conta) atualizarConta(r.conta); toast('🎬 Sua fala nota 10 virou replay na sua fanpage da Xzona!'); } }); });
 socket.on('folheando', d => { est.folhear(d.id); if (d.id !== E.eu) sfx.clique(); });
 // mediação ou candidato falando: emotes e danças ficam mudos (só a animação); provocações tocam o som sempre (3 min de espera)
 const alguemFalando = () => !!(est.medFalando || narrador.tocando || ['ativo', 'encerrando'].includes(E.sala?.fala?.status));
@@ -366,7 +367,7 @@ function onEstado(s) {
   est.setJogadores(s.jogadores, E.eu);
   // troca de passo
   if (s.i !== E.ultI || s.fase !== ant?.fase) {
-    E.ultI = s.i; E.textoFala = ''; E.meuTexto = ''; E.confirmando = false; E.micErro = '';
+    E.ultI = s.i; E.gravI = null; E.textoFala = ''; E.meuTexto = ''; E.confirmando = false; E.micErro = '';
     if (E.audioBot) { E.audioBot.pause(); E.audioBot = null; }
     if (ant && s.fase === 'debate') calar(); // não deixa voz sintetizada do passo anterior vazar para o próximo
     if (E.micOn) { mic.abortar(); E.micOn = false; }
@@ -377,7 +378,8 @@ function onEstado(s) {
   // fim da minha resposta (confirmei / tempo acabou / já avaliada): guarda a anotação e a câmera volta (uma vez por passo)
   if (s.passo?.falante === E.eu && ['encerrando', 'avaliado'].includes(s.fala?.status)) fimDaResposta();
   // replay da fala nota 10: grava a MINHA fala (voz real + boca + ritmo da legenda); só sobe se o servidor pedir
-  if (minhaVez() && s.fala?.status === 'ativo') { if (E.gravI !== s.i && E.cfg.replays !== false) { E.gravI = s.i; grav.iniciar(s.i, voip.stream?.getAudioTracks()[0], () => voip.nivelLocal()); grav.texto(E.meuTexto); } }
+  // (se o microfone ainda não foi liberado, tenta de novo a cada estado até conseguir; E.gravI = fala já em gravação)
+  if (minhaVez() && s.fala?.status === 'ativo') { if (E.gravI !== s.i && E.cfg.replays !== false && grav.iniciar(s.i, voip.stream?.getAudioTracks()[0], () => voip.nivelLocal())) { E.gravI = s.i; grav.texto(E.meuTexto); } }
   else if (grav.gravando) grav.parar();
   // chat de voz: entra assim que está numa sala; só transmite quando o microfone está liberado
   const humanos = s.jogadores.filter(j => !j.bot && j.conectado).map(j => j.id);
@@ -692,7 +694,7 @@ function telaFanpage(ui) {
       <label class="mut">Nome da página</label><input id="fp-nome" class="campo" maxlength="30" style="width:100%;margin:6px 0 12px" value="${esc(fp?.nome || E.perfil.nome || '')}" placeholder="Ex.: ${esc(E.perfil.nome || 'Candidato')} Presidente">
       <label class="mut">Bio</label><textarea id="fp-bio" class="campo" maxlength="140" rows="3" style="width:100%;margin:6px 0 12px" placeholder="Ex.: Candidato(a) à Presidência. Trabalho, saúde e educação. 🇧🇷">${esc(fp?.bio || '')}</textarea>
       <div style="display:flex;gap:10px;justify-content:flex-end">${fp ? '<button class="btn peq" id="fp-cx">Cancelar</button>' : ''}<button class="btn peq amarelo" id="fp-ok">${fp ? 'Salvar' : '📱 Criar fanpage'}</button></div>`
-    : `${htmlFanpage({ ...fp, autor: E.perfil.nome, partidas: E.conta.partidas || 0, vitorias: E.conta.vitorias || 0 }, { img: ret(E.perfil.avatar), partido: p ? `${p.sigla} ${p.numero}` : '' })}
+    : `${htmlFanpage({ ...fp, autor: E.perfil.nome, partidas: E.conta.partidas || 0, vitorias: E.conta.vitorias || 0 }, { img: ret(E.perfil.avatar), partido: p ? `${p.sigla} ${p.numero}` : '', dono: true })}
       <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn peq" id="fp-ed">✎ Editar página</button></div>`}
   </div></div>`;
   ligarIr(ui);
@@ -703,6 +705,10 @@ function telaFanpage(ui) {
     E.fpEditar = false; atualizarConta(r.conta); sfx.vitoria(); toast(fp ? 'Fanpage atualizada!' : 'Fanpage criada na Xzona!', 'ok'); renderUI();
   }));
 }
+// ⭐ do replay (só na MINHA fanpage): favorita/troca/desfavorita; o servidor confere o dono
+document.addEventListener('click', e => { const b = e.target.closest?.('.rp-fav'); if (!b) return; e.stopPropagation(); sfx.clique();
+  socket.emit('favReplay', { uid: UID, id: b.dataset.fav }, r => { if (!r?.ok) return toast(r?.erro || 'Não foi possível favoritar.', 'erro');
+    atualizarConta(r.conta); toast(r.fav ? '📌 Replay fixado no topo da sua Xzona.' : 'Replay desafixado.', 'ok'); renderUI(); }); });
 // botão "ver fanpage na Xzona" por @ (ranking e mais seguidos do menu)
 const btnXz = user => user ? `<button class="btn-xz" data-fpu="${esc(user)}" title="Ver página na Xzona"><span class="xz-logo">Xzona</span></button>` : '';
 document.addEventListener('click', e => { const b = e.target.closest?.('[data-fpu]'); if (!b) return; e.stopPropagation(); sfx.clique();

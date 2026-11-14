@@ -83,7 +83,7 @@ export class Contas {
       itens: [...new Set([...GRATIS, ...(c.itens || [])])], danca: c.danca || 'comemorar', fanpage: this.fanpage(c) };
   }
   // ---------- fanpage (Xzona) ----------
-  fanpage(c) { const f = c?.fanpage; return f ? { nome: f.nome, user: f.user, bio: f.bio, seguidores: f.seguidores, criadaEm: f.criadaEm, posts: f.posts, autor: c.nome, partidas: c.partidas || 0, vitorias: c.vitorias || 0, titulos: c.titulos || null, nivel: this.nivel(c) } : null; }
+  fanpage(c) { const f = c?.fanpage; return f ? { nome: f.nome, user: f.user, bio: f.bio, seguidores: f.seguidores, criadaEm: f.criadaEm, posts: [...f.posts].sort((a, b) => !!b.fav - !!a.fav), autor: c.nome, partidas: c.partidas || 0, vitorias: c.vitorias || 0, titulos: c.titulos || null, nivel: this.nivel(c) } : null; }
   nivel(c) { return c ? cargo(c.xp || 0).n : 0; }
   /** Soma/tira XP (nunca abaixo de 0). Retorna { antes, depois } (cargos) para avisar subida/queda. */
   mudarXp(c, valor) {
@@ -126,23 +126,32 @@ export class Contas {
       const viral = Math.max(.2, nota / 5) * (eleito ? 3 : 1);
       const post = { t: Date.now(), texto: limparTxt(revisarLocal(fala), 400), tema: tema || '', nota: Math.round(nota * 10) / 10, delta,
         curtidas: Math.round((20 + Math.random() * 300) * viral), reposts: Math.round((2 + Math.random() * 60) * viral), respostas: Math.round(Math.random() * 40 * viral) };
-      f.posts.unshift(post);
-      if (f.posts.length > SEGUIDORES.maxPosts) f.posts.length = SEGUIDORES.maxPosts;
+      f.posts.unshift(post); this.apararPosts(f);
       revisar?.(fala).then(t => { if (t) { post.texto = limparTxt(t, 400); this.salvar(); } }).catch(() => {}); // refino (Gemini) chega depois
     }
     this.salvar();
     return { delta, total: f.seguidores, itens };
   }
   /** Replay de fala nota 10: post próprio "🎬 Fala nota 10" com o texto e o id do replay. aoTexto(t) recebe cada versão do texto revisado. */
-  postReplay(c, { texto, tema, nota, replay }, aoTexto, revisar) {
+  postReplay(c, { texto, tema, nota, replay, dur, thumb }, aoTexto, revisar) {
     const f = c?.fanpage; if (!f || this.banido(c)) return null;
-    const post = { t: Date.now(), texto: limparTxt(revisarLocal(texto), 400), tema: tema || '', nota, replay, titulo: '🎬 Fala nota 10', delta: 0,
+    const post = { t: Date.now(), texto: limparTxt(revisarLocal(texto), 400), tema: tema || '', nota, replay, dur: Math.round((dur || 0) / 1000), thumb: !!thumb, titulo: '🎬 Fala nota 10', delta: 0,
       curtidas: Math.round(200 + Math.random() * 900), reposts: Math.round(20 + Math.random() * 180), respostas: Math.round(10 + Math.random() * 120) };
-    f.posts.unshift(post); if (f.posts.length > SEGUIDORES.maxPosts) f.posts.length = SEGUIDORES.maxPosts;
+    f.posts.unshift(post); this.apararPosts(f);
     aoTexto?.(post.texto); this.salvar();
     revisar?.(texto).then(t => { if (t) { post.texto = limparTxt(t, 400); aoTexto?.(post.texto); this.salvar(); } }).catch(() => {});
     return post;
   }
+  /** Limite de posts: só os comuns são cortados; os de replay vivem enquanto o replay existir (regra dos 5 / 90 dias / favorito, em replays.js). */
+  apararPosts(f) { let n = 0; f.posts = f.posts.filter(p => p.replay || ++n <= SEGUIDORES.maxPosts); }
+  /** Replays apagados (ou sumidos do disco): os posts deles saem da fanpage. existe(id) diz se o replay ainda está lá. */
+  tirarReplays(existe) {
+    let mudou = false;
+    for (const c of Object.values(this.contas)) { const ps = c.fanpage?.posts; if (!ps?.some(p => p.replay && !existe(p.replay))) continue; c.fanpage.posts = ps.filter(p => !p.replay || existe(p.replay)); mudou = true; }
+    if (mudou) this.salvar();
+  }
+  /** Marca o post do replay favorito (fixado no topo); id null = nenhum. */
+  favReplay(c, id) { for (const p of c?.fanpage?.posts || []) if (p.replay) { if (p.replay === id) p.fav = true; else delete p.fav; } this.salvar(); }
   /** Ação da loja no debate: ajusta seguidores na hora (sem post). Retorna o delta ou null (sem fanpage). */
   seguidoresAcao(c, fator) {
     const f = c?.fanpage; if (!f || !fator) return null;

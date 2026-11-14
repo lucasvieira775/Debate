@@ -27,11 +27,12 @@ app.get('/api/som/:id', async (req, res) => {
 });
 
 // ---------- replays das falas nota 10 (dados/replays, fora do git) ----------
-// upload: token de uso único dado pelo servidor ao autor da fala; leitura: só .webm e .json (sem uid)
+// upload: token de uso único dado pelo servidor ao autor da fala; leitura: só .webm, .jpg (miniatura) e .json (sem uid)
 app.post('/api/replay/:token', express.raw({ type: '*/*', limit: '3mb' }), (req, res) => { const r = salas.receberReplay(String(req.params.token), req.body); r.erro ? res.status(400).json(r) : res.json(r); });
 app.get('/replays/:arq', (req, res) => {
-  const m = /^([a-f0-9]{16})\.(webm|json)$/.exec(req.params.arq); if (!m) return res.sendStatus(404);
+  const m = /^([a-f0-9]{16})\.(webm|json|jpg)$/.exec(req.params.arq); if (!m) return res.sendStatus(404);
   if (m[2] === 'json') { const r = salas.replays.publico(m[1]); return r ? res.json(r) : res.sendStatus(404); }
+  if (m[2] === 'jpg') { const f = salas.replays.arquivoThumb(m[1]); return f ? res.type('image/jpeg').set('Cache-Control', 'public, max-age=86400').sendFile(f) : res.sendStatus(404); }
   const f = salas.replays.arquivoAudio(m[1]); f ? res.type('audio/webm').set('Cache-Control', 'public, max-age=86400').sendFile(f) : res.sendStatus(404);
 });
 

@@ -292,7 +292,20 @@ img.xz-av{object-fit:cover;background:#1d2a4a}
 
 /* ---------- replay da fala nota 10 ---------- */
 .xz-titulo{font-size:13px;font-weight:800;color:#facc15;margin:2px 0}
-.rp-play{margin:0 0 8px;background:#dc2626;color:#fff;font-size:13px;padding:6px 12px}
+.rp-thumb{position:relative;display:block;width:100%;max-width:440px;aspect-ratio:16/9;margin:6px 0 8px;border-radius:14px;overflow:hidden;cursor:pointer;background:#0a1530;box-shadow:0 4px 14px rgba(0,0,0,.35);outline:0}
+.rp-thumb .rp-img,.rp-fb{position:absolute;inset:0;width:100%;height:100%}
+.rp-thumb .rp-img{object-fit:cover}
+.rp-fb{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:linear-gradient(135deg,#13285a,#0a1530 70%);color:#fff}
+.rp-fb img{width:22%;aspect-ratio:1;border-radius:50%;object-fit:cover;background:#1d4ed8;border:3px solid #facc15}
+.rp-fb b{display:inline-block;background:#dc2626;padding:3px 9px;border-radius:5px;font-size:14px}.rp-fb span{display:block;margin-top:6px;font-weight:800;font-size:15px}
+.rp-go{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:68px;height:68px;border-radius:50%;background:rgba(220,38,38,.92);color:#fff;font-size:30px;display:flex;align-items:center;justify-content:center;padding-left:5px;box-shadow:0 4px 18px rgba(0,0,0,.5);transition:transform .15s,background .15s}
+.rp-thumb:hover .rp-go,.rp-thumb:focus-visible .rp-go{transform:translate(-50%,-50%) scale(1.12);background:#ef4444}
+.rp-dur{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.8);color:#fff;font-size:12px;font-weight:700;padding:2px 6px;border-radius:5px}
+.rp-thumb:has(.rp-img) .rp-dur{display:none} /* a miniatura real já traz a duração */
+.rp-fav{display:block;margin:0 0 8px;background:transparent;border:1px solid rgba(250,204,21,.5);color:#facc15;font:inherit;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;cursor:pointer}
+.rp-fav:hover{background:rgba(250,204,21,.14)}.rp-fav.on{background:#facc15;color:#1a1a1a;border-color:#facc15}
+.xz-post.fixado{background:rgba(250,204,21,.07);box-shadow:inset 3px 0 0 #facc15}
+.xz-fixado{font-size:12px;font-weight:800;color:#facc15;margin-bottom:2px}
 .janela:has(.rp){width:min(980px,94*var(--vw))}
 .rp-tela{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden}
 .rp-tela canvas{position:absolute;inset:0;width:100%;height:100%}

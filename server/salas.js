@@ -26,7 +26,7 @@ import { Pagamentos } from './pagamentos.js';
 import { PACOTES_MOEDAS } from '../shared/loja.js';
 import { gerarDica } from './dicas.js';
 import { revisarFala } from './revisao.js';
-import { Replays } from './replays.js';
+import { Replays, REPLAY } from './replays.js';
 import { ITEM, AV_ITEM, ACAO_ESPERA_MS } from '../shared/loja.js';
 import { postsDaFala, postsDe } from '../shared/xzona.js';
 import * as xz from '../shared/xzona.js'; // xz.postsDaAcao (repercussão das ações), se existir
@@ -836,9 +836,15 @@ class Sala {
   dadosPost(j, p) { const t = p?.tema && TEMA[p.tema]; return { nome: j?.nome || '', partido: PARTIDO[j?.partido]?.sigla || '', num: PARTIDO[j?.partido]?.numero || '', estado: t?.estado, tema: t?.titulo, genero: generoDe(j?.avatar) }; }
   /** Fala nota 10 de humano com fanpage: pede ao autor a gravação (voz + linha do tempo) com token de uso único. */
   pedirReplay(j, p, res, texto) {
-    if (!j || j.bot || !j.uid || res.nota < 10 || !texto) return; const c = this.conta(j); if (!c?.fanpage || this.mgr.contas.banido(c)) return;
-    const token = this.mgr.replays.pedir({ uid: j.uid, nome: j.nome, avatar: j.avatar, partido: j.partido, tema: TEMA[p.tema]?.titulo || '', kind: p.kind, nota: Math.round(res.nota * 10) / 10, texto: texto.slice(0, 1200), textoBruto: texto });
-    this.socketDe(j.id)?.emit('pedirReplay', { token, i: this.i });
+    if (!j || j.bot || !texto) return;
+    const log = m => console.log(`[replay] ${this.code} ${j.nome} (${p.kind}, nota ${res.nota.toFixed(2)}): ${m}`);
+    if (res.nota < REPLAY.notaMin) { if (res.nota >= 9) log(`quase: precisa de ${REPLAY.notaMin}`); return; } // só registra os "quase" para não poluir
+    if (!j.uid) return log('recusado: jogador sem conta');
+    const c = this.conta(j); if (!c?.fanpage) return log('recusado: sem fanpage na Xzona'); if (this.mgr.contas.banido(c)) return log('recusado: conta banida');
+    const sk = this.socketDe(j.id); if (!sk) return log('recusado: jogador desconectado');
+    const meta = { nome: j.nome, avatar: j.avatar, partido: j.partido, tema: TEMA[p.tema]?.titulo || '', kind: p.kind, nota: Math.round(res.nota * 10) / 10 };
+    const token = this.mgr.replays.pedir({ uid: j.uid, ...meta, texto: texto.slice(0, 1200), textoBruto: texto });
+    sk.emit('pedirReplay', { token, i: this.i, meta }); log('pediu a gravação ao jogador'); // meta: o cliente renderiza a miniatura do vídeo
   }
   postarXzona(posts) { posts.forEach((post, k) => setTimeout(() => this.io.to(this.code).emit('xzona', post), 1200 + k * 2600 + Math.random() * 800)); }
   // ---------- dica da assessoria ----------
@@ -960,6 +966,7 @@ export class Salas {
     this.pagamentos = new Pagamentos(raiz, this.contas);
     this.dub = new Dublagem(raiz);
     this.replays = new Replays(raiz);
+    this.replays.aoApagar = () => this.contas.tirarReplays(id => this.replays.existe(id)); this.replays.aoApagar(); // post de replay apagado/expirado some da fanpage
     // vinheta de abertura e falas fixas dos dois jornalistas, geradas aos poucos e guardadas em disco
     this.dub.sintetizar(BOAS_VINDAS, 'locutor', 'alta');
     this.dub.vinheta();
@@ -1034,11 +1041,20 @@ export class Salas {
   }
   /** Upload do replay (rota POST /api/replay/:token): salva e publica o post "🎬 Fala nota 10" na fanpage. */
   receberReplay(token, buf) {
-    const r = this.replays.receber(token, buf); if (r.erro) return r;
+    const r = this.replays.receber(token, buf); if (r.erro) { console.log(`[replay] upload recusado (${Buffer.isBuffer(buf) ? buf.length : 0} bytes): ${r.erro}`); return r; }
     const c = this.contas.contas[r.meta.uid];
-    const post = this.contas.postReplay(c, { texto: r.meta.texto, tema: r.meta.tema, nota: r.meta.nota, replay: r.id }, t => this.replays.atualizarTexto(r.id, t), t => revisarFala(this.dub.chave, t));
-    if (!post) { this.replays.apagar(r.id); return { erro: 'sem fanpage' }; }
-    return { ok: true, id: r.id };
+    const post = this.contas.postReplay(c, { texto: r.meta.texto, tema: r.meta.tema, nota: r.meta.nota, replay: r.id, dur: r.meta.dur, thumb: r.meta.thumb }, t => this.replays.atualizarTexto(r.id, t), t => revisarFala(this.dub.chave, t));
+    if (!post) { this.replays.apagar(r.id); console.log('[replay] upload recusado: sem fanpage'); return { erro: 'sem fanpage' }; }
+    console.log(`[replay] recebido ${r.id} de ${r.meta.nome}: ${buf.length} bytes, ${Math.round(r.meta.dur / 1000)} s, miniatura ${r.meta.thumb ? 'ok' : 'ausente'}`);
+    return { ok: true, id: r.id, conta: this.contas.publico(c) };
+  }
+  /** ⭐ do dono no post do replay: favorita (fixa no topo, nunca expira), troca ou desfavorita. Retorna { ok, fav } ou { erro }. */
+  favoritarReplay(uid, id) {
+    const c = typeof uid === 'string' && Object.hasOwn(this.contas.contas, uid) ? this.contas.contas[uid] : null;
+    if (!c?.fanpage?.posts.some(p => p.replay === id)) return { erro: 'Replay não encontrado.' }; // só o dono: o replay tem de estar na fanpage DELE e com o uid dele (replays.js)
+    const r = this.replays.favoritar(c.uid, id); if (r.erro) return r;
+    this.contas.favReplay(c, r.fav); this.contas.tirarReplays(x => this.replays.existe(x));
+    return { ok: true, fav: r.fav, conta: this.contas.publico(c) };
   }
   novaSala(publica) { let code; do code = gerarCodigo(); while (this.salas.has(code)); const s = new Sala(this, code, publica); this.salas.set(code, s); return s; }
 
@@ -1144,6 +1160,7 @@ export class Salas {
     socket.on('trocarCadastro', (d, cb) => { const c = contaDe({ uid: d?.uid }); const e = this.contas.trocar(c, d?.campo, d?.valor); const j = eu(); if (!e && j) sala().atualizarPerfil(j, {}); resp(cb, e ? { erro: e } : { ok: true, conta: this.contas.publico(c) }); });
     socket.on('criarFanpage',(d, cb) => { const c = contaDe(d); const e = this.contas.criarFanpage(c, d); if (!e) sala()?.emit(); resp(cb, e ? { erro: e } : { ok: true, conta: this.contas.publico(c) }); });
     socket.on('verFanpage', (d, cb) => { const s = sala(), j = s?.porId(d?.id); resp(cb, j && !j.bot ? this.contas.fanpage(s.conta(j)) : null); });
+    socket.on('favReplay', (d, cb) => resp(cb, this.favoritarReplay(d?.uid, String(d?.id || ''))));
     socket.on('equiparDanca', (d, cb) => { const c = contaDe(d); const e = this.contas.equiparDanca(c, d?.item); resp(cb, e ? { erro: e } : { ok: true, conta: this.contas.publico(c) }); });
     // ---- partida: dica, emotes, denúncia ----
     socket.on('pedirDica', async (d, cb) => { const s = sala(), j = eu(); if (!s || !j) return resp(cb, { erro: 'Fora de uma partida.' }); resp(cb, await s.pedirDica(j, d || {})); });

@@ -9,14 +9,19 @@ import { esc } from './util.js';
 
 const TIPO = 'audio/webm;codecs=opus', MAX_MS = 240000, MAX_BYTES = 2.5 * 1024 * 1024;
 
+const W = 960, H = 540;
+
 // ---------- gravação ----------
+const aviso = (...a) => console.warn('[replay]', ...a); // diagnóstico em partida real (F12)
 export class Gravador {
   constructor() { this.g = null; this.ult = null; }
   get gravando() { return !!this.g; }
   /** i = passo da fala; faixa = faixa do microfone (é clonada); nivel() = volume 0..1. Sem mic/suporte: não grava (false). */
   iniciar(i, faixa, nivel) {
     this.parar(); this.ult = null;
-    if (!faixa || faixa.readyState !== 'live' || typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported?.(TIPO)) return false;
+    const falha = m => { if (this.avisoI !== i) { this.avisoI = i; aviso(`fala ${i} não está sendo gravada: ${m}`); } return false; };
+    if (!faixa || faixa.readyState !== 'live') return falha('microfone do chat de voz não liberado/ativo');
+    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported?.(TIPO)) return falha('navegador sem MediaRecorder webm/opus');
     try {
       const copia = faixa.clone(); copia.enabled = true; // grava mesmo com a transmissão do chat de voz mutada
       const rec = new MediaRecorder(new MediaStream([copia]), { mimeType: TIPO, audioBitsPerSecond: 24000 });
@@ -26,26 +31,70 @@ export class Gravador {
       rec.start(1000);
       g.iv = setInterval(() => { const t = performance.now() - g.t0; if (t > MAX_MS) return this.parar(); g.linha.push({ t: Math.round(t), n: Math.round(Math.min(1, Math.max(0, nivel() || 0)) * 100) / 100 }); }, 100);
       this.g = g; return true;
-    } catch { return false; }
+    } catch (e) { return falha(e.message); }
   }
-  /** Texto transcrito/digitado mudou (só o ritmo da legenda vai pro servidor). */
-  texto(t) { const g = this.g; if (g && t !== g.ultT) { g.ultT = t; g.textos.push({ t: Math.round(performance.now() - g.t0), texto: String(t || '') }); } }
+  /** Texto transcrito/digitado mudou: só o RITMO vai pro servidor (instante + nº de letras já ditas), no máx. 1 ponto a cada 200 ms. */
+  texto(t) {
+    const g = this.g, n = String(t || '').length; if (!g || n === g.ultN) return; g.ultN = n;
+    const ms = Math.round(performance.now() - g.t0), u = g.textos.at(-1);
+    if (u && ms - u.t < 200) u.n = n; else g.textos.push({ t: ms, n });
+  }
   parar() { const g = this.g; if (!g) return; this.g = null; clearInterval(g.iv); g.dur = performance.now() - g.t0; try { if (g.rec.state !== 'inactive') g.rec.stop(); else g.copia.stop(); } catch { g.copia.stop(); } this.ult = g; }
-  /** Servidor pediu (nota 10): sobe [u32 tamanho JSON][JSON][webm] com o token de uso único. */
-  async enviar(token, i) {
+  /** Servidor pediu (nota 10): sobe [u32 tamanho JSON][JSON][miniatura jpg][webm] com o token de uso único. meta = dados da cena para a miniatura. */
+  async enviar(token, i, meta) {
     if (this.g?.i === i) this.parar();
-    const g = this.ult; if (!g || g.i !== i) return null; this.ult = null;
+    const g = this.ult, nao = m => (aviso(`fala ${i} tirou nota 10, mas o replay não foi enviado: ${m}`), null);
+    if (!g || g.i !== i) return nao('não havia gravação desta fala (microfone não liberado no início ou gravação interrompida)');
+    this.ult = null;
     await Promise.race([g.fim, new Promise(r => setTimeout(r, 3000))]);
-    if (!g.linha.some(p => p.n > .2)) return null; // falou digitando / mic mudo: sem voz, sem replay
-    const audio = new Blob(g.partes, { type: TIPO }); if (!audio.size || audio.size > MAX_BYTES - 200000) return null;
-    const js = new TextEncoder().encode(JSON.stringify({ linha: g.linha, textos: g.textos, dur: Math.round(g.dur) }));
+    const pico = g.linha.reduce((a, p) => Math.max(a, p.n), 0);
+    if (pico <= .12) return nao(`sem voz na gravação (pico ${pico}): fala digitada ou microfone mudo`);
+    const audio = new Blob(g.partes, { type: TIPO }); if (!audio.size) return nao('gravação vazia');
+    let jpg = null; try { jpg = meta && await gerarThumb({ ...meta, dur: g.dur }); } catch (e) { aviso('miniatura não gerada:', e.message); }
+    if (jpg && jpg.size > 110000) jpg = null;
+    const js = new TextEncoder().encode(JSON.stringify({ linha: g.linha, textos: g.textos, dur: Math.round(g.dur), jpg: jpg?.size || 0 }));
     const cab = new Uint8Array(4); new DataView(cab.buffer).setUint32(0, js.length, true);
-    try { const r = await fetch('/api/replay/' + encodeURIComponent(token), { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: new Blob([cab, js, audio]) }); return r.ok ? r.json() : null; } catch { return null; }
+    const corpo = new Blob(jpg ? [cab, js, jpg, audio] : [cab, js, audio]); if (corpo.size > MAX_BYTES) return nao(`arquivo grande demais (${corpo.size} bytes)`);
+    try {
+      const r = await fetch('/api/replay/' + encodeURIComponent(token), { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: corpo }), d = await r.json().catch(() => null);
+      return r.ok && d?.ok ? d : nao(`servidor recusou (${r.status}${d?.erro ? ': ' + d.erro : ''})`);
+    } catch (e) { return nao('falha de rede: ' + e.message); }
+  }
+}
+
+// ---------- miniatura (1 quadro real da cena recriada, gerado uma vez por quem enviou o replay) ----------
+export const fmtDur = ms => { const s = Math.max(1, Math.round(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+/** Tarja com nome/partido (player e miniatura). */
+function tarja(hud, meta, p) {
+  hud.textBaseline = 'middle'; hud.textAlign = 'left';
+  hud.fillStyle = 'rgba(8,20,48,.92)'; hud.fillRect(0, H - 112, W * .72, 72); hud.fillStyle = p?.cor || '#2563eb'; hud.fillRect(0, H - 112, 12, 72);
+  hud.fillStyle = '#fff'; hud.font = 'bold 30px Arial, sans-serif'; hud.fillText(String(meta.nome || '').toUpperCase(), 30, H - 88);
+  hud.fillStyle = '#facc15'; hud.font = 'bold 18px Arial, sans-serif'; hud.fillText(`${p ? p.sigla + ' ' + p.numero + ' · ' + p.nome : ''}${meta.tema ? ' · ' + meta.tema : ''}`, 30, H - 58);
+}
+/** JPEG 640×360 (Blob): avatar no púlpito em close + tarja + logo Grobe + selo NOTA 10 + duração. Renderer temporário, liberado na hora. */
+export async function gerarThumb(meta) {
+  const { cena: sc, av, cam } = cena(meta), p = PARTIDO[meta.partido], c3 = document.createElement('canvas'); c3.width = W; c3.height = H;
+  const renderer = new THREE.WebGLRenderer({ canvas: c3, antialias: true, preserveDrawingBuffer: true });
+  try {
+    renderer.setPixelRatio(1); renderer.setSize(W, H, false); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    av.gesticula = true; av.setFala(.7); for (let k = 0; k < 20; k++) av.update(.033, 1 + k * .033); // pose de quem está falando
+    cam.position.set(.3, 1.9, 3.4); cam.lookAt(0, 1.62, -.62); renderer.render(sc, cam);
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const hud = c.getContext('2d');
+    hud.drawImage(c3, 0, 0); desenharGrobe(hud, W - 70, 62, 92);
+    hud.fillStyle = '#dc2626'; hud.fillRect(24, 22, 156, 40); hud.fillStyle = '#fff'; hud.font = 'bold 22px Arial, sans-serif'; hud.textBaseline = 'middle'; hud.textAlign = 'left';
+    hud.fillText(`★ NOTA ${String(meta.nota >= 9.95 ? 10 : meta.nota).replace('.', ',')}`, 36, 43);
+    tarja(hud, meta, p);
+    const d = fmtDur(meta.dur || 0); hud.font = 'bold 22px Arial, sans-serif'; const l = hud.measureText(d).width + 20;
+    hud.fillStyle = 'rgba(0,0,0,.8)'; hud.fillRect(W - l - 16, H - 50, l, 34); hud.fillStyle = '#fff'; hud.fillText(d, W - l - 6, H - 32);
+    const m = document.createElement('canvas'); m.width = 640; m.height = 360; m.getContext('2d').drawImage(c, 0, 0, 640, 360);
+    return await new Promise(r => m.toBlob(r, 'image/jpeg', .7));
+  } finally {
+    sc.remove(av.root); sc.traverse(o => { o.geometry?.dispose(); [].concat(o.material || []).forEach(x => x.dispose()); });
+    renderer.dispose(); renderer.forceContextLoss?.();
   }
 }
 
 // ---------- player ----------
-const W = 960, H = 540;
 /** Valor da linha do tempo [[t, v], ...] no instante ms (último ponto ≤ ms). */
 const naLinha = (l, ms) => { let a = 0, b = l.length - 1, r = null; while (a <= b) { const m = (a + b) >> 1; if (l[m][0] <= ms) { r = l[m][1]; a = m + 1; } else b = m - 1; } return r; };
 function quebrar(ctx, txt, larg) { const ls = []; let l = ''; for (const w of txt.split(/\s+/)) { const t = l ? l + ' ' + w : w; if (ctx.measureText(t).width > larg && l) { ls.push(l); l = w; } else l = t; } if (l) ls.push(l); return ls; }
@@ -105,10 +154,7 @@ export async function abrirReplay(id, janela) {
       const fr = leg.length ? (naLinha(leg, ms) ?? 0) : ms / dur, nP = fim ? palavras.length : Math.round(Math.min(1, fr) * palavras.length);
       hud.font = '24px Arial, sans-serif'; const ls = quebrar(hud, palavras.slice(0, nP).join(' '), W - 140).slice(-2);
       if (ls.length) { hud.fillStyle = 'rgba(0,0,0,.62)'; hud.fillRect(50, H - 150 - ls.length * 32, W - 100, ls.length * 32 + 14); hud.fillStyle = '#fff'; ls.forEach((l, k) => hud.fillText(l, 70, H - 150 - ls.length * 32 + 23 + k * 32)); }
-      // tarja: nome + partido
-      hud.fillStyle = 'rgba(8,20,48,.92)'; hud.fillRect(0, H - 112, W * .72, 72); hud.fillStyle = p?.cor || '#2563eb'; hud.fillRect(0, H - 112, 12, 72);
-      hud.fillStyle = '#fff'; hud.font = 'bold 30px Arial, sans-serif'; hud.fillText(String(meta.nome || '').toUpperCase(), 30, H - 88);
-      hud.fillStyle = '#facc15'; hud.font = 'bold 18px Arial, sans-serif'; hud.fillText(`${p ? p.sigla + ' ' + p.numero + ' · ' + p.nome : ''}${meta.tema ? ' · ' + meta.tema : ''}`, 30, H - 58);
+      tarja(hud, meta, p);
       // barra de progresso
       hud.fillStyle = 'rgba(255,255,255,.25)'; hud.fillRect(0, H - 4, W, 4); hud.fillStyle = '#dc2626'; hud.fillRect(0, H - 4, W * Math.min(1, ms / dur), 4);
     };
