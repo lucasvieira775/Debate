@@ -189,7 +189,39 @@ export class Estudio {
     // câmeras de TV decorativas
     this.camerasTV = [[-8.2, -5.8, .9], [8.2, -5.8, -.9]].map(([x, z, ry], i) => this.cameraTV(x, z, ry, i));
     // 3ª câmera: no palco, atrás dos púlpitos, em close na(o) jornalista (teleobjetiva)
-    const cm = this.cameraTV(1.15, 6.7, Math.PI + Math.atan2(1.15, 10), 2, 0); cm.med = true; cm.lente.fov = 8; cm.lente.updateProjectionMatrix(); this.camerasTV.push(cm);
+    // em cima de um praticável de 1,4 m: filma por cima das cabeças dos candidatos (no 1x1 do bloco 2 ninguém tampa o quadro)
+    const prat = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.4, 2.2), mat('#141826', { r: .8 })); prat.position.set(1.15, .7, 6.55); prat.castShadow = prat.receiveShadow = true; s.add(prat);
+    const borda = new THREE.Mesh(new THREE.BoxGeometry(2.22, .05, 2.22), new THREE.MeshBasicMaterial({ color: '#facc15' })); borda.position.set(1.15, 1.38, 6.55); s.add(borda);
+    const cm = this.cameraTV(1.15, 6.7, Math.PI + Math.atan2(1.15, 10), 2, 1.4); cm.med = true; cm.lente.fov = 8; cm.lente.updateProjectionMatrix(); this.camerasTV.push(cm);
+    // 4ª câmera: robótica (controle remoto, sem operador), no chão sob a frente da mesa da jornalista: close em quem fala
+    this.camerasTV.push(this.cameraRemota(CENTRO.x + .85, 0, CENTRO.z + .84));
+  }
+  /** Câmera robótica PTZ (pan/tilt/zoom por controle remoto): base, garfo, corpo, lente e tally. */
+  cameraRemota(x, y, z) {
+    const { geo: G, M } = this.kitCamera(), add = (geo, m, px, py, pz, pai) => { const me = new THREE.Mesh(geo, m); me.position.set(px, py, pz); pai.add(me); return me; };
+    const g = new THREE.Group(); g.position.set(x, y, z); this.scene.add(g);
+    add(new THREE.CylinderGeometry(.13, .15, .06, 20), M.preto, 0, .03, 0, g);
+    const pan = new THREE.Group(); pan.position.y = .06; g.add(pan);
+    add(new THREE.CylinderGeometry(.1, .1, .03, 20), M.cinza, 0, .015, 0, pan);
+    for (const s of [-1, 1]) add(new THREE.BoxGeometry(.03, .2, .08), M.cinza, s * .115, .11, 0, pan); // garfo
+    const tilt = new THREE.Group(); tilt.position.y = .17; pan.add(tilt);
+    add(rb(.19, .16, .24, .03), M.preto, 0, 0, 0, tilt);
+    add(new THREE.CylinderGeometry(.065, .065, .08, 18).rotateX(Math.PI / 2), M.cinza, 0, 0, .15, tilt);
+    add(G.vidro, M.vidro, 0, 0, .191, tilt).scale.setScalar(.6);
+    const tallyMat = new THREE.MeshBasicMaterial({ color: '#ff1a1a', toneMapped: false }); add(G.tallyV, tallyMat, 0, .1, .07, tilt);
+    const lente = new THREE.PerspectiveCamera(8, 16 / 9, .25, 60); lente.position.set(0, 0, .23); lente.rotation.y = Math.PI; tilt.add(lente);
+    return { g, pan, tilt, tallyMat, lente, yaw: 0, pitch: 0, fase: 4.3, ptz: true };
+  }
+  /** Câmera robótica: mira a cabeça de quem fala e fecha no rosto (zoom calculado pela distância; no ar, zoom in lento). */
+  mirarRemota(c, t, fal, k) {
+    const alvo = _v; if (fal) fal.avatar.cabeca.getWorldPosition(alvo).y += .12; else alvo.set(0, 1.5, 2); // origem da cabeça fica no pescoço
+    const p = c.g.position, dx = alvo.x - p.x, dz = alvo.z - p.z, h = Math.hypot(dx, dz), kk = Math.min(1, k * 2.5); // motor: mais rápido que o braço humano
+    c.yaw += (Math.atan2(dx, dz) - c.yaw) * kk; c.pitch += (-Math.atan2(alvo.y - p.y - .23, h) - c.pitch) * kk;
+    c.pan.rotation.y = c.yaw; c.tilt.rotation.x = c.pitch;
+    const noProg = this.prog?.c === c, base = fal ? 2 * Math.atan(.8 / h) * 180 / Math.PI : 20;
+    const fov = noProg && fal ? base * (.78 + .22 * Math.exp(-(t - this.prog.t0) / 4)) : base;
+    if (Math.abs(c.lente.fov - fov) > .01) { c.lente.fov += (fov - c.lente.fov) * (noProg ? 1 : kk); c.lente.updateProjectionMatrix(); }
+    c.tallyMat.color.setHex(noProg ? 0xff1a1a : 0x3a0606);
   }
   // ---------- câmeras de estúdio (pedestal com rodízios) + cinegrafistas ----------
   /** Materiais/geometrias/texturas compartilhados pelas câmeras de TV (criados uma vez). */
@@ -294,7 +326,9 @@ export class Estudio {
     const ag = this.agressao();
     if (ag && !ag.focoCam) { const s = Math.random() < .5; ag.focoCam = ag.perto ? [Math.random() < .5, Math.random() < .5] : [s, !s]; }
     for (const [i, c] of (this.camerasTV || []).entries()) {
-      if (c.med) this.mediadora.cabeca.getWorldPosition(alvo).y += .05;
+      if (c.ptz) { this.mirarRemota(c, t, fal, k); continue; }
+      if (c.med && this.duelo) alvo.set(DUELO.x, 1.45, DUELO.z); // bloco 2: de trás dos púlpitos, enquadra o 1x1
+      else if (c.med) this.mediadora.cabeca.getWorldPosition(alvo).y += .05;
       else if (ag) (ag.focoCam[i] ? ag.atk : ag.alvo).ator.getWorldPosition(alvo).setY(1.5); else if (this.duelo) alvo.set(DUELO.x, 1.5, DUELO.z); else if (fal) fal.ator.getWorldPosition(alvo).setY(1.6); else alvo.set(0, 1.5, -1);
       const p = c.g.position, dx = alvo.x - p.x, dz = alvo.z - p.z;
       const ocioso = c.med || ag || fal || this.duelo ? 0 : Math.sin(t * .23 + c.fase) * .22;
@@ -306,8 +340,8 @@ export class Estudio {
       const close = Math.sin(t * .11 + c.fase * 1.7) > -.25; // quem fala: às vezes close, às vezes plano mais aberto (cada câmera no seu ritmo)
       const noProg = this.prog?.c === c;
       // jornalista: no ar faz um zoom in lento (8° → 5,4°); fora do ar volta a abrir
-      const fov = c.med ? (noProg ? 5.4 + 2.6 * Math.exp(-(t - this.prog.t0) / 5) : 8) : ag ? 17 : fal ? (close ? 12 : 20) : this.duelo ? 16 : 24;
-      if (c.med) { if (Math.abs(c.lente.fov - fov) > .01) { c.lente.fov = noProg ? fov : c.lente.fov + (fov - c.lente.fov) * k; c.lente.updateProjectionMatrix(); } }
+      const fov = c.med ? (this.duelo ? 22 : noProg ? 5.4 + 2.6 * Math.exp(-(t - this.prog.t0) / 5) : 8) : ag ? 17 : fal ? (close ? 12 : 20) : this.duelo ? 16 : 24;
+      if (c.med) { if (Math.abs(c.lente.fov - fov) > .01) { c.lente.fov = noProg && !this.duelo ? fov : c.lente.fov + (fov - c.lente.fov) * k; c.lente.updateProjectionMatrix(); } }
       else if (Math.abs(c.lente.fov - fov) > .05) { c.lente.fov += (fov - c.lente.fov) * k; c.lente.updateProjectionMatrix(); }
       // tally acesa quando esta câmera está no programa das telas laterais ou a câmera do "ar" (direção de TV) está ao lado dela
       const noAr = noProg || (this.modo !== 'fp' && Math.hypot(this.camera.position.x - p.x, this.camera.position.z - p.z) < 4);
@@ -521,7 +555,10 @@ export class Estudio {
   }
 
   /** Troca o(a) jornalista atrás da mesa (sorteado a cada partida). */
-  setMediador(av) {
+  /** Tarja da transmissão: { nome, partido, seg, alerta } de quem está com a palavra, ou null. */
+  setTarjaTV(d) { this.tarjaTV = d; if (this.lat) this.desenharLateral(); }
+  setMediador(av, nome) {
+    if (nome) this.nomeJorn = nome;
     const ant = this.mediadora; this.mesaGrupo.remove(ant.root);
     this.mediadora = new Avatar(av); this.mediadora.root.position.copy(ant.root.position); this.mesaGrupo.add(this.mediadora.root); this.mediadora.root.visible = this.modo !== 'vitrine'; }
   // ===================== PÚLPITO CENTRAL (CONFRONTO DIRETO) =====================
@@ -1377,12 +1414,23 @@ export class Estudio {
       ctx.fillStyle = '#dc2626'; rr(ctx, 30, 30, 210, 66, 14); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = `44px ${FONTE}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('AO VIVO', 135, 65);
     }
     if (R && (R.fase === 'entra' || R.fase === 'sai')) this.vinhetaReplay(ctx, W, H, R.u / REPLAY.trans, R.a.atk.partido);
-    else if (d.modo === 'fala' && !emReplay) {
-      const p = PARTIDO[d.partido] || PARTIDO.PUN;
-      ctx.fillStyle = p.cor; rr(ctx, 40, H - 150, 600, 110, 22); ctx.fill(); // tarjas param em x 860: o canto direito é do logo da emissora
-      ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; this.caber(ctx, d.nome.toUpperCase(), 540, 60); ctx.fillText(d.nome.toUpperCase(), 75, H - 95);
-      ctx.fillStyle = 'rgba(5,12,40,.85)'; rr(ctx, 660, H - 150, 200, 110, 22); ctx.fill();
-      ctx.textAlign = 'center'; ctx.fillStyle = d.alerta ? '#fca5a5' : '#fff'; ctx.font = `72px ${FONTE}`; ctx.fillText(d.tempo || '', 760, H - 92);
+    else if (!emReplay) { // tarja de baixo: quem fala + segundos restantes (ou o nome da jornalista no close dela)
+      const tv = this.tarjaTV, cam = this.prog?.c;
+      ctx.textBaseline = 'middle';
+      if (tv) {
+        const p = PARTIDO[tv.partido] || PARTIDO.PUN;
+        ctx.fillStyle = p.cor; rr(ctx, 40, H - 150, 600, 110, 22); ctx.fill(); // tarjas param em x 860: o canto direito é do logo da emissora
+        ctx.fillStyle = '#facc15'; ctx.fillRect(40, H - 50, 600, 8);
+        ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; this.caber(ctx, tv.nome.toUpperCase(), 540, 58); ctx.fillText(tv.nome.toUpperCase(), 72, H - 104);
+        ctx.font = `bold 26px ${FONTE_TXT}`; ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillText(`${p.sigla} ${p.numero}`, 74, H - 66);
+        ctx.fillStyle = tv.alerta ? '#b91c1c' : 'rgba(5,12,40,.88)'; rr(ctx, 660, H - 150, 200, 110, 22); ctx.fill();
+        ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; this.caber(ctx, tv.seg + 's', 176, 70); ctx.fillText(tv.seg + 's', 760, H - 108);
+        ctx.font = `bold 20px ${FONTE_TXT}`; ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.fillText('RESTANTES', 760, H - 62);
+      } else if (cam?.med && !this.duelo && this.nomeJorn) {
+        ctx.fillStyle = 'rgba(11,31,107,.92)'; rr(ctx, 40, H - 150, 600, 110, 22); ctx.fill(); ctx.fillStyle = '#facc15'; ctx.fillRect(40, H - 50, 600, 8);
+        ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; this.caber(ctx, this.nomeJorn.toUpperCase(), 540, 58); ctx.fillText(this.nomeJorn.toUpperCase(), 72, H - 104);
+        ctx.font = `bold 26px ${FONTE_TXT}`; ctx.fillStyle = '#facc15'; ctx.fillText('MEDIAÇÃO · TV GROBE', 74, H - 66);
+      }
     }
     ctx.save(); desenharGrobe(ctx, W - 95, H - 95, 130); ctx.restore(); // logo da emissora, sempre (inclusive no replay)
     tex.needsUpdate = true;
@@ -1414,18 +1462,20 @@ export class Estudio {
   /** Diretor de TV: escolhe a câmera do programa (as duas telas laterais mostram a mesma). Jornalista falando → close dela;
    *  candidato falando → a câmera de estúdio mais de frente para ele; agressão → quem segue o agressor; ocioso → alterna a cada ~7 s. */
   dirigir(t) {
-    const C = this.camerasTV, P = this.prog ||= { c: C[0], t0: t }, med = C.find(c => c.med), est = C.filter(c => !c.med);
+    const C = this.camerasTV, P = this.prog ||= { c: C[0], t0: t }, med = C.find(c => c.med), ptz = C.find(c => c.ptz), est = C.filter(c => !c.med && !c.ptz);
     if (this.replay?.fase === 'grava') return P.c; // sem cortes durante a gravação do replay
-    const fal = this.falante && this.podios.get(this.falante), ag = this.agressao();
+    const fal = this.falante && this.podios.get(this.falante), ag = this.agressao(), dt = t - P.t0;
+    const alterna = (a, b, ta, tb) => P.c === a ? (dt > ta ? b : a) : P.c === b ? (dt > tb ? a : b) : a; // a fica ta s no ar, b fica tb s
     let quer;
     if (ag) quer = est[ag.focoCam ? Math.max(0, ag.focoCam.indexOf(true)) : 0];
+    else if (this.duelo) quer = fal ? alterna(med, ptz, 7, 6) : med; // bloco 2: plano 1x1 de trás dos púlpitos, cortando p/ o close de quem fala
     else if (this.medFalando && med) quer = med;
-    else if (fal) { // mais de frente: direção câmera→candidato oposta ao olhar dele (que mira o centro do palco)
+    else if (fal) { // close da câmera robótica, intercalado com a câmera de estúdio mais de frente para o candidato
       const pf = fal.ator.getWorldPosition(_v), olhar = CENTRO.clone().sub(pf).setY(0).normalize();
-      quer = est.reduce((a, b) => b.g.position.clone().sub(pf).setY(0).normalize().dot(olhar) > a.g.position.clone().sub(pf).setY(0).normalize().dot(olhar) ? b : a);
-      if (this.duelo && t - P.t0 > 8) quer = est.find(c => c !== P.c) || quer; // confronto: alterna entre os lados
-    } else quer = t - P.t0 > 7 ? C[(C.indexOf(P.c) + 1) % C.length] : P.c;
-    if (quer && quer !== P.c && t - P.t0 > 1.2) { P.c = quer; P.t0 = t; } // segura cada plano pelo menos 1,2 s
+      const frente = est.reduce((a, b) => b.g.position.clone().sub(pf).setY(0).normalize().dot(olhar) > a.g.position.clone().sub(pf).setY(0).normalize().dot(olhar) ? b : a);
+      quer = alterna(ptz, frente, 9, 4);
+    } else { const giro = [...est, med]; quer = dt > 7 || !giro.includes(P.c) ? giro[(giro.indexOf(P.c) + 1) % giro.length] : P.c; }
+    if (quer && quer !== P.c && dt > 1.2) { P.c = quer; P.t0 = t; this.desenharLateral(); } // segura cada plano pelo menos 1,2 s
     return P.c;
   }
   /** As duas telas laterais mostram o programa (câmera escolhida em dirigir) a ~30 quadros/s, renderizado uma vez só.

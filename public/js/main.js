@@ -378,7 +378,7 @@ function onEstado(s) {
   voip.atualizar(E.eu, humanos, s.microfones === 'todos' || (Array.isArray(s.microfones) && s.microfones.includes(E.eu)));
   if (s.fala && s.fala.texto && !minhaVez()) E.textoFala = s.fala.texto;
   // mediadora
-  if (s.jorn && s.jorn.nome !== E.jornAtual) { E.jornAtual = s.jorn.nome; est.setMediador(s.jorn.avatar); }
+  if (s.jorn && s.jorn.nome !== E.jornAtual) { E.jornAtual = s.jorn.nome; est.setMediador(s.jorn.avatar, s.jorn.nome); }
   if (s.code !== E.salaNarr) { E.salaNarr = s.code; E.narrTocada = s.narr?.id; } // ao entrar/reconectar não repete falas antigas
   aoNarrar(s);
   // candidato da IA falando: voz sintetizada com o gênero do avatar
@@ -1355,6 +1355,13 @@ function atualizarLED() {
   const d = ledDoEstado(); if (!d) return; const k = JSON.stringify(d);
   if (k !== E.ledKey) { E.ledKey = k; est.setLED(d); }
 }
+// tarja das minitelas (transmissão): nome de quem fala + segundos restantes
+function atualizarTarjaTV() {
+  const s = E.sala, p = s?.passo, f = s?.fala;
+  const seg = !f ? 0 : f.status === 'ativo' ? Math.max(0, Math.ceil((f.fimEm - agora()) / 1000)) : f.status === 'pronto' ? p.segundos : 0;
+  const d = s?.fase === 'debate' && p?.tipo === 'fala' && f && f.status !== 'avaliado' ? { nome: jog(p.falante)?.nome || '', partido: jog(p.falante)?.partido, seg, alerta: f.status === 'ativo' && seg <= 10 } : null;
+  const k = JSON.stringify(d); if (k !== E.tvKey) { E.tvKey = k; est.setTarjaTV(d); }
+}
 function atualizarTelasPodio() {
   const s = E.sala;
   for (const j of (s ? s.jogadores : bots())) {
@@ -1391,7 +1398,7 @@ function avisoAusencia() {
 function tick() {
   if (E.demo) return;
   const s = E.sala;
-  atualizarTelasPodio(); atualizarLED(); avisoAusencia();
+  atualizarTelasPodio(); atualizarLED(); avisoAusencia(); atualizarTarjaTV();
   // falou no microfone fora da hora (voz detectada com o chat de voz bloqueado): avisa
   E.vozBloq = s?.fase === 'debate' && !micLiberado() && !voip.mudo && voip.nivelLocal() > .25 ? (E.vozBloq || 0) + 1 : 0;
   if (E.vozBloq >= 3) { E.vozBloq = 0; avisoBloqueado(); }
