@@ -24,7 +24,8 @@ export class Replays {
     if (!Buffer.isBuffer(buf) || buf.length < 8 || buf.length > REPLAY.maxBytes) return { erro: 'tamanho inválido' };
     const n = buf.readUInt32LE(0); if (n > 200000 || 4 + n >= buf.length) return { erro: 'formato inválido' };
     let dados; try { dados = JSON.parse(buf.subarray(4, 4 + n).toString('utf8')); } catch { return { erro: 'json inválido' }; }
-    const audio = buf.subarray(4 + n); if (audio.readUInt32BE(0) !== 0x1A45DFA3) return { erro: 'áudio não é webm' };
+    if (!dados || typeof dados !== 'object') return { erro: 'json inválido' };
+    const audio = buf.subarray(4 + n); if (audio.length < 4 || audio.readUInt32BE(0) !== 0x1A45DFA3) return { erro: 'áudio não é webm' };
     const m = tk.meta, num = (v, a, b) => Math.max(a, Math.min(b, Number(v) || 0)), bruto = Math.max(1, (m.textoBruto || '').length);
     const linha = (Array.isArray(dados.linha) ? dados.linha : []).slice(0, REPLAY.maxPontos).map(p => [Math.round(num(p?.t, 0, REPLAY.maxSeg * 1000)), Math.round(num(p?.n, 0, 1) * 100) / 100]);
     // legenda: só o RITMO vem do cliente (fração do texto já dita em cada instante); o texto mostrado é o do servidor

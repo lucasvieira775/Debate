@@ -108,7 +108,7 @@ const mic = new Microfone({
   },
   onErro: m => { E.micErro = m; E.micOn = false; toast(m, 'erro'); renderAcao(true); },
   onStatus: m => { const el = $('#h-micst'); if (el) el.textContent = m; },
-  onExclusivo: v => voip.pausar(v),
+  onExclusivo: v => { if (v) grav.parar(); return voip.pausar(v); }, // celular: a cópia gravada também prende o mic
   faixa: () => voip.stream?.getAudioTracks()[0] || null, // celular: transcreve a mesma faixa que o chat de voz transmite
   onFrase: t => socket.emit('frase', { t }), // celular sem faixa compartilhada: os outros ouvem a frase em voz sintetizada
 });
@@ -292,7 +292,7 @@ socket.on('reacao', d => {
   if (!alguemFalando()) sfx.clique(); // reação é só do jogador: a plateia não reage
 });
 socket.on('expulso', () => { toast('Você foi removido da sala pelo anfitrião.', 'erro'); sairLocal(); });
-socket.on('disconnect', () => toast('Conexão perdida. Tentando reconectar…', 'erro'));
+socket.on('disconnect', () => (grav.parar(), toast('Conexão perdida. Tentando reconectar…', 'erro')));
 est.onOlhar = (y, p) => socket.emit('olhar', { y, p });
 est.onPick = ({ pid, acao }) => {
   if (!E.sala || E.sala.fase !== 'debate') return;
@@ -510,7 +510,7 @@ function entrarSala(code) { if (exigirNome()) socket.emit('entrar', { code, perf
 function partidaRapida() { if (exigirNome()) socket.emit('rapida', { perfil: perfilEnvio() }, tratar); }
 function sairLocal() {
   if (E.micOn) { mic.abortar(); E.micOn = false; }
-  calar(); pararNarracao(); voip.sair(); E.voipTentou = false; limparXzona(); esconderDica(); pararRevelacao();
+  calar(); pararNarracao(); grav.parar(); E.gravI = null; voip.sair(); E.voipTentou = false; limparXzona(); esconderDica(); pararRevelacao();
   E.sala = null; E.eu = null; salvarSessao(null); E.tela = 'menu'; history.replaceState(null, '', '/');
   E.jornAtual = null;
   est.setFalante(null); est.confetes(false); est.festa(null); est.setDuelo(null); est.setPoltronas(null, true); est.setPulpito(false, true); est.setModo('menu'); est.setJogadores(bots(), null); renderUI();
