@@ -1,7 +1,9 @@
-// Tutorial de primeira partida: "vídeo" renderizado no próprio motor 3D (estúdio, avatares, telão, plateia), com narração,
+// Tutorial "como jogar": "vídeo" renderizado no próprio motor 3D (estúdio, avatares, telão, plateia), com narração,
 // legenda, tarjas, selos e cortes de câmera. Roteiro em shared/tutorial.js ({ id, cena, fala, legenda?, dica?, ms? });
 // áudio em /audio/tutorial/<id>.wav (sem ele: voz do navegador + duração estimada). CSS em css/extras.css (.tut*).
-// tocarTutorial(est, { avatar, nome, partido, cena, t, congela }) → Promise ({ pulou }) ao terminar ou pular.
+// Passos de interface (personalizar, Xzona, jogar, sala, HUD da fala, loja): op.tela(nome, dados) (telaTutorial do main.js) desenha a
+// tela REAL do jogo em #ui/#hud e o "monitor" a mostra encolhida num quadro, com zoom e anel de realce no botão da vez.
+// tocarTutorial(est, { avatar, nome, partido, tela, passo, cena, t, congela }) → Promise ({ pulou }) ao terminar ou pular.
 import * as THREE from 'three';
 import { TUTORIAL } from '/shared/tutorial.js';
 import { avatarAleatorio } from '/shared/regras.js';
@@ -44,7 +46,7 @@ export function tocarTutorial(est, op = {}) {
 
   // ---------- overlay de transmissão ----------
   const el = S.el = document.createElement('div'); el.className = 'tut carregando';
-  el.innerHTML = `<div class="tut-borda"></div><div class="tut-fx"></div><div class="tut-balao"></div><div class="tut-selo"></div><div class="tut-dica"></div><div class="tut-leg"></div>
+  el.innerHTML = `<div class="tut-mon"></div><div class="tut-borda"></div><div class="tut-fx"></div><div class="tut-balao"></div><div class="tut-selo"></div><div class="tut-dica"></div><div class="tut-leg"></div>
     <div class="tut-flash"></div><div class="tut-barra cima"></div><div class="tut-barra baixo"></div><div class="tut-fade"></div>
     <div class="tut-bug"><i></i>TUTORIAL<b>DEBATE PRESIDENCIAL</b></div><div class="tut-prog"><i></i></div>
     <button class="tut-pular" title="Pular (Esc)">Pular tutorial ⏭</button>`;
@@ -60,6 +62,32 @@ export function tocarTutorial(est, op = {}) {
   addEventListener('keydown', tecla, true);
   $('.tut-pular').onclick = () => terminar(true);
 
+  // ---------- monitor: a tela real do jogo (#cena + #ui + #hud) encolhida num quadro à direita; à esquerda ficam a tarja e as notas ----------
+  const uiEl = document.querySelector('#ui'), hudEl = document.querySelector('#hud'), CAMADAS = [est.canvas, uiEl, hudEl].filter(Boolean);
+  CAMADAS.slice(1).forEach(e => { e.inert = true; }); // nada da tela de exemplo é clicável/focável
+  const limite = (v, a, b) => Math.max(a, Math.min(b, v));
+  /** Centro do elemento em px da tela do jogo sem o encolhimento. */
+  const centro = a => { const r = a.getBoundingClientRect(), b = est.canvas.getBoundingClientRect(), k = b.width / el.clientWidth || 1; return { x: (r.left + r.width / 2 - b.left) / k, y: (r.top + r.height / 2 - b.top) / k }; };
+  /** Liga/desliga o quadro. sel + zoom > 1: aproxima a tela com o elemento no centro do quadro (suave, salvo no corte). */
+  function monitor(on, sel, zoom = 1, suave = true) {
+    const antes = S.mon; S.mon = on && { sel, zoom, W: el.clientWidth, H: el.clientHeight }; el.classList.toggle('mon', !!on);
+    if (!on) { for (const c of CAMADAS) c.style.transform = c.style.clipPath = c.style.transformOrigin = c.style.transition = ''; return; }
+    const W = el.clientWidth, H = el.clientHeight, s0 = .67, F = { x: W * .31, y: H * .092, w: W * s0, h: H * s0 }, s = s0 * zoom, a = sel && document.querySelector(sel);
+    let tx = F.x, ty = F.y;
+    if (a && zoom > 1) { const c = centro(a); tx = limite(F.x + F.w / 2 - s * c.x, F.x + F.w - s * W, F.x); ty = limite(F.y + F.h / 2 - s * c.y, F.y + F.h - s * H, F.y); }
+    const corte = `inset(${(F.y - ty) / s}px ${W - (F.x + F.w - tx) / s}px ${H - (F.y + F.h - ty) / s}px ${(F.x - tx) / s}px round ${14 / s}px)`;
+    for (const c of CAMADAS) { c.style.transition = suave && antes && !S.congela ? 'transform .8s cubic-bezier(.3,.8,.3,1),clip-path .8s cubic-bezier(.3,.8,.3,1)' : 'none'; c.style.transformOrigin = '0 0'; c.style.transform = `translate(${tx}px,${ty}px) scale(${s})`; c.style.clipPath = corte; }
+    Object.assign($('.tut-mon').style, { left: F.x + 'px', top: F.y + 'px', width: F.w + 'px', height: F.h + 'px' });
+  }
+  /** Tela real do jogo no quadro: nome = personalizar | fanpage | jogar | sala | loja | hud (dados em telaTutorial, main.js); null = some. */
+  const tela = (nome, d = {}) => { S.tela = nome; S.op.tela?.(nome || 'pausa', { jog: S.elenco, eu: VOCE, ...d }); uiEl.style.visibility = nome && nome !== 'hud' ? '' : 'hidden'; hudEl.style.visibility = nome === 'hud' ? '' : 'hidden'; };
+  /** Anel pulsante em volta de um elemento da tela (acompanha o zoom a cada quadro). */
+  const realce = sel => { S.foco?.el.remove(); S.foco = null; if (!sel) return; const a = document.createElement('div'); a.className = 'tut-anel'; a.style.display = 'none'; fx.appendChild(a); S.foco = { sel, el: a }; };
+  const nota = txt => { let l = fx.querySelector('.tut-notas'); if (!l) { l = document.createElement('div'); l.className = 'tut-notas'; fx.appendChild(l); } l.insertAdjacentHTML('beforeend', `<div class="tut-nota">${txt}</div>`); };
+  /** "Vitrine" dentro da cinemática (o modo vitrine do estúdio não chama est.cine): só o seu avatar no palco, na câmera de Personalizar/Loja. */
+  const vitrine = on => { S.vit = on; if (on) { est.setVitrine(S.elenco[2].avatar); est.setLED({ modo: 'titulo', sub: 'AO VIVO' }); } if (est.vitrine) { est.vitrine.root.visible = on; est.vitrine.anim = null; }
+    est.mediadora.root.visible = !on; if (est.poltronasGrupo) est.poltronasGrupo.visible = !on; for (const p of est.podios.values()) p.grupo.visible = p.ator.visible = !on; };
+
   // ---------- elenco e palco ----------
   const pd = id => est.podios.get(id);
   const W = (id, x, y, z) => { const a = pd(id).ator; a.updateWorldMatrix(true, false); return a.localToWorld(V(x, y, z)); };
@@ -74,11 +102,12 @@ export function tocarTutorial(est, op = {}) {
   }
   const palco = ({ duelo = null, falante = null } = {}) => {
     if (S.sujo) { S.sujo = false; montarElenco(); }
+    if (S.vit) vitrine(false);
     est.acoes.limpar(); est.confetes(false); est.setCampeao(null); est.mediadoraFalando(false); est.mediadora.anim = null; est.festa(null);
     if (duelo) { est.setPulpito(true, true); if (duelo === 'indo') { est.setDuelo(null); est.aplicarDuelo(true); } est.setDuelo({ a: VOCE, b: RIVAL, fase: duelo }); }
     else { est.setDuelo(null); est.aplicarDuelo(true); est.setPulpito(false, true); }
     est.setFalante(falante);
-    for (const p of est.podios.values()) { p.avatar.anim = null; p.avatar.root.visible = true; }
+    for (const p of est.podios.values()) { p.avatar.anim = null; p.avatar.root.visible = true; p.avatar.ocultarCabeca(false); }
   };
   /** Balão de grito num rosto da plateia que está no quadro. */
   const gritoVisivel = txt => {
@@ -91,6 +120,12 @@ export function tocarTutorial(est, op = {}) {
     c.position.copy(pos).add(V((Math.random() - .5) * tr, (Math.random() - .5) * tr, 0));
     c.lookAt(alvo.x + Math.sin(t * .7) * .012, alvo.y + Math.sin(t * .9) * .008, alvo.z);
   };
+  const camVitrine = () => cam(V(-.25, 1.75, 3.6), V(.75, 1.45, -.6), 42); // igual à do modo vitrine (estudio.js)
+  const camOlhos = () => cam(W(VOCE, 0, 2.0, .1), W(VOCE, 0, 0, 10.1), 68); // 1ª pessoa no seu púlpito
+  const camGiro = (c, a0 = -.9, a1 = .9) => { const a = lerp(a0, a1, sm(c.k)); cam(V(Math.sin(a) * 10.2, 6.2, -1.5 + Math.cos(a) * 10.2), V(0, 1.0, -2.5), 50); };
+  /** Sua vez de falar vista do púlpito, com a HUD real no quadro (modo: fala | ajuda | dica | papel | emotes). */
+  const hud = (d, sel, zoom, suave) => { tela('hud', d); monitor(true, sel, zoom, suave); };
+  const palcoHud = () => { palco({ falante: VOCE }); pd(VOCE).avatar.ocultarCabeca(true); est.setLED({ modo: 'texto', cabecalho: 'PERGUNTA DA JORNALISTA', texto: 'Como melhorar a mobilidade nas grandes cidades?' }); };
   const ledVivo = (c, f, ms = 80) => { const a = performance.now(); if (a - S.ledT < ms) return; S.ledT = a; est.setLED(f(c)); };
   const falaNivel = id => est.setFalaNivel(id, .35 + Math.random() * .65);
 
@@ -105,17 +140,72 @@ export function tocarTutorial(est, op = {}) {
     estudio: {
       ini: () => { palco({ falante: VOCE }); est.setLED({ modo: 'titulo', sub: 'AO VIVO DO ESTÚDIO' }); },
       ev: [[0, () => est.agitarPlateia(.7, 3000)]],
-      cam: c => { const a = lerp(-.9, .9, sm(c.k)); cam(V(Math.sin(a) * 10.2, 6.2, -1.5 + Math.cos(a) * 10.2), V(0, 1.0, -2.5), 50); },
+      cam: c => camGiro(c),
+    },
+    // ---- telas do menu no quadro ----
+    personalizar: {
+      ini: () => { palco(); vitrine(true); tela('personalizar', { aba: 'aparencia' }); monitor(true); realce('[data-aba="aparencia"]'); nota('👤 Aparência: rosto, cabelo, tipo físico'); },
+      ev: [[.06, () => est.vitrine?.animar('aceno', 2.5)], [.36, () => { tela('personalizar', { aba: 'roupas' }); realce('[data-aba="roupas"]'); nota('👔 Roupas e 👓 acessórios'); som(sfx.clique); }],
+        [.62, () => { tela('personalizar', { aba: 'partido' }); realce('[data-aba="partido"]'); nota('🏛 Partido = seu lado político'); som(sfx.clique); }], [.84, () => realce('.partido.on')]],
+      cam: camVitrine,
+    },
+    xzona: {
+      ini: () => { palco(); est.setLED({ modo: 'titulo', sub: 'EM ALTA NA XZONA' }); tela('fanpage'); monitor(true, '.fp', 1.3, false); realce('.fp-posts .xz-post'); nota('📝 Sua melhor fala do debate vira post'); },
+      ev: [[.36, () => { realce('.fp-pos'); nota('📈 Debateu bem: ganha seguidores'); som(sfx.nota); }], [.72, () => { realce('.fp-neg'); nota('📉 Foi mal: perde seguidores'); som(sfx.alerta); }]],
+      cam: c => camGiro(c, -.5, .1),
+    },
+    jogar: {
+      ini: () => { palco(); est.setLED({ modo: 'titulo', sub: 'ESCOLHA COMO JOGAR' }); tela('jogar'); monitor(true); },
+      ev: [[.14, () => { realce('#c-rapida'); nota('⚡ Partida rápida: sala pública na hora'); som(sfx.clique); }], [.4, () => { realce('#c-criar'); nota('👥 Criar sala e convidar os amigos'); som(sfx.clique); }],
+        [.58, () => { realce('.card-modo:nth-child(3)'); nota('🚪 Entrar com o código da sala'); som(sfx.clique); }], [.76, () => { realce('.card-modo.ia'); nota('🤖 Contra a IA: treine sozinho'); som(sfx.clique); }]],
+      cam: c => camGiro(c, .1, .6),
+    },
+    sala: {
+      ini: () => { palco(); est.setLED({ modo: 'titulo', sub: 'SALA #BR26 · 4/5 CANDIDATOS' }); tela('sala'); monitor(true); realce('.lista-jog'); nota('👥 Até 5 candidatos por sala'); },
+      ev: [[.4, () => { realce('#sl-pronto'); nota('✅ Clique em ESTOU PRONTO'); }], [.56, () => { tela('sala', { pronto: true }); som(sfx.clique); }], [.74, () => { nota('▶ O anfitrião inicia a partida'); som(sfx.vez); }]],
+      cam: c => camGiro(c, .6, 1.1),
     },
     pergunta: {
-      ini: () => { palco({ falante: VOCE }); est.setLED({ modo: 'texto', cabecalho: 'PERGUNTA DA JORNALISTA', texto: 'Como você vai acabar com o trânsito nas grandes cidades?' });
-        est.mediadoraFalando(true); est.telaPodio(VOCE, { titulo: 'SUA VEZ', texto: '01:00', destaque: true }); S.seg = 61; },
-      ev: [[.5, () => { est.mediadoraFalando(false); som(sfx.vez); }]],
-      quadro: c => { if (c.k < .5) return; const s = Math.max(0, 60 - Math.floor(c.u - c.d * .5)); if (s !== S.seg) { S.seg = s; est.telaPodio(VOCE, { titulo: 'TEMPO', texto: `0${s / 60 | 0}:${String(s % 60).padStart(2, '0')}`, destaque: true }); if (s < 60) som(sfx.tique); } },
+      ini: () => { palco({ falante: VOCE }); est.setLED({ modo: 'titulo', sub: 'O DEBATE TEM 3 BLOCOS' }); est.telaPodio(VOCE, { titulo: 'SUA VEZ', texto: '01:00', destaque: true }); S.seg = 61; },
+      ev: [[.05, () => { chip('1 · PROPOSTAS', 'amarelo', 5, 27); som(sfx.clique); }], [.2, () => { chip('2 · CONFRONTO DIRETO', 'amarelo', 5, 39); som(sfx.clique); }], [.36, () => { chip('3 · CONSIDERAÇÕES FINAIS', 'amarelo', 5, 51); som(sfx.clique); }],
+        [.58, () => { fx.innerHTML = ''; est.mediadoraFalando(true); est.setLED({ modo: 'texto', cabecalho: 'PERGUNTA DA JORNALISTA', texto: 'Como você vai acabar com o trânsito nas grandes cidades?' }); }], [.8, () => { est.mediadoraFalando(false); som(sfx.vez); }]],
+      quadro: c => { if (c.k < .8) return; const s = Math.max(0, 60 - Math.floor(c.u - c.d * .8)); if (s !== S.seg) { S.seg = s; est.telaPodio(VOCE, { titulo: 'TEMPO', texto: `0${s / 60 | 0}:${String(s % 60).padStart(2, '0')}`, destaque: true }); if (s < 60) som(sfx.tique); } },
       cam: c => {
-        if (c.k < .5) { const k = sm(c.k / .5); return cam(mix(V(-3.0, 1.6, 1.6), V(-2.4, 1.7, .7), k), V(-.2, 2.75, -5.5), 50); }
-        const k = sm((c.k - .5) / .5); cam(G(VOCE, lerp(1.15, 1.0, k), lerp(2.6, 2.45, k), lerp(-.8, -.6, k)), G(VOCE, -.05, 1.26, .12), 30);
+        if (c.k < .58) return camGiro({ k: c.k / .58 }, -.7, .2);
+        if (c.k < .8) { const k = sm((c.k - .58) / .22); return cam(mix(V(-3.0, 1.6, 1.6), V(-2.4, 1.7, .7), k), V(-.2, 2.75, -5.5), 50); }
+        const k = sm((c.k - .8) / .2); cam(G(VOCE, lerp(1.15, 1.0, k), lerp(2.6, 2.45, k), lerp(-.8, -.6, k)), G(VOCE, -.05, 1.26, .12), 30);
       },
+    },
+    // ---- HUD real da sua vez de falar, vista do púlpito ----
+    falar: {
+      ini: () => { palcoHud(); hud({ modo: 'fala' }, '#h-acao', 1.42, false); realce('#h-mic'); nota('🎙 Clique no microfone e fale'); },
+      ev: [[.5, () => { hud({ modo: 'fala', texto: 'Vou investir 20 bilhões em metrô' }, '#h-acao', 1.42); realce('#h-ta'); nota('⌨ Ou digite a sua fala'); som(sfx.clique); }], [.74, () => { realce('#h-ok'); nota('✔ CONFIRMAR envia (depois não dá para editar)'); som(sfx.vez); }]],
+      cam: camOlhos,
+    },
+    ajuda: {
+      ini: () => { palcoHud(); hud({ modo: 'ajuda' }, '#h-perg', 1.5, false); realce('#h-perg .hud-box'); nota('📋 Painel de perguntas'); },
+      ev: [[.4, () => { realce('.perg-ajuda'); som(sfx.clique); }], [.62, () => { hud({ modo: 'ajuda', aberta: true }, '#h-perg', 1.5); realce('.perg-resumo'); nota('❓ abre a DICA DE FALA do tema'); som(sfx.nota); }]],
+      cam: camOlhos,
+    },
+    dica: {
+      ini: () => { palcoHud(); hud({ modo: 'dica' }, '#h-acao', 1.42, false); realce('#h-dica-b'); nota('📝 Botão Dica: a assessoria ajuda'); },
+      ev: [[.36, () => { hud({ modo: 'papel' }, '#papel-dica', 1.12); realce(null); nota('🎁 1 anotação grátis por debate'); som(sfx.nota); }],
+        [.72, () => { vitrine(true); tela('loja', { aba: 'assessoria' }); monitor(true, null, 1, false); reanima($('.tut-flash')); realce('.loja-grade'); nota('🛒 Loja › Assessoria: compre mais dicas'); som(sfx.clique); }]],
+      cam: () => S.vit ? camVitrine() : camOlhos(),
+    },
+    emotes: {
+      ini: () => { palcoHud(); est.setFalante(RIVAL); S.em = (aba, suave) => hud({ modo: 'emotes', aba, falante: RIVAL, texto: 'O meu governo vai asfaltar até o céu, se for preciso!' }, '#h-botoes', 1.3, suave); S.em('emoji', false); realce('#h-emotes-b'); nota('🍕 Emojis: grátis'); },
+      ev: [[.08, () => est.reacao(DONA, '👏')], [.2, () => est.reacao(RIVAL, '🤡')], [.3, () => { S.em('emote'); realce('#h-emotes .em-abas'); nota('😀 Emotes · 💃 Danças · 😈 Provocações'); som(sfx.clique); }],
+        [.42, () => { S.em('danca'); som(sfx.clique); }], [.52, () => { S.em('provocacao'); som(sfx.clique); }],
+        [.62, () => { S.em('acao'); realce('#h-emotes .em-grade'); nota('💥 Ações: 1× por debate cada · 1 min de espera entre elas'); som(sfx.alerta); }]],
+      quadro: () => falaNivel(RIVAL),
+      cam: camOlhos,
+    },
+    loja: {
+      ini: () => { palco(); vitrine(true); tela('loja', { aba: 'assessoria' }); monitor(true); realce('.loja-saldo'); nota('🪙 Moedas: ganhe a cada debate'); S.lj = (aba, txt) => { tela('loja', { aba }); realce(`[data-aba="${aba}"]`); if (txt) nota(txt); som(sfx.clique); }; },
+      ev: [[.22, () => S.lj('assessoria', '📝 Dicas da assessoria')], [.42, () => S.lj('emote', '😀 Emotes · 💃 Danças · 😈 Provocações')], [.52, () => { S.lj('danca'); est.vitrine?.animar('samba', 4); }],
+        [.64, () => S.lj('acao', '💥 Ações')], [.8, () => S.lj('conjunto', '👓 Acessórios e 🎩 conjuntos')]],
+      cam: camVitrine,
     },
     fala: {
       ini: () => { palco({ falante: VOCE }); S.txt = 'Vou investir 20 bilhões em metrô e criar 500 km de corredores de ônibus até 2030!'; },
@@ -154,7 +244,8 @@ export function tocarTutorial(est, op = {}) {
       ev: [[0, () => som(sfx.martelo)], [.12, () => { fx.querySelector('.tut-cartoes i:nth-child(1)').classList.add('on'); est.telaPodio(BIA, { titulo: 'ADVERTÊNCIAS', texto: '1/3', alerta: true }); som(sfx.alerta); }],
         [.26, () => { fx.querySelector('.tut-cartoes i:nth-child(2)').classList.add('on'); est.telaPodio(BIA, { titulo: 'ADVERTÊNCIAS', texto: '2/3', alerta: true }); som(sfx.alerta); }],
         [.6, () => { fx.querySelector('.tut-cartoes i:nth-child(3)').classList.add('on'); fx.querySelector('.tut-cartoes').classList.add('ban'); est.mediadoraFalando(false); est.telaPodio(BIA, { titulo: 'ADVERTÊNCIAS', texto: '3/3', alerta: true }); som(sfx.fim); }],
-        [.7, () => { pd(BIA).avatar.root.visible = false; S.sujo = true; est.telaPodio(BIA, { titulo: 'BANIDA', texto: 'FORA', alerta: true }); S.tremor = .03; est.gritarPlateia(1, 2500); gritoVisivel('Tchau, querida!'); som(sfx.vaia); }]],
+        [.7, () => { pd(BIA).avatar.root.visible = false; S.sujo = true; est.telaPodio(BIA, { titulo: 'BANIDA', texto: 'FORA', alerta: true }); S.tremor = .03; est.gritarPlateia(1, 2500); gritoVisivel('Tchau, querida!'); som(sfx.vaia); }],
+        [.84, () => chip('⚖ Tudo no botão REGRAS DO DEBATE', 'azul', 5, 64)]],
       cam: c => {
         if (c.k < .58) { const k = sm(c.k / .58); return cam(mix(V(2.1, 1.35, -.2), V(1.6, 1.45, -.8), k), V(-.3, 1.95, -3.45), 38); }
         const k = sm((c.k - .58) / .42); cam(W(BIA, lerp(.7, .25, k), 1.95, lerp(3.1, 2.4, k)), W(BIA, 0, 1.5, 0), 40);
@@ -165,7 +256,7 @@ export function tocarTutorial(est, op = {}) {
       ini: c => { palco(); S.sujo = true; S.bateu = false; S.cc = null; est.setLED({ modo: 'texto', cabecalho: 'AO VIVO', texto: 'O CLIMA ESQUENTOU NO DEBATE!' });
         est.acao({ n: 'tut' + Date.now(), id: RIVAL, alvo: VOCE, item: 'cadeirada' }); if (c.u > .05) est.acoes.adiantar(String(c.u)); },
       impacto: c => { if (S.bateu) return; S.bateu = true; S.tremor = .08; selo(c.b.dica || '🪑 +1 ADVERTÊNCIA'); est.gritarPlateia(1, 3000); gritoVisivel('Cadeirada não é proposta!');
-        chip('⏱ +15 s', 'azul', 12, 30, .5); chip('❤ +SIMPATIA', 'rosa', 12, 42, .8); chip('📉 −VOTOS', 'vermelho', 66, 30, 1.1); },
+        chip('⏱ +15 s', 'azul', 12, 30, .5); chip('❤ +SIMPATIA', 'rosa', 12, 42, .8); chip('📉 −VOTOS', 'vermelho', 66, 30, 1.1); chip('📺 REPLAY NAS TELAS', 'amarelo', 12, 54, 1.4); },
       ev: [[.66, c => CENAS.caldeirada.impacto(c)]],
       cam: c => {
         const a = W(RIVAL, 0, 0, 0), v = W(VOCE, 0, 0, 0), m = a.clone().add(v).multiplyScalar(.5), dir = V(0, 0, -3.2).sub(m).setY(0).normalize().applyAxisAngle(V(0, 1, 0), lerp(.35, -.2, sm(c.k)));
@@ -223,7 +314,8 @@ export function tocarTutorial(est, op = {}) {
   // ---------- linha do tempo ----------
   function entrar(i, off) {
     const b = S.blocos[i], cena = CENAS[b.cena] || CENAS.estudio;
-    S.i = i; S.audio?.pause(); calar(); fx.innerHTML = ''; balao(null); $('.tut-selo').className = 'tut-selo';
+    S.i = i; S.audio?.pause(); calar(); fx.innerHTML = ''; S.foco = null; balao(null); $('.tut-selo').className = 'tut-selo';
+    if (S.mon) monitor(false); if (S.tela) tela(null);
     const c = S.c = { b, d: b.d, u: off, k: off / b.d, dt: 0, cena, ev: (cena.ev || []).map(e => [...e]) };
     S.mudo = off > .05; cena.ini?.(c);
     for (const e of c.ev) if (c.k >= e[0] && off > .05) { e.f = true; e[1](c); }
@@ -248,11 +340,17 @@ export function tocarTutorial(est, op = {}) {
     // karaokê da legenda
     if (S.palavras.length) { const n = Math.floor(Math.min(1, c.u / Math.max(.5, b.d - RESPIRO)) * S.palavras.length * 1.04); if (n !== S.lidas) { S.lidas = n; S.palavras.forEach((w, j) => w.classList.toggle('lido', j < n)); } }
     $('.tut-prog i').style.width = (agora / S.total * 100).toFixed(2) + '%';
+    if (S.mon && (S.mon.W !== el.clientWidth || S.mon.H !== el.clientHeight)) monitor(true, S.mon.sel, S.mon.zoom, false); // janela mudou de tamanho: refaz o quadro
+    // anel de realce acompanha o elemento da tela do jogo (recortado no quadro; some se o elemento sair dele)
+    if (S.foco) { const a = document.querySelector(S.foco.sel), an = S.foco.el, q = $('.tut-mon').getBoundingClientRect(), r = a?.getBoundingClientRect(), o = el.getBoundingClientRect(), k = o.width / el.clientWidth || 1, m = 5;
+      const ok = r && r.width > 0 && r.right > q.left && r.left < q.right && r.bottom > q.top && r.top < q.bottom; an.style.display = ok ? '' : 'none';
+      if (ok) { const x0 = Math.max(r.left, q.left), y0 = Math.max(r.top, q.top), x1 = Math.min(r.right, q.right), y1 = Math.min(r.bottom, q.bottom);
+        Object.assign(an.style, { left: (x0 - o.left) / k - m + 'px', top: (y0 - o.top) / k - m + 'px', width: (x1 - x0) / k + m * 2 + 'px', height: (y1 - y0) / k + m * 2 + 'px' }); } }
     // balão acompanha a cabeça de quem fala
     if (S.bal && pd(S.bal.id)) {
-      const p = W(S.bal.id, 0, 2.45, 0); est.camera.updateMatrixWorld(); p.project(est.camera); const r = est.canvas.getBoundingClientRect();
-      bal.style.left = Math.min(r.right - bal.offsetWidth / 2 - 20, Math.max(r.left + bal.offsetWidth / 2 + 20, r.left + (p.x + 1) / 2 * r.width)) + 'px';
-      bal.style.top = Math.max(innerHeight * .08 + bal.offsetHeight + 34, r.top + (1 - p.y) / 2 * r.height) + 'px'; // nunca sai do quadro (barras de cinema)
+      const p = W(S.bal.id, 0, 2.45, 0); est.camera.updateMatrixWorld(); p.project(est.camera); const Wv = el.clientWidth, Hv = el.clientHeight; // px da tela virtual (celular / resolução fixa: o body é escalado)
+      bal.style.left = Math.min(Wv - bal.offsetWidth / 2 - 20, Math.max(bal.offsetWidth / 2 + 20, (p.x + 1) / 2 * Wv)) + 'px';
+      bal.style.top = Math.max(Hv * .08 + bal.offsetHeight + 34, (1 - p.y) / 2 * Hv) + 'px'; // nunca sai do quadro (barras de cinema)
       bal.style.visibility = p.z < 1 ? '' : 'hidden';
     }
   }
@@ -260,6 +358,7 @@ export function tocarTutorial(est, op = {}) {
     if (S.fim) return; S.fim = true; atual = null;
     S.audio?.pause(); calar(); abafarAmbiente(1); removeEventListener('keydown', tecla, true);
     est.cine = null; est.onAcao = salvo.onAcao;
+    try { monitor(false); tela(null); S.op.tela?.('fim'); if (S.vit) vitrine(false); CAMADAS.slice(1).forEach(e => { e.inert = false; e.style.visibility = ''; }); } catch (e) { console.warn('[tutorial] telas', e); }
     try {
       est.acoes.limpar(); est.confetes(false); est.setCampeao(null); est.setDuelo(null); est.setPulpito(false, true); est.mediadoraFalando(false); est.mediadora.anim = null; est.festa(null);
       est.chaveJog = ''; est.setJogadores(salvo.jog || [], salvo.meuId); est.setFalante(salvo.falante); est.setLED(salvo.led);
@@ -277,7 +376,7 @@ export function tocarTutorial(est, op = {}) {
     const med = await Promise.all(roteiro.map(medir));
     if (S.fim) return;
     let ini = 0; S.blocos = roteiro.map((b, i) => { const x = { ...b, audio: med[i].audio, d: med[i].d + RESPIRO, ini }; ini += x.d; return x; }); S.total = ini;
-    const ib = op.cena ? S.blocos.findIndex(b => b.cena === op.cena) : -1;
+    const ib = S.blocos.findIndex(b => op.passo ? b.id === op.passo : op.cena && b.cena === op.cena);
     S.off0 = Math.min(S.total - .05, Math.max(0, (ib >= 0 ? S.blocos[ib].ini : 0) + (+op.t || 0))); S.congela = !!op.congela; el.classList.toggle('congelado', S.congela); // print: animações CSS já no estado final
     abafarAmbiente(.35);
     montarElenco(); est.setModo('cine'); est.onAcao = (ev, d) => { salvo.onAcao?.(ev, d); if (ev === 'impacto' && S.c?.cena === CENAS.caldeirada) CENAS.caldeirada.impacto(S.c); };

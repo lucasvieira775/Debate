@@ -141,7 +141,7 @@ async function confirmarFala() {
   if (E.micOn) { t = await mic.desligar(); E.micOn = false; } else { const ta = $('#h-ta'); if (ta) t = ta.value; }
   socket.emit('confirmar', { t });
 }
-function focarTexto() { const ta = $('#h-ta'); if (ta && !ta.readOnly) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } }
+function focarTexto() { const ta = $('#h-ta'); if (ta && !ta.readOnly && !E.tutorial) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } }
 
 /** Voz do navegador não dá o volume: a boca do avatar abre e fecha em pulsos do início ao fim da fala. */
 function bocaEmPulsos(id, fn) {
@@ -535,7 +535,52 @@ function ir(tela) { sfx.clique(); E.tela = tela; E.prova = null; $$('.sob-av').f
 /** Tutorial (cinemática 3D, public/js/tutorial.js): toca, marca como visto (também ao pular) e segue para `depois`. */
 function verTutorial(depois) {
   if (E.tutorial) return; E.tutorial = true; sfx.clique(); pararAbertura(); // vídeo sem a música/locutor da entrada por baixo
-  tocarTutorial(est, { avatar: E.perfil.avatar, nome: E.perfil.nome, partido: E.perfil.partido }).then(() => { marcarTutorial(); E.tutorial = false; if (depois) ir(depois); else renderUI(); });
+  tocarTutorial(est, { avatar: E.perfil.avatar, nome: E.perfil.nome, partido: E.perfil.partido, tela: telaTutorial }).then(() => { marcarTutorial(); E.tutorial = false; if (depois) ir(depois); else renderUI(); });
+}
+/** Preços/pacotes da loja (servidor): pede uma vez; a tela da Loja se redesenha quando chega. */
+function pedirLojaInfo(depois) { if (E.lojaInfo || E.lojaPedindo) return; E.lojaPedindo = true; socket.emit('lojaInfo', null, i => { E.lojaPedindo = false; E.lojaInfo = i; if (E.tela === 'loja') renderUI(); depois?.(); }); }
+/** Tutorial: desenha uma tela REAL do jogo em #ui/#hud com dados de exemplo (tutorial.js a mostra num quadro, com realce nos botões).
+ *  O estado do jogador volta ao que era antes de retornar. d.jog = elenco da cinemática, d.eu = id do jogador nele.
+ *  'pausa' tira a tela (entre um passo e outro; a HUD montada é reaproveitada) e 'fim' desmonta a HUD de exemplo. */
+function telaTutorial(nome, d = {}) {
+  const ui = $('#ui'), hud = $('#hud'), nada = () => {};
+  const g = Object.fromEntries(['sala', 'eu', 'conta', 'demo', 'fpEditar', 'persAba', 'prova', 'emAba', 'meuTexto', 'micOn', 'dicasGratis', 'avisoFalaOk', 'pergAjuda', 'pergFechado'].map(k => [k, E[k]]));
+  pedirLojaInfo(() => E.tutorial && E.tutLoja && telaTutorial('loja', E.tutLoja)); E.tutLoja = nome === 'loja' ? d : null; // preços chegaram com a Loja do tutorial na tela: redesenha
+  esconderDica(); ui.innerHTML = ''; hud.hidden = true;
+  if (nome === 'pausa') return;
+  if (nome === 'fim') { hud.innerHTML = ''; E.hudKey = E.pergKey = E.latKey = E.jogKey = ''; est.guiarMic?.(false, false); return; }
+  try {
+    E.demo = true; // tick()/renderUI ficam parados enquanto a tela de exemplo é montada
+    const nv = cargo(E.conta?.xp || 0).n, cands = (d.jog || []).map((j, i) => ({ ...j, bot: false, conectado: true, adv: 0, nivel: j.id === d.eu ? nv : [3, 5, 1, 2, 4][i], pronto: i === 1 || (j.id === d.eu && !!d.pronto), fanpage: i % 2 ? { seguidores: [0, 12400, 0, 388][i] } : null }));
+    if (nome === 'personalizar') { E.persAba = d.aba || 'aparencia'; E.prova = null; telaPersonalizar(ui); }
+    else if (nome === 'jogar') telaJogar(ui);
+    else if (nome === 'fanpage') {
+      E.fpEditar = false; E.conta = { ...E.conta, partidas: 12, vitorias: 4, fanpage: { nome: `${E.perfil.nome || 'Você'} Presidente`, user: E.conta?.cadastro?.user || 'voce', bio: 'Candidato(a) à Presidência. Trabalho, saúde e educação. 🇧🇷', seguidores: 1948, nivel: nv, posts: [
+        { t: Date.now() - 6e5, texto: 'Vou investir 20 bilhões em metrô e criar 500 km de corredores de ônibus até 2030!', tema: 'Mobilidade', nota: 9.4, delta: 560, curtidas: 1420, reposts: 210, respostas: 96 },
+        { t: Date.now() - 9e7, texto: 'Não sei, vamos ver isso aí.', tema: 'Saúde no interior', nota: 2.1, delta: -172, curtidas: 12, reposts: 1, respostas: 30 }] } };
+      telaFanpage(ui);
+    } else if (nome === 'sala') {
+      E.eu = d.eu; E.sala = { code: 'BR26', publica: false, hostId: cands[0].id, fase: 'lobby', cfg: { dur: 'normal', permitirTexto: true, reacoes: true }, jogadores: cands.slice(0, 4),
+        chat: [{ id: cands[1].id, nome: cands[1].nome, texto: 'Boa noite! Bora debater?' }, { id: cands[0].id, nome: cands[0].nome, texto: 'Todo mundo pronto?' }] };
+      telaSala(ui);
+    } else if (nome === 'loja') { telaLoja(ui, { conta: E.conta, info: E.lojaInfo, aba: d.aba || 'assessoria', topo: topo('Loja'), avatar: E.perfil.avatar, comprarPacote: nada, comprarItem: nada, comprarMoedas: nada, equipar: nada, mudarAba: nada, testar: nada, vestir: nada });
+      const g = d.aba === 'assessoria' && $('.loja-grade', ui); if (g) g.scrollTop = g.scrollHeight; // tela baixa corta os cartões: rola até os preços dos pacotes de dica
+    }
+    else if (nome === 'hud') { // bloco 1, pergunta da mediação com tema de SP; sua vez de falar (ou de d.falante). d.modo: fala | ajuda | dica | papel | emotes
+      const t = TEMA.SP1, perg = { de: JORN, mediador: true, para: d.eu, kind: 'proposta', tema: t.key, n: 1, texto: t.pergunta, lado: 0 };
+      E.eu = d.eu; E.micOn = false; E.avisoFalaOk = d.modo !== 'fala'; E.meuTexto = d.texto || ''; E.dicasGratis = d.modo === 'papel' ? 0 : 1; E.pergFechado = false;
+      E.pergAjuda = new Set(d.modo === 'ajuda' && d.aberta ? [perg.n + perg.kind + perg.para] : []); E.pergKey = E.hudKey = E.latKey = '';
+      E.sala = { fase: 'debate', cfg: { permitirTexto: true, reacoes: true }, i: 3, total: 20, jogadores: cands, perguntas: [perg], temaAtual: t.key, microfones: [d.eu],
+        passo: { tipo: 'fala', falante: d.falante || d.eu, etapa: 1, kind: 'proposta', tema: t.key, segundos: 60 }, fala: { status: 'ativo', fimEm: agora() + 42000, texto: d.falante ? d.texto || '' : '' } };
+      hud.hidden = false; renderHUD(); renderAcao(true);
+      $('#h-tempo').innerHTML = `<small>Tempo de resposta</small><b class="ok">${fmtT(42)}</b><small>${esc(jog(E.sala.passo.falante)?.nome || '')}</small>`; // (no jogo quem preenche é o tick)
+      $('#h-dica').style.display = 'none'; $('#h-emotes').hidden = true; $('#h-regras').hidden = true;
+      $('#h-botoes').style.display = d.modo === 'emotes' || d.modo === 'ajuda' ? '' : 'none'; // em telas estreitas a fileira de botões fica por cima da caixa da fala: fora do quadro quando o assunto é a caixa
+      if (d.modo === 'papel') mostrarDica({ titulo: t.titulo, abertura: 'Comece pelo problema: horas perdidas no trânsito todo dia.', pontos: ['Prometa uma meta com número e prazo', 'Diga de onde vem o dinheiro', 'Fale com quem pega ônibus lotado'], palavras: ['metrô', 'corredores de ônibus', 'tarifa'], cuidado: 'Não fuja do tema!' }, '0 dica(s) grátis restante(s)');
+      if (d.modo === 'emotes') { E.emAba = d.aba || 'emoji'; $('#h-emotes-b').onclick(); }
+    }
+  } catch (e) { console.warn('[tutorial] tela', nome, e); }
+  finally { Object.assign(E, g); }
 }
 function renderUI() {
   if (E.demo || E.tutorial) return;
@@ -915,7 +960,7 @@ function setAv(campo, valor) {
   salvar(); est.setVitrine(E.perfil.avatar); sincronizarPerfil(); sfx.clique(); reRenderPers();
 }
 function telaPersonalizar(ui) {
-  vitrinePers(); est.setModo('vitrine');
+  if (!E.tutorial) { vitrinePers(); est.setModo('vitrine'); } // no tutorial a cinemática cuida do 3D
   ui.innerHTML = `<div class="tela vitrine">${topo('Personalizar candidato', E.persVoltar)}
     <div class="pers">
       <div class="pers-esq">
@@ -1197,7 +1242,7 @@ function renderAcao(forcar) {
       ${podeDigitar ? `<textarea id="h-ta" class="${E.micOn ? 'gravando' : ''}" ${E.micOn ? 'readonly' : ''} placeholder="${ativo ? 'Digite sua fala…' : 'Clique no microfone para falar, ou comece a digitar…'}">${esc(E.meuTexto)}</textarea>` : `<div style="flex:1" class="mut">${esc(E.meuTexto) || 'Sua fala aparece aqui…'}</div>`}
       <div style="display:flex;flex-direction:column;gap:6px">
         <button class="btn verde" id="h-ok" ${ativo ? '' : 'disabled'} title="Confirmar (Ctrl+Enter)">✔ CONFIRMAR</button>
-        <button class="btn peq amarelo" id="h-dica-b" title="Consultar a assessoria">📝 Dica ${E.dicasGratis > 0 ? `(${E.dicasGratis} grátis)` : E.conta?.dicasExtra ? `(estoque ${E.conta.dicasExtra})` : '(🪙 40)'}</button>
+        <button class="btn peq amarelo" id="h-dica-b" title="Consultar a assessoria">📝 Dica ${E.dicasGratis > 0 ? `(${E.dicasGratis} grátis)` : E.conta?.dicasExtra ? `(estoque ${E.conta.dicasExtra})` : `(🪙 ${precoDica()})`}</button>
       </div>
     </div>
     <small class="mut">Depois de confirmar, não é possível editar · ${CELULAR ? '' : 'Ctrl+Enter confirma · '}botões vermelho/verde do púlpito também funcionam</small></div>`;
@@ -1226,6 +1271,8 @@ function guiarBotoes() {
 }
 function micUsado(marcar) { if (marcar) E.micUsado = true; try { if (marcar) localStorage.setItem('guiaMicOk', '1'); return E.micUsado || !!localStorage.getItem('guiaMicOk'); } catch { return !!E.micUsado; } }
 // ---------- dica da assessoria ----------
+/** Preço da anotação avulsa (ECONOMIA.pacotes[0] do servidor, via lojaInfo). */
+const precoDica = () => { pedirLojaInfo(() => emJogo() && renderAcao(true)); return E.lojaInfo?.pacotes?.[0]?.preco ?? 400; };
 // a anotação fica aberta enquanto você fala/digita; só é guardada no fim da sua resposta (ou pelo botão "Guardar anotação")
 aoLerDica(on => est.lerDica(on));
 function fimDaResposta() { if (E.dicaFimI === E.sala?.i) return; E.dicaFimI = E.sala?.i; recolherDica(); }
@@ -1244,7 +1291,7 @@ function pedirDica(comprar) {
     E.dicasGratis = r.gratisRestantes; sfx.clique();
     // o candidato folheia as anotações por um instante antes de achar a certa
     const iDica = E.sala?.i; // resposta atrasada / passo já trocado: não abre a anotação (nem desce a câmera) no passo seguinte
-    setTimeout(() => E.sala?.i === iDica && emJogo() && mostrarDica(r.dica, r.origem === 'gratis' ? `${r.gratisRestantes} dica(s) grátis restante(s)` : r.origem === 'compra' ? 'comprada por 🪙 40' : 'do seu estoque'), 300);
+    setTimeout(() => E.sala?.i === iDica && emJogo() && mostrarDica(r.dica, r.origem === 'gratis' ? `${r.gratisRestantes} dica(s) grátis restante(s)` : r.origem === 'compra' ? `comprada por 🪙 ${precoDica()}` : 'do seu estoque'), 300);
     renderAcao(true);
   });
 }
@@ -1510,8 +1557,8 @@ if (demo) setTimeout(() => {
   if (demo === 'loja') { E.perfil.nome ||= 'Demo'; E.lojaAba = new URLSearchParams(location.search).get('aba') || 'moedas'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 100, dicasExtra: 0, itens: [], cadastro: { nome: 'Demo' } }), set() {} }); ir('loja'); return; } // ?demo=loja&aba=assessoria
   if (demo === 'promocao') { const c = CARGOS[(+new URLSearchParams(location.search).get('n') || 2) - 1]; E.perfil.nome ||= 'Demo'; ir('menu'); animarPromocao({ n: c.n, nome: c.nome, recompensa: c.recompensa, bonus: c.bonus }); return; } // ?demo=promocao&n=5
   if (demo === 'carreira') { E.perfil.nome ||= 'Demo'; Object.defineProperty(E, 'conta', { get: () => ({ moedas: 900, itens: [], xp: 8200, cargoMax: 5, cadastro: { nome: 'Demo', user: 'demo' } }), set() {} }); ir('menu'); janelaCarreira(); avisoGanhos({ total: 99, itens: [['Participação', 20], ['Bônus de cargo: Senador (×1,45)', 31]], xp: { ganho: 230, antes: 4, depois: 5, xp: 8200 } }); return; }
-  if (demo === 'tutorial') { const q = new URLSearchParams(location.search); E.perfil.nome ||= 'Demo'; E.tutorial = E.demo = true; $('#ui').innerHTML = ''; // ?demo=tutorial[&cena=votacao][&t=2.5][&congela=1]
-    tocarTutorial(est, { avatar: E.perfil.avatar, nome: E.perfil.nome, partido: E.perfil.partido, cena: q.get('cena'), t: +q.get('t') || 0, congela: !!q.get('congela') }).then(() => { E.tutorial = E.demo = false; ir('menu'); });
+  if (demo === 'tutorial') { const q = new URLSearchParams(location.search); E.perfil.nome ||= 'Demo'; E.tutorial = E.demo = true; $('#ui').innerHTML = ''; // ?demo=tutorial[&passo=dica | &cena=votacao][&t=2.5][&congela=1] (passo = id do roteiro; cena = 1º passo com essa cena)
+    tocarTutorial(est, { avatar: E.perfil.avatar, nome: E.perfil.nome, partido: E.perfil.partido, tela: telaTutorial, passo: q.get('passo'), cena: q.get('cena'), t: +q.get('t') || 0, congela: !!q.get('congela') }).then(() => { E.tutorial = E.demo = false; ir('menu'); });
     if (q.get('pular')) { const p = () => est.cine ? ($('.tut-pular').click(), est.frame()) : requestAnimationFrame(p); p(); } // &pular=1: testa a saída (restaura o estúdio)
     return; }
   if (demo === 'cadastro') { E.conta = { ...E.conta, cadastro: null }; renderUI(); return; }

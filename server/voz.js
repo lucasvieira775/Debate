@@ -52,7 +52,7 @@ function lerChave(raiz) {
 }
 const lerEleven = raiz => process.env.ELEVENLABS_API_KEY?.trim() || lerPares(raiz).find(([k]) => /eleven/i.test(k) && !/voz/i.test(k))?.[1] || null;
 
-function wav(pcm, taxa = 24000) {
+export function wav(pcm, taxa = 24000) {
   const h = Buffer.alloc(44);
   h.write('RIFF', 0); h.writeUInt32LE(36 + pcm.length, 4); h.write('WAVE', 8); h.write('fmt ', 12);
   h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22); h.writeUInt32LE(taxa, 24); h.writeUInt32LE(taxa * 2, 28);
@@ -115,11 +115,11 @@ function cortarCurto(pcm, al) {
 }
 
 export class Dublagem {
-  constructor(raiz) {
+  constructor(raiz, { limparFalas = true } = {}) { // limparFalas: false = uso por script (server/tutorial-audio.js) com o servidor no ar
     this.chave = lerChave(raiz);
     this.pasta = path.join(raiz, 'dados', 'audio'); fs.mkdirSync(this.pasta, { recursive: true });
     // falas dos candidatos da IA são únicas: ficam numa pasta temporária, limpa a cada início
-    this.pastaFalas = path.join(this.pasta, 'falas'); fs.rmSync(this.pastaFalas, { recursive: true, force: true }); fs.mkdirSync(this.pastaFalas, { recursive: true });
+    this.pastaFalas = path.join(this.pasta, 'falas'); if (limparFalas) fs.rmSync(this.pastaFalas, { recursive: true, force: true }); fs.mkdirSync(this.pastaFalas, { recursive: true });
     // filas: 'alta' = vai tocar agora · 'media' = será usado nesta partida · 'baixa' = pré-geração geral
     this.trabalhos = new Map(); this.filas = { alta: [], media: [], baixa: [] }; this.ativos = 0; this.ativosBaixa = 0; this.max = 8;
     this.esfria = {}; this.vez = 0;
