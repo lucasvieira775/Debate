@@ -659,7 +659,7 @@ export class Avatar {
     this._sd = (this._sd || 0) + ((sent ? SENTADO.sobe : 0) - (this._sd || 0)) * ks; this._pulo = (this._pulo || 0) + ((pose?.pulo || 0) - (this._pulo || 0)) * kb;
     this.quadril.position.y = this._pulo - this._sd;
     const vs = this._sd > SENTADO.sobe / 2; for (const o of this.soSentado) o.visible = vs; for (const o of this.soEmPe) o.visible = !vs;
-    const pk = sent ? 1 : this.pernaK;
+    const pk = sent || nomeAnim?.startsWith('vit') ? 1 : this.pernaK; // nocaute (acoes/vitima.js): as pernas compensam o tronco caído e precisam do ângulo inteiro (senão os pés furam o chão)
     for (const pv of this.pernas) { // caminhada ou passos de dança (quadril x, joelho, abertura)
       const s = pv.userData.lado, pp = pose && (s > 0 ? pose.pernaE : pose.pernaD);
       const [hx, jx, hz] = (pp || [Math.sin(ph) * .6 * s * an, Math.max(0, -Math.sin(ph) * s) * .85 * an, 0]).map(v => v * pk);
