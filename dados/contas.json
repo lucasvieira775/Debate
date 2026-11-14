@@ -2782,5 +2782,89 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794617303183
+ },
+ "5e9163c4-adfb-4b57-93c1-32af4fc8a8ef": {
+  "uid": "5e9163c4-adfb-4b57-93c1-32af4fc8a8ef",
+  "nome": "Barbara Batata",
+  "moedas": 10013,
+  "dicasExtra": 0,
+  "partidas": 1,
+  "vitorias": 0,
+  "criadaEm": 1794623070186,
+  "cadastro": {
+   "idade": 30,
+   "nome": "Barbara Batata",
+   "user": "batatinhababis",
+   "criadoEm": 1794623116196
+  },
+  "fanpage": {
+   "nome": "Barbara Batata",
+   "user": "batatinhababis",
+   "bio": "",
+   "seguidores": 113,
+   "criadaEm": 1794623262266,
+   "posts": [
+    {
+     "t": 1794624220792,
+     "texto": "O eleitor tem que votar em mim porque eu estou aqui para mudar a vida desse povo brasileiro sofrido. Eu estou aqui para gerar empregos, para dar saúde e dignidade. Entendeu? Porque eu quero que esse povo brasileiro, que esses pobres todos vivam bem, todos vivam iguais, que não falte nada. O básico que todo brasileiro tem que ter não vai faltar no meu governo. No meu governo, você vai ter segurança",
+     "tema": "",
+     "nota": 7.1,
+     "delta": 110,
+     "curtidas": 397,
+     "reposts": 54,
+     "respostas": 29
+    }
+   ]
+  },
+  "xp": 186,
+  "extrato": [
+   {
+    "t": 1794624220790,
+    "valor": 13,
+    "motivo": "Partida de debate"
+   }
+  ]
+ },
+ "195a4af6-4d25-4724-add4-4cb1c8810c8d": {
+  "uid": "195a4af6-4d25-4724-add4-4cb1c8810c8d",
+  "nome": "Champola Cabeluda",
+  "moedas": 10039,
+  "dicasExtra": 0,
+  "partidas": 1,
+  "vitorias": 1,
+  "criadaEm": 1794623083144,
+  "cadastro": {
+   "idade": 32,
+   "nome": "Champola Cabeluda",
+   "user": "champolacabelud",
+   "criadoEm": 1794623123759
+  },
+  "fanpage": {
+   "nome": "Champola Cabeluda",
+   "user": "champolacabelud",
+   "bio": "",
+   "seguidores": 639,
+   "criadaEm": 1794623173942,
+   "posts": [
+    {
+     "t": 1794624220753,
+     "texto": "Bom, primeiramente, a pessoa vai à igreja e de novo agora vai jogar água em mim com gelo. Olha só, fica difícil debater com uma pessoa desse nível. Eu queria pedir perdão a você, telespectador, que está olhando para mim aí na tela, ali naquela câmera ali, para você ver. Eu queria pedir desculpa pela baixaria que foi este programa aqui hoje. Enquanto ela me agride com um balde de água e com tudo is",
+     "tema": "",
+     "nota": 8,
+     "delta": 598,
+     "curtidas": 712,
+     "reposts": 182,
+     "respostas": 63
+    }
+   ]
+  },
+  "xp": 320,
+  "extrato": [
+   {
+    "t": 1794624220752,
+    "valor": 39,
+    "motivo": "Partida de debate"
+   }
+  ]
  }
 }

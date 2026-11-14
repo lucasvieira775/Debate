@@ -105,6 +105,58 @@
     },
     "partido": "POP",
     "uid": "46721470-b119-492e-aea3-3eb2dcefd070"
+   },
+   "champola cabeluda": {
+    "nome": "Champola Cabeluda",
+    "pts": 1167,
+    "partidas": 1,
+    "vitorias": 1,
+    "avatar": {
+     "genero": "feminino",
+     "pele": "#f6d3b3",
+     "cabelo": "coque",
+     "corCabelo": "#3b2416",
+     "barba": "cheia",
+     "oculos": "folha",
+     "chapeu": "boina",
+     "roupa": "saia",
+     "corRoupa": "#14532d",
+     "corCamisa": "#fde68a",
+     "corGravata": "#15803d",
+     "brinco": false,
+     "broche": false,
+     "extra": "charuto",
+     "corpo": "medio",
+     "expressao": "bravo"
+    },
+    "partido": "FPB",
+    "uid": "195a4af6-4d25-4724-add4-4cb1c8810c8d"
+   },
+   "barbara batata": {
+    "nome": "Barbara Batata",
+    "pts": 635,
+    "partidas": 1,
+    "vitorias": 0,
+    "avatar": {
+     "genero": "feminino",
+     "pele": "#f6d3b3",
+     "cabelo": "longo",
+     "corCabelo": "#3b2416",
+     "barba": "nenhuma",
+     "oculos": "aviador",
+     "chapeu": "coroa",
+     "roupa": "saia",
+     "corRoupa": "#7f1d1d",
+     "corCamisa": "#f9a8d4",
+     "corGravata": "#1d4ed8",
+     "brinco": true,
+     "broche": true,
+     "extra": "corrente",
+     "corpo": "magro",
+     "expressao": "simpatico"
+    },
+    "partido": "MVB",
+    "uid": "5e9163c4-adfb-4b57-93c1-32af4fc8a8ef"
    }
   }
  },
@@ -214,6 +266,58 @@
     },
     "partido": "POP",
     "uid": "46721470-b119-492e-aea3-3eb2dcefd070"
+   },
+   "champola cabeluda": {
+    "nome": "Champola Cabeluda",
+    "pts": 1167,
+    "partidas": 1,
+    "vitorias": 1,
+    "avatar": {
+     "genero": "feminino",
+     "pele": "#f6d3b3",
+     "cabelo": "coque",
+     "corCabelo": "#3b2416",
+     "barba": "cheia",
+     "oculos": "folha",
+     "chapeu": "boina",
+     "roupa": "saia",
+     "corRoupa": "#14532d",
+     "corCamisa": "#fde68a",
+     "corGravata": "#15803d",
+     "brinco": false,
+     "broche": false,
+     "extra": "charuto",
+     "corpo": "medio",
+     "expressao": "bravo"
+    },
+    "partido": "FPB",
+    "uid": "195a4af6-4d25-4724-add4-4cb1c8810c8d"
+   },
+   "barbara batata": {
+    "nome": "Barbara Batata",
+    "pts": 635,
+    "partidas": 1,
+    "vitorias": 0,
+    "avatar": {
+     "genero": "feminino",
+     "pele": "#f6d3b3",
+     "cabelo": "longo",
+     "corCabelo": "#3b2416",
+     "barba": "nenhuma",
+     "oculos": "aviador",
+     "chapeu": "coroa",
+     "roupa": "saia",
+     "corRoupa": "#7f1d1d",
+     "corCamisa": "#f9a8d4",
+     "corGravata": "#1d4ed8",
+     "brinco": true,
+     "broche": true,
+     "extra": "corrente",
+     "corpo": "magro",
+     "expressao": "simpatico"
+    },
+    "partido": "MVB",
+    "uid": "5e9163c4-adfb-4b57-93c1-32af4fc8a8ef"
    }
   }
  }
