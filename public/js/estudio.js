@@ -14,6 +14,7 @@ import { Acoes } from './acoes/coreografia.js';
 import { limparTela } from './acoes/tela.js';
 import { criarMaterialTelao, atualizarTelao, criarMolduraLuz } from './telaoFx.js';
 import { desenharVinheta, desenharOcioso, aquecerVinhetas, tocarSomVinheta, VINHETA_S } from './vinhetas.js';
+import { desenharGrobe } from './grobe.js';
 
 const CENTRO = new THREE.Vector3(0, 0, -3.2);   // mesa da mediadora
 const RAIO = 6.4;                                // raio do arco de púlpitos
@@ -187,6 +188,8 @@ export class Estudio {
     }
     // câmeras de TV decorativas
     this.camerasTV = [[-8.2, -5.8, .9], [8.2, -5.8, -.9]].map(([x, z, ry], i) => this.cameraTV(x, z, ry, i));
+    // 3ª câmera: no palco, atrás dos púlpitos, em close na(o) jornalista (teleobjetiva)
+    const cm = this.cameraTV(1.15, 6.7, Math.PI + Math.atan2(1.15, 10), 2, 0); cm.med = true; cm.lente.fov = 8; cm.lente.updateProjectionMatrix(); this.camerasTV.push(cm);
   }
   // ---------- câmeras de estúdio (pedestal com rodízios) + cinegrafistas ----------
   /** Materiais/geometrias/texturas compartilhados pelas câmeras de TV (criados uma vez). */
@@ -222,10 +225,10 @@ export class Estudio {
     return this.kitCam = { geo, M };
   }
   /** Câmera de estúdio em pedestal (pan/tilt animados) com o(a) cinegrafista nas alças. Devolve as referências para o loop. */
-  cameraTV(x, z, ry, i) {
+  cameraTV(x, z, ry, i, y = -.25) {
     const { geo: G, M } = this.kitCamera();
     const add = (geo, m, px, py, pz, pai) => { const me = new THREE.Mesh(geo, m); me.position.set(px, py, pz); pai.add(me); return me; };
-    const g = new THREE.Group(); g.position.set(x, -.25, z); g.rotation.y = ry; this.scene.add(g); // fora do palco: no piso do estúdio
+    const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; this.scene.add(g); // fora do palco: no piso do estúdio
     // pedestal: 3 pés com rodízios (um para a frente, dois para trás, abrindo espaço para quem opera), saia, coluna e volante
     for (let k = 0; k < 3; k++) {
       const p = new THREE.Group(); p.rotation.y = k * Math.PI * 2 / 3; g.add(p);
@@ -291,18 +294,23 @@ export class Estudio {
     const ag = this.agressao();
     if (ag && !ag.focoCam) { const s = Math.random() < .5; ag.focoCam = ag.perto ? [Math.random() < .5, Math.random() < .5] : [s, !s]; }
     for (const [i, c] of (this.camerasTV || []).entries()) {
-      if (ag) (ag.focoCam[i] ? ag.atk : ag.alvo).ator.getWorldPosition(alvo).setY(1.5); else if (this.duelo) alvo.set(DUELO.x, 1.5, DUELO.z); else if (fal) fal.ator.getWorldPosition(alvo).setY(1.6); else alvo.set(0, 1.5, -1);
+      if (c.med) this.mediadora.cabeca.getWorldPosition(alvo).y += .05;
+      else if (ag) (ag.focoCam[i] ? ag.atk : ag.alvo).ator.getWorldPosition(alvo).setY(1.5); else if (this.duelo) alvo.set(DUELO.x, 1.5, DUELO.z); else if (fal) fal.ator.getWorldPosition(alvo).setY(1.6); else alvo.set(0, 1.5, -1);
       const p = c.g.position, dx = alvo.x - p.x, dz = alvo.z - p.z;
-      const ocioso = ag || fal || this.duelo ? 0 : Math.sin(t * .23 + c.fase) * .22;
+      const ocioso = c.med || ag || fal || this.duelo ? 0 : Math.sin(t * .23 + c.fase) * .22;
       let yaw = Math.atan2(dx, dz) - c.g.rotation.y + ocioso; yaw = Math.atan2(Math.sin(yaw), Math.cos(yaw));
-      c.yaw += (clamp(yaw, -1.1, 1.1) + Math.sin(t * .7 + c.fase) * .012 - c.yaw) * k;
-      c.pitch += (-Math.atan2(alvo.y - 1.36, Math.hypot(dx, dz)) + Math.sin(t * .5 + c.fase) * .01 - c.pitch) * k;
+      const trem = c.med ? .2 : 1; // teleobjetiva: tremida bem menor (no close qualquer balanço aparece)
+      c.yaw += (clamp(yaw, -1.1, 1.1) + Math.sin(t * .7 + c.fase) * .012 * trem - c.yaw) * k;
+      c.pitch += (-Math.atan2(alvo.y - 1.36 - (p.y + .25), Math.hypot(dx, dz)) + Math.sin(t * .5 + c.fase) * .01 * trem - c.pitch) * k;
       c.pan.rotation.y = c.yaw; c.tilt.rotation.x = c.pitch;
       const close = Math.sin(t * .11 + c.fase * 1.7) > -.25; // quem fala: às vezes close, às vezes plano mais aberto (cada câmera no seu ritmo)
-      const fov = ag ? 17 : fal ? (close ? 12 : 20) : this.duelo ? 16 : 24;
-      if (Math.abs(c.lente.fov - fov) > .05) { c.lente.fov += (fov - c.lente.fov) * k; c.lente.updateProjectionMatrix(); }
-      // tally acesa quando a câmera do "ar" (direção de TV) está ao lado desta
-      const noAr = this.modo !== 'fp' && Math.hypot(this.camera.position.x - p.x, this.camera.position.z - p.z) < 4;
+      const noProg = this.prog?.c === c;
+      // jornalista: no ar faz um zoom in lento (8° → 5,4°); fora do ar volta a abrir
+      const fov = c.med ? (noProg ? 5.4 + 2.6 * Math.exp(-(t - this.prog.t0) / 5) : 8) : ag ? 17 : fal ? (close ? 12 : 20) : this.duelo ? 16 : 24;
+      if (c.med) { if (Math.abs(c.lente.fov - fov) > .01) { c.lente.fov = noProg ? fov : c.lente.fov + (fov - c.lente.fov) * k; c.lente.updateProjectionMatrix(); } }
+      else if (Math.abs(c.lente.fov - fov) > .05) { c.lente.fov += (fov - c.lente.fov) * k; c.lente.updateProjectionMatrix(); }
+      // tally acesa quando esta câmera está no programa das telas laterais ou a câmera do "ar" (direção de TV) está ao lado dela
+      const noAr = noProg || (this.modo !== 'fp' && Math.hypot(this.camera.position.x - p.x, this.camera.position.z - p.z) < 4);
       c.tallyMat.color.setHex(noAr ? 0xff1a1a : 0x3a0606); // setHex: sem parse de string a cada frame
       const op = c.op; op.setOlhar(Math.sin(t * .31 + c.fase) * .05, -.05); op.update(dt, t);
       op.torso.rotation.x = .1 + Math.sin(t * 1.9 + c.fase) * .008; // debruçado no visor, respirando
@@ -317,11 +325,11 @@ export class Estudio {
     const moldura = new THREE.Mesh(rb(16.5, 6.5, .3, .12), new THREE.MeshStandardMaterial({ color: '#141a3d', roughness: .4, metalness: .5 }));
     moldura.position.set(0, 4.6, -10.6); s.add(moldura);
     const base = new THREE.Mesh(new THREE.BoxGeometry(16.6, .08, .1), new THREE.MeshBasicMaterial({ color: '#facc15' })); base.position.set(0, 1.33, -10.4); s.add(base);
-    // telas laterais: mostram AO VIVO o que a câmera de estúdio do mesmo lado filma (render target) + tarja por cima (this.lat)
+    // telas laterais: "transmissão ao vivo" — as duas mostram o MESMO programa (corte de diretor entre as câmeras de estúdio, render target único) + tarja por cima (this.lat)
     this.lat = canvasTex(1024, 576); this.telasLat = [];
+    const rt = new THREE.WebGLRenderTarget(640, 360, { samples: 2, type: THREE.HalfFloatType }); // linear/HDR: o tone mapping sai na tela
     for (const sx of [-1, 1]) {
       const g = new THREE.Group(); g.position.set(sx * 11.3, 3.4, -6.2); g.rotation.y = -sx * .75; s.add(g);
-      const rt = new THREE.WebGLRenderTarget(640, 360, { samples: 2, type: THREE.HalfFloatType }); // linear/HDR: o tone mapping sai na tela
       const mt = new THREE.MeshBasicMaterial({ map: rt.texture, color: '#d8d8d8' }), mix = { map2: { value: rt.texture }, mixK: { value: 0 } };
       mt.onBeforeCompile = sh => { Object.assign(sh.uniforms, mix); sh.fragmentShader = 'uniform sampler2D map2; uniform float mixK;\n' + sh.fragmentShader.replace('#include <map_fragment>', 'diffuseColor *= mix(texture2D(map, vMapUv), texture2D(map2, vMapUv), mixK);'); }; // replay: funde 2 quadros (câmera lenta sem tranco)
       const m = new THREE.Mesh(new THREE.PlaneGeometry(4, 2.25), mt); m.userData.mix = mix; g.add(m);
@@ -1371,11 +1379,12 @@ export class Estudio {
     if (R && (R.fase === 'entra' || R.fase === 'sai')) this.vinhetaReplay(ctx, W, H, R.u / REPLAY.trans, R.a.atk.partido);
     else if (d.modo === 'fala' && !emReplay) {
       const p = PARTIDO[d.partido] || PARTIDO.PUN;
-      ctx.fillStyle = p.cor; rr(ctx, 40, H - 150, 700, 110, 22); ctx.fill();
-      ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; this.caber(ctx, d.nome.toUpperCase(), 640, 60); ctx.fillText(d.nome.toUpperCase(), 75, H - 95);
-      ctx.fillStyle = 'rgba(5,12,40,.85)'; rr(ctx, 760, H - 150, 224, 110, 22); ctx.fill();
-      ctx.textAlign = 'center'; ctx.fillStyle = d.alerta ? '#fca5a5' : '#fff'; ctx.font = `76px ${FONTE}`; ctx.fillText(d.tempo || '', 872, H - 92);
+      ctx.fillStyle = p.cor; rr(ctx, 40, H - 150, 600, 110, 22); ctx.fill(); // tarjas param em x 860: o canto direito é do logo da emissora
+      ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; this.caber(ctx, d.nome.toUpperCase(), 540, 60); ctx.fillText(d.nome.toUpperCase(), 75, H - 95);
+      ctx.fillStyle = 'rgba(5,12,40,.85)'; rr(ctx, 660, H - 150, 200, 110, 22); ctx.fill();
+      ctx.textAlign = 'center'; ctx.fillStyle = d.alerta ? '#fca5a5' : '#fff'; ctx.font = `72px ${FONTE}`; ctx.fillText(d.tempo || '', 760, H - 92);
     }
+    ctx.save(); desenharGrobe(ctx, W - 95, H - 95, 130); ctx.restore(); // logo da emissora, sempre (inclusive no replay)
     tex.needsUpdate = true;
   }
   /** Tarja do replay: selo REPLAY (ponto piscando) + CÂMERA LENTA e faixa "CADEIRADA! fulano → ciclano". */
@@ -1386,11 +1395,11 @@ export class Estudio {
     if (Math.floor(this.t * 2) % 2 === 0) { ctx.beginPath(); ctx.arc(58, 63, 11, 0, 7); ctx.fill(); }
     ctx.fillStyle = 'rgba(5,12,40,.82)'; rr(ctx, 292, 38, 300, 50, 12); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = `32px ${FONTE}`; ctx.fillText('CÂMERA LENTA', 442, 64);
     const a = R.a, p = a.atk.partido || PARTIDO.PUN, txt = `${(a.it.nome || '').toUpperCase()}!`;
-    ctx.fillStyle = p.cor; rr(ctx, 40, H - 150, W - 80, 110, 22); ctx.fill();
-    ctx.fillStyle = '#facc15'; ctx.fillRect(40, H - 50, W - 80, 10);
+    ctx.fillStyle = p.cor; rr(ctx, 40, H - 150, W - 244, 110, 22); ctx.fill(); // até x 820: o canto direito é do logo da emissora
+    ctx.fillStyle = '#facc15'; ctx.fillRect(40, H - 50, W - 244, 10);
     ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = `64px ${FONTE}`; ctx.fillText(txt, 75, H - 98);
     const quem = `${a.atk.nome || ''} → ${a.alvo.nome || ''}`.toUpperCase(), x0 = 95 + ctx.measureText(txt).width;
-    ctx.font = `38px ${FONTE}`; this.caber(ctx, quem, W - 120 - x0, 38); ctx.fillText(quem, x0, H - 94);
+    ctx.font = `38px ${FONTE}`; this.caber(ctx, quem, W - 234 - x0, 38); ctx.fillText(quem, x0, H - 94);
   }
   /** Vinheta rápida de entrada/saída do replay (u 0..1): faixas diagonais varrem a tela; no meio cobrem tudo (o corte acontece ali). */
   vinhetaReplay(ctx, W, H, u, partido) {
@@ -1402,29 +1411,45 @@ export class Estudio {
     ctx.save(); ctx.translate(cx, H / 2); ctx.rotate(-.12);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `130px ${FONTE}`; ctx.lineWidth = 14; ctx.lineJoin = 'round'; ctx.strokeStyle = '#0b1f6b'; ctx.strokeText('REPLAY', 0, 0); ctx.fillStyle = '#fff'; ctx.fillText('REPLAY', 0, 0); ctx.restore();
   }
-  /** Cada tela lateral mostra o que a câmera de estúdio do mesmo lado está gravando (~15 quadros/s, uma tela por quadro).
-   *  Numa agressão (REPLAY.itens) as duas câmeras gravam; depois do impacto: vinheta → replay em câmera lenta → vinheta → ao vivo. */
+  /** Diretor de TV: escolhe a câmera do programa (as duas telas laterais mostram a mesma). Jornalista falando → close dela;
+   *  candidato falando → a câmera de estúdio mais de frente para ele; agressão → quem segue o agressor; ocioso → alterna a cada ~7 s. */
+  dirigir(t) {
+    const C = this.camerasTV, P = this.prog ||= { c: C[0], t0: t }, med = C.find(c => c.med), est = C.filter(c => !c.med);
+    if (this.replay?.fase === 'grava') return P.c; // sem cortes durante a gravação do replay
+    const fal = this.falante && this.podios.get(this.falante), ag = this.agressao();
+    let quer;
+    if (ag) quer = est[ag.focoCam ? Math.max(0, ag.focoCam.indexOf(true)) : 0];
+    else if (this.medFalando && med) quer = med;
+    else if (fal) { // mais de frente: direção câmera→candidato oposta ao olhar dele (que mira o centro do palco)
+      const pf = fal.ator.getWorldPosition(_v), olhar = CENTRO.clone().sub(pf).setY(0).normalize();
+      quer = est.reduce((a, b) => b.g.position.clone().sub(pf).setY(0).normalize().dot(olhar) > a.g.position.clone().sub(pf).setY(0).normalize().dot(olhar) ? b : a);
+      if (this.duelo && t - P.t0 > 8) quer = est.find(c => c !== P.c) || quer; // confronto: alterna entre os lados
+    } else quer = t - P.t0 > 7 ? C[(C.indexOf(P.c) + 1) % C.length] : P.c;
+    if (quer && quer !== P.c && t - P.t0 > 1.2) { P.c = quer; P.t0 = t; } // segura cada plano pelo menos 1,2 s
+    return P.c;
+  }
+  /** As duas telas laterais mostram o programa (câmera escolhida em dirigir) a ~30 quadros/s, renderizado uma vez só.
+   *  Numa agressão (REPLAY.itens) o programa é gravado; depois do impacto: vinheta → replay em câmera lenta → vinheta → ao vivo. */
   renderTelasLat(t) {
     const T = this.telasLat, C = this.camerasTV; if (!T || !C || this.modo === 'vitrine') return;
-    const R = this.atualizarReplay(t);
-    if (R?.fase === 'grava') { // as duas telas a REPLAY.fps, direto nos quadros do buffer (a tela ao vivo mostra o último)
+    const R = this.atualizarReplay(t), cam = this.dirigir(t)?.lente; if (!cam) return;
+    if (R?.fase === 'grava') { // a REPLAY.fps, direto num quadro do buffer (as duas telas mostram o último)
       if (t - (this.ultLat || 0) < 1 / REPLAY.fps) return; this.ultLat = t;
-      const k = R.n % R.max; R.n++;
-      T.forEach((tela, i) => { const q = R.quadros[i][k]; this.filmar(tela, C[i].lente, q); tela.m.material.map = tela.m.userData.mix.map2.value = q.texture; });
+      const q = R.quadros[R.n % R.max]; R.n++;
+      this.filmar(cam, q); for (const tela of T) tela.m.material.map = tela.m.userData.mix.map2.value = q.texture;
       return;
     }
     if (R && !this.aoVivoLat(R)) return; // reprisando: as telas mostram os quadros gravados (atualizarReplay)
     if (t - (this.ultLat || 0) < 1 / 30) return; this.ultLat = t;
-    const i = this.ladoLat = 1 - (this.ladoLat || 0), cam = C[i]?.lente; if (!cam) return;
-    this.filmar(T[i], cam, T[i].rt);
+    this.filmar(cam, T[0].rt);
   }
   /** As telas mostram o ao vivo: esperando o replay, 1ª metade da vinheta de entrada e 2ª metade da de saída. */
   aoVivoLat(R) { const meio = R.u > REPLAY.trans / 2; return R.fase === 'espera' || (R.fase === 'entra' && !meio) || (R.fase === 'sai' && meio); }
   /** Renderiza a cena pela lente de uma câmera de estúdio num render target. */
-  filmar(tela, cam, rt) {
+  filmar(cam, rt) {
     const eu = this.podios.get(this.meuId)?.avatar, oculta = eu && !eu.cabeca.visible;
     if (oculta) eu.ocultarCabeca(false); // a câmera de estúdio vê você inteiro(a), mesmo na 1ª pessoa
-    const vis = this.telasLat.map(x => x.m.visible); tela.m.visible = false; // sem realimentação: a tela não aparece no próprio vídeo
+    const vis = this.telasLat.map(x => x.m.visible); this.telasLat.forEach(x => x.m.visible = false); // sem realimentação: nenhuma tela aparece no próprio vídeo
     this.renderer.setRenderTarget(rt); this.renderer.render(this.scene, cam); this.renderer.setRenderTarget(null);
     this.telasLat.forEach((x, j) => x.m.visible = vis[j]); if (oculta) eu.ocultarCabeca(true);
   }
@@ -1437,7 +1462,7 @@ export class Estudio {
       const a = this.agressao(); if (!a || a === this.ultAgressao) return null;
       this.ultAgressao = a;
       const max = Math.ceil((REPLAY.antes + REPLAY.depois) * REPLAY.fps) + 2;
-      this.quadrosReplay ||= this.telasLat.map(() => Array.from({ length: max }, () => new THREE.WebGLRenderTarget(REPLAY.W, REPLAY.H, { type: THREE.HalfFloatType }))); // alocados uma vez (~30 MB)
+      this.quadrosReplay ||= Array.from({ length: max }, () => new THREE.WebGLRenderTarget(REPLAY.W, REPLAY.H, { type: THREE.HalfFloatType })); // um buffer só (o programa), alocado uma vez (~15 MB)
       R = this.replay = { fase: 'grava', a, n: 0, max, quadros: this.quadrosReplay, nImp: -1, t0: t, u: 0 };
     }
     const T = this.telasLat, F = REPLAY.fps;
@@ -1464,7 +1489,7 @@ export class Estudio {
       const mix = tela.m.userData.mix, mt = tela.m.material;
       if (ao) { mt.map = mix.map2.value = tela.rt.texture; mix.mixK.value = 0; return; }
       const j = Math.min(Math.floor(pos), R.seq.length - 1), j2 = Math.min(j + 1, R.seq.length - 1);
-      mt.map = R.quadros[i][R.seq[j]].texture; mix.map2.value = R.quadros[i][R.seq[j2]].texture; mix.mixK.value = pos - j;
+      mt.map = R.quadros[R.seq[j]].texture; mix.map2.value = R.quadros[R.seq[j2]].texture; mix.mixK.value = pos - j;
     });
     if (R.fase !== 'toca' || t - (R.tDes || 0) > .25) { R.tDes = t; this.desenharLateral(); } // tarja: a cada quadro só nas vinhetas
     return R;
