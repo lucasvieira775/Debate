@@ -4,9 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-// porConta: máx. de replays NÃO favoritos por conta (o favorito fica fora da conta e nunca expira). notaMin: 9,95 aparece "10.0" na tela;
+// porConta: máx. de replays por conta, contando o favorito (que nunca é apagado nem expira). notaMin: 9,95 aparece "10.0" na tela;
 // para testar sem tirar 10 de verdade: variável de ambiente REPLAY_NOTA_MIN (ex.: 5).
-export const REPLAY = { maxBytes: 2.5 * 1024 * 1024, porConta: 5, dias: 90, tokenMs: 10 * 60000, maxPontos: 2400, maxSeg: 240, maxThumb: 120000, notaMin: Math.min(10, Number(process.env.REPLAY_NOTA_MIN) || 9.95) };
+export const REPLAY = { maxBytes: 2.5 * 1024 * 1024, porConta: 5, dias: 90, tokenMs: 10 * 60000, maxPontos: 2400, maxSeg: 240, maxThumb: 120000, notaMin: Math.min(10, /^\d+([.,]\d+)?$/.test(process.env.REPLAY_NOTA_MIN || '') ? Number(process.env.REPLAY_NOTA_MIN.replace(',', '.')) : 9.95) }; // aceita 0
 const hex = n => crypto.randomBytes(n).toString('hex');
 const ID_OK = /^[a-f0-9]{16}$/;
 export const idValido = id => ID_OK.test(String(id || ''));
@@ -54,7 +54,7 @@ export class Replays {
   existe(id) { return !!this.arquivo(id, 'json'); }
   apagar(id) { for (const ext of ['.webm', '.json', '.jpg']) try { fs.unlinkSync(path.join(this.dir, id + ext)); } catch { /* já foi */ } }
   todos() { try { return fs.readdirSync(this.dir).filter(f => f.endsWith('.json')).map(f => this.lerMeta(f.slice(0, -5))).filter(Boolean); } catch { return []; } }
-  /** Favorito do dono (1 por conta): fica fixado, não conta nos REPLAY.porConta e nunca é apagado pelas limpezas. Clicar no favorito desfavorita.
+  /** Favorito do dono (1 por conta): fica fixado, conta nos REPLAY.porConta mas nunca é apagado pelas limpezas. Clicar no favorito desfavorita.
    *  Retorna { fav: id|null } ou { erro }. */
   favoritar(uid, id) {
     const m = this.lerMeta(id); if (!m || !uid || m.uid !== uid) return { erro: 'Replay não encontrado.' };
@@ -65,9 +65,10 @@ export class Replays {
     console.log(`[replay] ${novo ? 'favoritou' : 'desfavoritou'} ${id}${fora.length ? ' · apagou ' + fora.join(',') : ''}`);
     return { fav: novo ? id : null };
   }
-  /** Máx. REPLAY.porConta NÃO favoritos por conta (apaga os mais antigos). Retorna os ids apagados. */
+  /** Máx. REPLAY.porConta replays por conta, CONTANDO o favorito (que nunca é o apagado): saem os NÃO favoritos mais antigos. Retorna os ids apagados. */
   limparConta(uid) {
-    const fora = this.todos().filter(m => m.uid === uid && !m.fav).sort((a, b) => b.data - a.data).slice(REPLAY.porConta).map(m => m.id);
+    const meus = this.todos().filter(m => m.uid === uid), nFav = meus.filter(m => m.fav).length;
+    const fora = meus.filter(m => !m.fav).sort((a, b) => b.data - a.data).slice(Math.max(0, REPLAY.porConta - nFav)).map(m => m.id);
     fora.forEach(id => this.apagar(id)); if (fora.length) this.aoApagar?.(fora);
     return fora;
   }
