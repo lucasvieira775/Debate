@@ -317,7 +317,7 @@ export class Estudio {
     const D = 180 / Math.PI, fren = fal && this.camFrente(fal), agc = ag && this.camAgressao(ag);
     for (const [i, c] of (this.camerasTV || []).entries()) {
       let close = false, sep = 0;
-      if (c.med && this.duelo) alvo.set(DUELO.x, 1.7, DUELO.z); // bloco 2: da plateia, por cima dos púlpitos, enquadra o 1x1
+      if (c.med && this.duelo) alvo.set(DUELO.x, 1.85, DUELO.z); // bloco 2: da plateia, por cima dos púlpitos, enquadra o 1x1
       else if (c.med) this.mediadora.cabeca.getWorldPosition(alvo).y += .05;
       else if (c === agc) { ag.atk.ator.getWorldPosition(alvo); ag.alvo.ator.getWorldPosition(_v2); sep = Math.hypot(alvo.x - _v2.x, alvo.z - _v2.z); alvo.lerp(_v2, .5).setY(1.3); } // golpe: atacante + vítima
       else if (ag) (ag.focoCam[i] ? ag.atk : ag.alvo).ator.getWorldPosition(alvo).setY(1.5);
@@ -333,7 +333,7 @@ export class Estudio {
       const noProg = this.prog?.c === c;
       let fov, direto = false;
       // jornalista (longe, na plateia): no ar faz um zoom in lento (6° → 4°); fora do ar volta a abrir
-      if (c.med) { fov = this.duelo ? 15 : noProg ? 4 + 2 * Math.exp(-(t - this.prog.t0) / 5) : 6; direto = noProg && !this.duelo; }
+      if (c.med) { fov = this.duelo ? 13.5 : noProg ? 4 + 2 * Math.exp(-(t - this.prog.t0) / 5) : 6; direto = noProg && !this.duelo; }
       else if (c === agc) { const u = clamp((t - ag.tCam) / 2.2, 0, 1), fim = 2 * Math.atan(Math.max((sep / 2 + 1) / 1.78, 1.2) / hd) * D; fov = ag.fov0 + (fim - ag.fov0) * u * u * (3 - 2 * u); direto = true; } // zoom-out lento até caber o golpe
       else if (ag) fov = 17;
       else if (close) { const base = 2 * Math.atan(.8 / hd) * D; fov = noProg ? base * (.78 + .22 * Math.exp(-(t - this.prog.t0) / 4)) : base; direto = noProg; } // no ar: zoom in lento
@@ -1496,7 +1496,9 @@ export class Estudio {
     const eu = this.podios.get(this.meuId)?.avatar, oculta = eu && !eu.cabeca.visible;
     if (oculta) eu.ocultarCabeca(false); // a câmera de estúdio vê você inteiro(a), mesmo na 1ª pessoa
     const vis = this.telasLat.map(x => x.m.visible); this.telasLat.forEach(x => x.m.visible = false); // sem realimentação: nenhuma tela aparece no próprio vídeo
+    const ets = [...this.podios.values()].map(p => [p.etiqueta, p.etiqueta.visible]); ets.forEach(([e]) => e.visible = false); // etiquetas de nome são só do jogo, não vão ao ar
     this.renderer.setRenderTarget(rt); this.renderer.render(this.scene, cam); this.renderer.setRenderTarget(null);
+    ets.forEach(([e, v]) => e.visible = v);
     this.telasLat.forEach((x, j) => x.m.visible = vis[j]); if (oculta) eu.ocultarCabeca(true);
   }
   /** Agressão em andamento (não demo) que merece replay, ou null. */
