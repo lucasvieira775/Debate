@@ -215,13 +215,25 @@ const VICIOS = ['=ne', 'tipo assim', '=ahn', '=hum', '=eh', 'sei la', '=hmm'];
 const ATAQUE_KW = ['mentir', 'mentiroso', 'fracass', 'corrupt', 'incompeten', 'vergonh', 'escandalo', 'hipocri', 'falso', 'farsa', 'enganar', 'irresponsav', 'desastre', 'roubo', '=ladrao', 'demagog', 'populis', 'extremis', 'covard', 'omiss'];
 const MENCAO_GENERICA = ['adversari', 'oponente', '=candidato', '=candidata', 'o senhor', 'a senhora'];
 
-/** Dica de fala do "?": divide os "Pontos:" do resumo entre os candidatos que receberam o mesmo tema (lado 0 = pares, lado 1 = ímpares). */
-export const dicaLado = (res, lado = 0) => {
-  const m = /^(.*?)\s*Pontos:\s*(.+?)\.?\s*$/.exec(res || ''); if (!m) return res || '';
-  const ps = m[2].split(/,\s*(?![^(]*\))/), u = ps.pop(), k = u.lastIndexOf(' e '); ps.push(...(k > 0 && !/^\p{Lu}/u.test(u.slice(k + 3)) ? [u.slice(0, k), u.slice(k + 3)] : [u]));
-  if (ps.length < 2) return res;
-  const meus = ps.filter((_, i) => i % 2 === lado % 2), lst = meus.length > 1 ? meus.slice(0, -1).join(', ') + ' e ' + meus.at(-1) : meus[0];
-  return `${m[1]} Foque em: ${lst}.`;
+/** Separa o resumo do tema ("Contexto. Pontos: a, b, c e d.") em { ctx, pontos }. */
+export const pontosTema = res => {
+  const m = /^(.*?)\s*Pontos:\s*(.+?)\.?\s*$/.exec(res || ''); if (!m) return { ctx: res || '', pontos: [] };
+  const ps = m[2].split(/,\s*(?![^(]*\))/), u = ps.pop(), k = [...u.matchAll(/ e (?!\p{Lu})/gu)].at(-1)?.index ?? -1; ps.push(...(k > 0 ?[u.slice(0, k), u.slice(k + 3)] : [u]));
+  return { ctx: m[1], pontos: ps };
+};
+/** Pontos do tema que cabem a cada candidato (lado 0 = pares, lado 1 = ímpares), para dois candidatos com o mesmo tema não receberem a mesma dica. */
+export const pontosLado = (res, lado = 0) => { const { ctx, pontos } = pontosTema(res); return { ctx, pontos: pontos.length < 2 ? pontos : pontos.filter((_, i) => i % 2 === lado % 2) }; };
+/** Dicas de fala do "?": 5 ângulos diferentes sobre o tema, montados com os pontos do lado do candidato. */
+export const dicasFala = (res, lado = 0) => {
+  const { ctx, pontos: ps } = pontosLado(res, lado); if (!ps.length) return [res || ''];
+  const ord = ps.concat(pontosTema(res).pontos.filter(x => !ps.includes(x))), p = i => ord[i % ord.length], lst = ps.length > 1 ? ps.slice(0, -1).join(', ') + ' e ' + ps.at(-1) : ps[0];
+  return [
+    `${ctx} Foque em: ${lst}.`,
+    `Abra pelo problema e prometa uma meta com número e prazo para: ${p(0)}.`,
+    `Mostre que a conta fecha. Diga quanto custa e de onde vem o dinheiro para: ${p(1)}.`,
+    `Conte o caso de alguém que sofre com o problema e amarre com a sua proposta de: ${p(2)}.`,
+    `Critique o que não funcionou até hoje e diga o que você faz diferente em: ${p(3)}.`,
+  ];
 };
 export const SEGUNDOS ={ cumprimento: 10, proposta: 60, pergunta: 30, resposta: 60, replica: 45, treplica: 45, final: 60 };
 export const DUR_MULT = { curto: .5, normal: 1, longo: 1.5 };

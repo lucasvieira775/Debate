@@ -1,7 +1,7 @@
 import { Estudio } from './estudio.js';
 import { retrato } from './avatar.js';
 import { Microfone, falar, calar, sfx, somItem, nivelDoAudio, setVolume, testarMicrofone, temReconhecimento, contextoSeguro, configurarAmbiente, ajustarAmbiente, setVolumeAmbiente, setVolumeMusica, abafarAmbiente, pararSonsRevelacao } from './voz.js';
-import { PARTIDOS, PARTIDO, IDEO, AV, TEMA, TEMAS, KIND_NOME, ETAPAS, JORN, DIFICULDADES, avatarAleatorio, textoVitoria, dicaLado } from '/shared/regras.js';
+import { PARTIDOS, PARTIDO, IDEO, AV, TEMA, TEMAS, KIND_NOME, ETAPAS, JORN, DIFICULDADES, avatarAleatorio, textoVitoria, dicasFala } from '/shared/regras.js';
 import { $, $$, esc, fmtN, fmtP, fmtT, lerPerfil, salvarPerfil, lerConfig, salvarConfig, lerSessao, salvarSessao, logoPartido, toast, tutorialVisto, marcarTutorial, locutorOuvido, marcarLocutor } from './util.js';
 import { tocarTutorial } from './tutorial.js';
 import { Voip } from './voip.js';
@@ -1137,8 +1137,8 @@ function renderJogadores() {
 function renderPerguntas() {
   const el = $('#h-perg'); if (!el) return;
   const s = E.sala, lista = s.fase === 'debate' ? (s.perguntas || []) : [];
-  const aj = E.pergAjuda ||= new Set();
-  const k = lista.length + '-' + (E.pergFechado ? 1 : 0) + '-' + (lista.at(-1)?.texto?.length || 0) + '-' + [...aj].join(',');
+  const aj = E.pergAjuda ||= new Set(), dn = E.pergDica ||= {};
+  const k = lista.length + '-' + (E.pergFechado ? 1 : 0) + '-' + (lista.at(-1)?.texto?.length || 0) + '-' + [...aj].map(i => i + (dn[i] || 0)).join(',');
   if (k === E.pergKey) return; E.pergKey = k;
   if (!lista.length) { el.innerHTML = ''; return; }
   const rot = { proposta: 'Proposta', pergunta: 'Pergunta', resposta: 'Resposta', replica: 'Réplica', treplica: 'Tréplica', final: 'Considerações finais' };
@@ -1146,14 +1146,16 @@ function renderPerguntas() {
     const praMim = x.para === E.eu, para = jog(x.para)?.nome || '';
     const tit = x.mediador ? `🎙 ${esc(x.de)} → ${esc(para)} · ${rot[x.kind] || ''}` : `⚔ ${esc(x.de)} → ${esc(para)} · ${x.kind === 'replica' ? 'Réplica' : 'Pergunta'}`;
     const t = x.tema && TEMA[x.tema], id = x.n + x.kind + x.para, res = x.mediador && t?.resumo;
+    const ds = res && aj.has(id) ? dicasFala(t.resumo, x.lado || 0) : [], di = (dn[id] || 0) % (ds.length || 1);
     const ajuda = res ? `<button class="perg-ajuda ${aj.has(id) ? 'on' : praMim ? 'guia' : ''}" data-aj="${esc(id)}" title="Dica de fala">?</button>` : '';
-    return `<div class="perg ${praMim ? 'minha' : ''} ${x.mediador ? '' : 'adv'}">${ajuda}<small>${tit}${t ? ` · ${t.uf}` : ''}</small><div>${esc(x.texto)}</div>${res && aj.has(id) ? `<div class="perg-resumo"><b>${esc(t.titulo)}</b><span class="dica-rot">DICA DE FALA:</span> ${esc(dicaLado(t.resumo, x.lado || 0))}</div>` : ''}</div>`;
+    return `<div class="perg ${praMim ? 'minha' : ''} ${x.mediador ? '' : 'adv'}">${ajuda}<small>${tit}${t ? ` · ${t.uf}` : ''}</small><div>${esc(x.texto)}</div>${res && aj.has(id) ? `<div class="perg-resumo"><b>${esc(t.titulo)}</b><span class="dica-rot">DICA DE FALA:</span> ${esc(ds[di])}${ds.length > 1 ? `<button class="dica-outra" data-ot="${esc(id)}" title="Ver outra dica">↻ Outra dica (${di + 1}/${ds.length})</button>` : ''}</div>` : ''}</div>`;
   }).join('');
   const rol = $('.perg-lista', el)?.scrollTop || 0; // mantém a rolagem ao atualizar
   el.innerHTML = `<div class="hud-box"><button class="perg-tog" id="h-perg-t">📋 Perguntas (${lista.length}) <span>${E.pergFechado ? '▸' : '▾'}</span></button>${E.pergFechado ? '' : `<div class="perg-lista">${itens}</div>`}</div>`;
   const lst = $('.perg-lista', el); if (lst) { lst.scrollTop = rol; lst.onwheel = e => e.stopPropagation(); }
   $('#h-perg-t').onclick = () => { E.pergFechado = !E.pergFechado; E.pergKey = null; renderPerguntas(); };
   el.querySelectorAll('.perg-ajuda').forEach(b => b.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); const id = b.dataset.aj; aj.has(id) ? aj.delete(id) : aj.add(id); renderPerguntas(); });
+  el.querySelectorAll('.dica-outra').forEach(b => b.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); dn[b.dataset.ot] = (dn[b.dataset.ot] || 0) + 1; renderPerguntas(); });
 }
 function renderLateral() {
   const s = E.sala, p = s.passo, el = $('#h-lateral'); if (!el) return;

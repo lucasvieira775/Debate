@@ -278,6 +278,8 @@ body:has(.tela.vitrine) #cena{cursor:grab}body:has(.tela.vitrine) #cena:active{c
 .perg-ajuda:hover,.perg-ajuda.on{opacity:1;background:var(--amarelo);color:#111;border-color:var(--amarelo)}
 .perg-resumo{margin-top:5px;padding:5px 7px;border-radius:6px;background:rgba(255,210,63,.1);font-size:12px;opacity:.95}
 .perg-resumo b{display:block;font-size:11px;color:var(--amarelo)}
+.dica-outra{display:block;margin:5px 0 0 auto;padding:3px 9px;border:1px solid var(--amarelo);border-radius:99px;background:rgba(255,210,63,.14);color:var(--amarelo);font:inherit;font-size:11px;font-weight:800;cursor:pointer;pointer-events:auto}
+.dica-outra:hover{background:var(--amarelo);color:#1a1440}
 .perg.adv{border-left-color:var(--vermelho)}
 .perg.minha{border-left-color:var(--amarelo);background:rgba(255,210,63,.12)}
 .legenda .gc{display:inline-flex;align-items:center;gap:7px;margin-left:4px;font-size:13px;padding:3px 10px 3px 4px;border-radius:8px 8px 0 0;background:var(--c);color:#fff;vertical-align:bottom}
