@@ -2638,7 +2638,8 @@
    "criadoEm": 1794613332210
   },
   "abandonos": [
-   1794613558203
+   1794613558203,
+   1794614005273
   ],
   "xp": 0
  },
@@ -2713,5 +2714,37 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794613741630
+ },
+ "69f998c4-58ad-4390-baf2-165510599281": {
+  "uid": "69f998c4-58ad-4390-baf2-165510599281",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794614184523
+ },
+ "c1556eca-edc5-4183-b9ea-5e22b3b963f0": {
+  "uid": "c1556eca-edc5-4183-b9ea-5e22b3b963f0",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794614200262
+ },
+ "1ef6daff-227b-4d4e-b61d-6daccd671e80": {
+  "uid": "1ef6daff-227b-4d4e-b61d-6daccd671e80",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794614214778
+ },
+ "abc06e80-6624-4b27-8ae2-7c0bb00ea456": {
+  "uid": "abc06e80-6624-4b27-8ae2-7c0bb00ea456",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794614248261
  }
 }

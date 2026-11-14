@@ -38,6 +38,8 @@ const trap = (u, a = .2) => { u = Math.min(1, Math.max(0, u)); const v = 1 / (1 
 const FONTE = '"Lilita One", "Arial Black", Impact, sans-serif';
 const FONTE_TXT = '"Nunito", "Segoe UI", Arial, sans-serif';
 const D2R = Math.PI / 180;
+// replay das agressões nas telas laterais: grava as 2 câmeras de estúdio e reprisa em câmera lenta depois do impacto
+const REPLAY = { itens: new Set(['cadeirada', 'paulada', 'tomate', 'torta', 'balde']), fps: 20, antes: 1.4, depois: 1.1, lenta: .4, trans: .55, W: 384, H: 216 };
 
 function rb(w, h, d, r = .05) { return new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w / 2 - .001, h / 2 - .001, d / 2 - .001)); }
 function canvasTex(w, h) {
@@ -284,15 +286,16 @@ export class Estudio {
   animarCameras(dt, t) {
     const k = 1 - Math.exp(-dt * 1.4), alvo = _v;
     const fal = this.falante && this.podios.get(this.falante);
-    if (this.duelo) alvo.set(DUELO.x, 1.5, DUELO.z); else if (fal) fal.ator.getWorldPosition(alvo).setY(1.6); else alvo.set(0, 1.5, -1);
+    const ag = this.agressao(); // agressão: as câmeras de estúdio pegam a vítima (é o que vai para o replay)
+    if (ag) ag.alvo.ator.getWorldPosition(alvo).setY(1.5); else if (this.duelo) alvo.set(DUELO.x, 1.5, DUELO.z); else if (fal) fal.ator.getWorldPosition(alvo).setY(1.6); else alvo.set(0, 1.5, -1);
     for (const c of this.camerasTV || []) {
       const p = c.g.position, dx = alvo.x - p.x, dz = alvo.z - p.z;
-      const ocioso = fal || this.duelo ? 0 : Math.sin(t * .23 + c.fase) * .22;
+      const ocioso = ag || fal || this.duelo ? 0 : Math.sin(t * .23 + c.fase) * .22;
       let yaw = Math.atan2(dx, dz) - c.g.rotation.y + ocioso; yaw = Math.atan2(Math.sin(yaw), Math.cos(yaw));
-      c.yaw += (clamp(yaw, -.6, .6) + Math.sin(t * .7 + c.fase) * .012 - c.yaw) * k;
+      c.yaw += (clamp(yaw, -1.1, 1.1) + Math.sin(t * .7 + c.fase) * .012 - c.yaw) * k;
       c.pitch += (-Math.atan2(alvo.y - 1.36, Math.hypot(dx, dz)) + Math.sin(t * .5 + c.fase) * .01 - c.pitch) * k;
       c.pan.rotation.y = c.yaw; c.tilt.rotation.x = c.pitch;
-      const fov = fal ? 12 : this.duelo ? 16 : 24; // zoom no(a) candidato(a) que fala (vai para a tela lateral)
+      const fov = ag ? 17 : fal ? 12 : this.duelo ? 16 : 24; // zoom no(a) candidato(a) que fala (vai para a tela lateral)
       if (Math.abs(c.lente.fov - fov) > .05) { c.lente.fov += (fov - c.lente.fov) * k; c.lente.updateProjectionMatrix(); }
       // tally acesa quando a câmera do "ar" (direção de TV) está ao lado desta
       const noAr = this.modo !== 'fp' && Math.hypot(this.camera.position.x - p.x, this.camera.position.z - p.z) < 4;
@@ -315,7 +318,9 @@ export class Estudio {
     for (const sx of [-1, 1]) {
       const g = new THREE.Group(); g.position.set(sx * 11.3, 3.4, -6.2); g.rotation.y = -sx * .75; s.add(g);
       const rt = new THREE.WebGLRenderTarget(640, 360, { samples: 2, type: THREE.HalfFloatType }); // linear/HDR: o tone mapping sai na tela
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(4, 2.25), new THREE.MeshBasicMaterial({ map: rt.texture, color: '#d8d8d8' })); g.add(m);
+      const mt = new THREE.MeshBasicMaterial({ map: rt.texture, color: '#d8d8d8' }), mix = { map2: { value: rt.texture }, mixK: { value: 0 } };
+      mt.onBeforeCompile = sh => { Object.assign(sh.uniforms, mix); sh.fragmentShader = 'uniform sampler2D map2; uniform float mixK;\n' + sh.fragmentShader.replace('#include <map_fragment>', 'diffuseColor *= mix(texture2D(map, vMapUv), texture2D(map2, vMapUv), mixK);'); }; // replay: funde 2 quadros (câmera lenta sem tranco)
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(4, 2.25), mt); m.userData.mix = mix; g.add(m);
       const sobre = new THREE.Mesh(new THREE.PlaneGeometry(4, 2.25), new THREE.MeshBasicMaterial({ map: this.lat.tex, transparent: true, toneMapped: false, depthWrite: false })); sobre.position.z = .01; g.add(sobre);
       this.telasLat.push({ rt, m, sobre });
       const mo = new THREE.Mesh(rb(4.25, 2.5, .2, .08), new THREE.MeshStandardMaterial({ color: '#141a3d', roughness: .4, metalness: .5 })); mo.position.z = -.12; g.add(mo);
@@ -944,7 +949,7 @@ export class Estudio {
     // luz
     const sp = this.criarSpot(pos.clone(), '#fff3dd');
     g.traverse(o => { o.userData.pid ??= j.id; });
-    const podio = { id: j.id, bot: !!j.bot, grupo: g, ator, avatar: av, tela: tl, faixaLuz, bMic, bOk, spot: sp, etiqueta, et, nivel: j.nivel || 0, partido: p, anelMic, telaKey: '', idx: i, n, caminho: null, lugar: 'podio' };
+    const podio = { id: j.id, nome: j.nome || '', bot: !!j.bot, grupo: g, ator, avatar: av, tela: tl, faixaLuz, bMic, bOk, spot: sp, etiqueta, et, nivel: j.nivel || 0, partido: p, anelMic, telaKey: '', idx: i, n, caminho: null, lugar: 'podio' };
     if (j.id === this.meuId) av.ocultarCabeca(!this.terceira);
     this.desenharTelaPodio(podio, { titulo: j.nome, texto: p.sigla + ' ' + p.numero, num: p.numero });
     return podio;
@@ -1352,10 +1357,15 @@ export class Estudio {
   }
   /** Tarja transparente das telas laterais (por cima do vídeo da câmera): AO VIVO + nome/tempo de quem fala. */
   desenharLateral() {
-    const { ctx, tex } = this.lat, W = 1024, H = 576, d = this.ledDados || {};
+    const { ctx, tex } = this.lat, W = 1024, H = 576, d = this.ledDados || {}, R = this.replay;
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#dc2626'; rr(ctx, 30, 30, 210, 66, 14); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = `44px ${FONTE}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('AO VIVO', 135, 65);
-    if (d.modo === 'fala') {
+    const emReplay = R && (R.fase === 'toca' || (R.fase === 'entra' && R.u > REPLAY.trans / 2) || (R.fase === 'sai' && R.u <= REPLAY.trans / 2));
+    if (emReplay) this.tarjaReplay(ctx, W, H, R);
+    else {
+      ctx.fillStyle = '#dc2626'; rr(ctx, 30, 30, 210, 66, 14); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = `44px ${FONTE}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('AO VIVO', 135, 65);
+    }
+    if (R && (R.fase === 'entra' || R.fase === 'sai')) this.vinhetaReplay(ctx, W, H, R.u / REPLAY.trans, R.a.atk.partido);
+    else if (d.modo === 'fala' && !emReplay) {
       const p = PARTIDO[d.partido] || PARTIDO.PUN;
       ctx.fillStyle = p.cor; rr(ctx, 40, H - 150, 700, 110, 22); ctx.fill();
       ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; this.caber(ctx, d.nome.toUpperCase(), 640, 60); ctx.fillText(d.nome.toUpperCase(), 75, H - 95);
@@ -1364,16 +1374,96 @@ export class Estudio {
     }
     tex.needsUpdate = true;
   }
-  /** Cada tela lateral mostra o que a câmera de estúdio do mesmo lado está gravando (~15 quadros/s, uma tela por quadro). */
+  /** Tarja do replay: selo REPLAY (ponto piscando) + CÂMERA LENTA e faixa "CADEIRADA! fulano → ciclano". */
+  tarjaReplay(ctx, W, H, R) {
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+    ctx.fillStyle = '#facc15'; rr(ctx, 30, 30, 250, 66, 14); ctx.fill();
+    ctx.fillStyle = '#0b1f6b'; ctx.font = `46px ${FONTE}`; ctx.fillText('REPLAY', 170, 65);
+    if (Math.floor(this.t * 2) % 2 === 0) { ctx.beginPath(); ctx.arc(58, 63, 11, 0, 7); ctx.fill(); }
+    ctx.fillStyle = 'rgba(5,12,40,.82)'; rr(ctx, 292, 38, 300, 50, 12); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = `32px ${FONTE}`; ctx.fillText('CÂMERA LENTA', 442, 64);
+    const a = R.a, p = a.atk.partido || PARTIDO.PUN, txt = `${(a.it.nome || '').toUpperCase()}!`;
+    ctx.fillStyle = p.cor; rr(ctx, 40, H - 150, W - 80, 110, 22); ctx.fill();
+    ctx.fillStyle = '#facc15'; ctx.fillRect(40, H - 50, W - 80, 10);
+    ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = `64px ${FONTE}`; ctx.fillText(txt, 75, H - 98);
+    const quem = `${a.atk.nome || ''} → ${a.alvo.nome || ''}`.toUpperCase(), x0 = 95 + ctx.measureText(txt).width;
+    ctx.font = `38px ${FONTE}`; this.caber(ctx, quem, W - 120 - x0, 38); ctx.fillText(quem, x0, H - 94);
+  }
+  /** Vinheta rápida de entrada/saída do replay (u 0..1): faixas diagonais varrem a tela; no meio cobrem tudo (o corte acontece ali). */
+  vinhetaReplay(ctx, W, H, u, partido) {
+    const k = sm(u), sk = W * .2, cx = -W * 1.2 + k * W * 3.4; // em u = .5 a faixa azul (larga) cobre a tela toda; em 0 e 1 todas estão fora
+    [['#0b1f6b', .85, .12], ['#facc15', .62, 0], [(partido || PARTIDO.PUN).cor, .5, -.12]].forEach(([c, hw, off]) => {
+      const x = cx + off * W; hw *= W;
+      ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(x - hw + sk, 0); ctx.lineTo(x + hw + sk, 0); ctx.lineTo(x + hw - sk, H); ctx.lineTo(x - hw - sk, H); ctx.fill();
+    });
+    ctx.save(); ctx.translate(cx, H / 2); ctx.rotate(-.12);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `130px ${FONTE}`; ctx.lineWidth = 14; ctx.lineJoin = 'round'; ctx.strokeStyle = '#0b1f6b'; ctx.strokeText('REPLAY', 0, 0); ctx.fillStyle = '#fff'; ctx.fillText('REPLAY', 0, 0); ctx.restore();
+  }
+  /** Cada tela lateral mostra o que a câmera de estúdio do mesmo lado está gravando (~15 quadros/s, uma tela por quadro).
+   *  Numa agressão (REPLAY.itens) as duas câmeras gravam; depois do impacto: vinheta → replay em câmera lenta → vinheta → ao vivo. */
   renderTelasLat(t) {
     const T = this.telasLat, C = this.camerasTV; if (!T || !C || this.modo === 'vitrine') return;
+    const R = this.atualizarReplay(t);
+    if (R?.fase === 'grava') { // as duas telas a REPLAY.fps, direto nos quadros do buffer (a tela ao vivo mostra o último)
+      if (t - (this.ultLat || 0) < 1 / REPLAY.fps) return; this.ultLat = t;
+      const k = R.n % R.max; R.n++;
+      T.forEach((tela, i) => { const q = R.quadros[i][k]; this.filmar(tela, C[i].lente, q); tela.m.material.map = tela.m.userData.mix.map2.value = q.texture; });
+      return;
+    }
+    if (R && R.fase !== 'sai') return; // reprisando: as telas mostram os quadros gravados (atualizarReplay)
     if (t - (this.ultLat || 0) < 1 / 30) return; this.ultLat = t;
-    const i = this.ladoLat = 1 - (this.ladoLat || 0), tela = T[i], cam = C[i]?.lente; if (!cam) return;
+    const i = this.ladoLat = 1 - (this.ladoLat || 0), cam = C[i]?.lente; if (!cam) return;
+    if (!R || R.u > REPLAY.trans / 2) this.filmar(T[i], cam, T[i].rt);
+  }
+  /** Renderiza a cena pela lente de uma câmera de estúdio num render target. */
+  filmar(tela, cam, rt) {
     const eu = this.podios.get(this.meuId)?.avatar, oculta = eu && !eu.cabeca.visible;
     if (oculta) eu.ocultarCabeca(false); // a câmera de estúdio vê você inteiro(a), mesmo na 1ª pessoa
-    tela.m.visible = false; // sem realimentação: a tela não aparece no próprio vídeo
-    this.renderer.setRenderTarget(tela.rt); this.renderer.render(this.scene, cam); this.renderer.setRenderTarget(null);
-    tela.m.visible = true; if (oculta) eu.ocultarCabeca(true);
+    const vis = this.telasLat.map(x => x.m.visible); tela.m.visible = false; // sem realimentação: a tela não aparece no próprio vídeo
+    this.renderer.setRenderTarget(rt); this.renderer.render(this.scene, cam); this.renderer.setRenderTarget(null);
+    this.telasLat.forEach((x, j) => x.m.visible = vis[j]); if (oculta) eu.ocultarCabeca(true);
+  }
+  /** Agressão em andamento (não demo) que merece replay, ou null. */
+  agressao() { return this.acoes.lista.find(a => !a.demo && REPLAY.itens.has(a.it.id) && (a.atkVivo || a.vitViva)) || null; }
+  /** Máquina do replay: null → 'grava' → (impacto + depois) 'entra' → 'toca' → 'sai' → null. Devolve o estado. */
+  atualizarReplay(t) {
+    let R = this.replay;
+    if (!R) {
+      const a = this.agressao(); if (!a || a === this.ultAgressao) return null;
+      this.ultAgressao = a;
+      const max = Math.ceil((REPLAY.antes + REPLAY.depois) * REPLAY.fps) + 2;
+      this.quadrosReplay ||= this.telasLat.map(() => Array.from({ length: max }, () => new THREE.WebGLRenderTarget(REPLAY.W, REPLAY.H, { type: THREE.HalfFloatType }))); // alocados uma vez (~30 MB)
+      R = this.replay = { fase: 'grava', a, n: 0, max, quadros: this.quadrosReplay, nImp: -1, t0: t, u: 0 };
+    }
+    const T = this.telasLat, F = REPLAY.fps;
+    if (R.fase === 'grava') {
+      if (R.a.bateu && R.nImp < 0) R.nImp = R.n;
+      const morreu = !this.acoes.lista.includes(R.a);
+      if (R.nImp < 0 && morreu) return this.fimReplay(); // abortou sem impacto: nada a reprisar
+      if (R.nImp >= 0 && (R.n - R.nImp >= REPLAY.depois * F || morreu)) {
+        const ini = Math.max(R.n - R.max + 1, R.nImp - Math.round(REPLAY.antes * F), 0);
+        R.seq = Array.from({ length: R.n - ini }, (_, j) => (ini + j) % R.max); R.fase = 'entra'; R.t0 = t;
+      }
+      return R;
+    }
+    R.u = t - R.t0;
+    if (R.fase === 'entra' && R.u >= REPLAY.trans) { R.fase = 'toca'; R.t0 = t; R.u = 0; }
+    else if (R.fase === 'toca' && R.u >= R.seq.length / F / REPLAY.lenta) { R.fase = 'sai'; R.t0 = t; R.u = 0; }
+    else if (R.fase === 'sai' && R.u >= REPLAY.trans) return this.fimReplay();
+    // o que cada tela mostra: na 1ª metade da vinheta de entrada o último quadro ao vivo; depois os quadros (lentos e fundidos); na 2ª metade da saída, o ao vivo
+    const meio = R.u > REPLAY.trans / 2, ao = R.fase === 'sai' && meio;
+    const pos = R.fase === 'entra' ? (meio ? 0 : R.seq.length - 1) : R.fase === 'toca' ? R.u * F * REPLAY.lenta : R.seq.length - 1;
+    T.forEach((tela, i) => {
+      const mix = tela.m.userData.mix, mt = tela.m.material;
+      if (ao) { mt.map = mix.map2.value = tela.rt.texture; mix.mixK.value = 0; return; }
+      const j = Math.min(Math.floor(pos), R.seq.length - 1), j2 = Math.min(j + 1, R.seq.length - 1);
+      mt.map = R.quadros[i][R.seq[j]].texture; mix.map2.value = R.quadros[i][R.seq[j2]].texture; mix.mixK.value = pos - j;
+    });
+    if (R.fase !== 'toca' || t - (R.tDes || 0) > .25) { R.tDes = t; this.desenharLateral(); } // tarja: a cada quadro só nas vinhetas
+    return R;
+  }
+  fimReplay() {
+    this.replay = null; for (const tela of this.telasLat) { tela.m.material.map = tela.m.userData.mix.map2.value = tela.rt.texture; tela.m.userData.mix.mixK.value = 0; }
+    this.desenharLateral(); return null;
   }
 
   // ===================== LOOP =====================
