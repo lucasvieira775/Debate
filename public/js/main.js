@@ -91,7 +91,7 @@ function bots() {
 // ======================= microfone =======================
 let envT = 0, envTimer = null, nivelT = 0;
 function enviarTexto(t, conf = t) { // conf = parte já confirmada pelo reconhecimento (só ela pode punir durante a fala)
-  E.meuTexto = t; E.meuConf = conf; guiarBotoes();
+  E.meuTexto = t; E.meuConf = conf; E.textoT = Date.now(); guiarBotoes();
   const enviar = () => { envT = Date.now(); socket.emit('texto', { t: E.meuTexto, conf: E.meuConf }); };
   clearTimeout(envTimer);
   if (Date.now() - envT > 220) enviar(); else envTimer = setTimeout(enviar, 220);
@@ -101,6 +101,7 @@ const mic = new Microfone({
   onTexto: (t, conf) => { const ta = $('#h-ta'); if (ta) { ta.value = t; ta.scrollTop = ta.scrollHeight; } enviarTexto(t, conf); },
   onNivel: v => {
     const b = $('#h-vu'); if (b) b.style.width = Math.min(100, v * 100) + '%';
+    if (minhaVez() && v > .12) est.setFalaNivel(E.eu, Math.min(1, v)); // o próprio avatar (telas/3ª pessoa) mexe a boca e gesticula
     if (Date.now() - nivelT > 120) { nivelT = Date.now(); socket.emit('nivel', v); }
   },
   onErro: m => { E.micErro = m; E.micOn = false; toast(m, 'erro'); renderAcao(true); },
@@ -254,7 +255,7 @@ function falaAcao(n) {
 }
 // eventos da coreografia 3D: impacto (som + comentário da mediação 0,7 s depois)
 est.onAcao = (ev, d) => { if (ev === 'impacto') { est.agitarPlateia(1, 2500); setTimeout(() => falaAcao(d.n), 700); } };
-socket.on('texto', d => { E.textoFala = d.t; const f = E.sala?.passo?.falante; if (f) est.setFalaNivel(f, .75); atualizarLegenda(); });
+socket.on('texto', d => { E.textoFala = d.t; E.textoT = Date.now(); const f = E.sala?.passo?.falante; if (f) est.setFalaNivel(f, .75); atualizarLegenda(); });
 socket.on('olhar', d => est.setOlharJogador(d.id, d.y, d.p));
 socket.on('nivel', d => est.setFalaNivel(d.id, d.v));
 // celular que não consegue transmitir a voz real enquanto transcreve: cada frase chega em texto e é lida aqui
@@ -1418,6 +1419,14 @@ function tick() {
   if (p?.tipo === 'fala' && f?.status === 'ativo' && p.falante !== E.eu && !E.textoFala) est.setFalaNivel(p.falante, 0);
 }
 setInterval(tick, 200);
+// boca/gestos do candidato HUMANO com a palavra (bots já recebem 'nivel' do servidor): nível do próprio microfone
+// ou, sem ele (outros clientes / voz remota sem análise), animação enquanto o texto transcrito está mudando
+setInterval(() => {
+  const s = E.sala, p = s?.passo; if (s?.fase !== 'debate' || p?.tipo !== 'fala' || s.fala?.status !== 'ativo' || jog(p.falante)?.bot) return;
+  const v = p.falante === E.eu && !voip.mudo ? voip.nivelLocal() : 0;
+  if (v > .12) est.setFalaNivel(p.falante, Math.min(1, v));
+  else if (Date.now() - (E.textoT || 0) < 900) est.setFalaNivel(p.falante, .35 + Math.random() * .6);
+}, 110);
 
 // teclado
 addEventListener('keydown', e => {
