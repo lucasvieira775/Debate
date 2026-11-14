@@ -306,6 +306,8 @@ img.xz-av{object-fit:cover;background:#1d2a4a}
 @keyframes tutNota{from{opacity:0;transform:translateX(-40px)}}
 @keyframes tutAnel{to{box-shadow:0 0 0 7px rgba(250,204,21,.12),0 0 40px 8px rgba(250,204,21,.95),inset 0 0 20px rgba(250,204,21,.5)}}
 @keyframes tutDedo{to{transform:translate(-4px,-6px)}}
+/* anotação da assessoria no tutorial (#hud fica inert): folheia 1 folha só, para a dica aparecer logo e dar tempo de ler */
+#hud[inert] .folha.f2,#hud[inert] .folha.f3{display:none}#hud[inert] .papel.nota{animation-delay:.45s}
 
 /* ---------- replay da fala nota 10 ---------- */
 .xz-titulo{font-size:13px;font-weight:800;color:#facc15;margin:2px 0}

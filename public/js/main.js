@@ -544,7 +544,7 @@ function pedirLojaInfo(depois) { if (E.lojaInfo || E.lojaPedindo) return; E.loja
  *  'pausa' tira a tela (entre um passo e outro; a HUD montada é reaproveitada) e 'fim' desmonta a HUD de exemplo. */
 function telaTutorial(nome, d = {}) {
   const ui = $('#ui'), hud = $('#hud'), nada = () => {};
-  const g = Object.fromEntries(['sala', 'eu', 'conta', 'demo', 'fpEditar', 'persAba', 'prova', 'emAba', 'meuTexto', 'micOn', 'dicasGratis', 'avisoFalaOk', 'pergAjuda', 'pergFechado'].map(k => [k, E[k]]));
+  const g = Object.fromEntries(['sala', 'eu', 'conta', 'demo', 'fpEditar', 'persAba', 'prova', 'emAba', 'meuTexto', 'micOn', 'dicasGratis', 'avisoFalaOk', 'pergAjuda', 'pergFechado', 'acoesUsadas', 'ultAcao', 'micErro', 'textoFala'].map(k => [k, E[k]]));
   pedirLojaInfo(() => E.tutorial && E.tutLoja && telaTutorial('loja', E.tutLoja)); E.tutLoja = nome === 'loja' ? d : null; // preços chegaram com a Loja do tutorial na tela: redesenha
   esconderDica(); ui.innerHTML = ''; hud.hidden = true;
   if (nome === 'pausa') return;
@@ -569,12 +569,13 @@ function telaTutorial(nome, d = {}) {
     else if (nome === 'hud') { // bloco 1, pergunta da mediação com tema de SP; sua vez de falar (ou de d.falante). d.modo: fala | ajuda | dica | papel | emotes
       const t = TEMA.SP1, perg = { de: JORN, mediador: true, para: d.eu, kind: 'proposta', tema: t.key, n: 1, texto: t.pergunta, lado: 0 };
       E.eu = d.eu; E.micOn = false; E.avisoFalaOk = d.modo !== 'fala'; E.meuTexto = d.texto || ''; E.dicasGratis = d.modo === 'papel' ? 0 : 1; E.pergFechado = false;
+      E.acoesUsadas = E.micErro = null; E.ultAcao = 0; E.textoFala = ''; // sobras da última partida de verdade não entram no exemplo
       E.pergAjuda = new Set(d.modo === 'ajuda' && d.aberta ? [perg.n + perg.kind + perg.para] : []); E.pergKey = E.hudKey = E.latKey = '';
       E.sala = { fase: 'debate', cfg: { permitirTexto: true, reacoes: true }, i: 3, total: 20, jogadores: cands, perguntas: [perg], temaAtual: t.key, microfones: [d.eu],
         passo: { tipo: 'fala', falante: d.falante || d.eu, etapa: 1, kind: 'proposta', tema: t.key, segundos: 60 }, fala: { status: 'ativo', fimEm: agora() + 42000, texto: d.falante ? d.texto || '' : '' } };
       hud.hidden = false; renderHUD(); renderAcao(true);
       $('#h-tempo').innerHTML = `<small>Tempo de resposta</small><b class="ok">${fmtT(42)}</b><small>${esc(jog(E.sala.passo.falante)?.nome || '')}</small>`; // (no jogo quem preenche é o tick)
-      $('#h-dica').style.display = 'none'; $('#h-emotes').hidden = true; $('#h-regras').hidden = true;
+      $('#h-dica').style.display = 'none'; $('#h-emotes').hidden = $('#h-regras').hidden = $('#h-ajuda').hidden = $('#h-jog').hidden = true;
       $('#h-botoes').style.display = d.modo === 'emotes' || d.modo === 'ajuda' ? '' : 'none'; // em telas estreitas a fileira de botões fica por cima da caixa da fala: fora do quadro quando o assunto é a caixa
       if (d.modo === 'papel') mostrarDica({ titulo: t.titulo, abertura: 'Comece pelo problema: horas perdidas no trânsito todo dia.', pontos: ['Prometa uma meta com número e prazo', 'Diga de onde vem o dinheiro', 'Fale com quem pega ônibus lotado'], palavras: ['metrô', 'corredores de ônibus', 'tarifa'], cuidado: 'Não fuja do tema!' }, '0 dica(s) grátis restante(s)');
       if (d.modo === 'emotes') { E.emAba = d.aba || 'emoji'; $('#h-emotes-b').onclick(); }
@@ -685,7 +686,7 @@ function comprarItemConfirmado(id, aoComprar) {
 }
 function telaDaLoja(ui) {
   const voltar = E.sala ? 'sala' : 'menu';
-  if (!E.lojaInfo && !E.lojaPedindo) { E.lojaPedindo = true; socket.emit('lojaInfo', null, i => { E.lojaPedindo = false; E.lojaInfo = i; if (E.tela === 'loja') renderUI(); }); }
+  pedirLojaInfo();
   const pos = r => { if (r?.erro) return toast(r.erro, 'erro'); atualizarConta(r.conta); sfx.vitoria(); toast('Compra concluída!', 'ok'); renderUI(); };
   telaLoja(ui, {
     conta: E.conta, info: E.lojaInfo, aba: E.lojaAba, topo: topo('Loja', voltar), avatar: E.perfil.avatar,

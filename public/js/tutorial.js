@@ -151,7 +151,7 @@ export function tocarTutorial(est, op = {}) {
     },
     xzona: {
       ini: () => { palco(); est.setLED({ modo: 'titulo', sub: 'EM ALTA NA XZONA' }); tela('fanpage'); monitor(true, '.fp', 1.3, false); realce('.fp-posts .xz-post'); nota('📝 Sua melhor fala do debate vira post'); },
-      ev: [[.36, () => { realce('.fp-pos'); nota('📈 Debateu bem: ganha seguidores'); som(sfx.nota); }], [.72, () => { realce('.fp-neg'); nota('📉 Foi mal: perde seguidores'); som(sfx.alerta); }]],
+      ev: [[.45, () => { realce('.fp-pos'); nota('📈 Debateu bem: ganha seguidores'); som(sfx.nota); }], [.72, () => { realce('.fp-neg'); nota('📉 Foi mal: perde seguidores'); som(sfx.alerta); }]],
       cam: c => camGiro(c, -.5, .1),
     },
     jogar: {
@@ -167,7 +167,7 @@ export function tocarTutorial(est, op = {}) {
     },
     pergunta: {
       ini: () => { palco({ falante: VOCE }); est.setLED({ modo: 'titulo', sub: 'O DEBATE TEM 3 BLOCOS' }); est.telaPodio(VOCE, { titulo: 'SUA VEZ', texto: '01:00', destaque: true }); S.seg = 61; },
-      ev: [[.05, () => { chip('1 · PROPOSTAS', 'amarelo', 5, 27); som(sfx.clique); }], [.2, () => { chip('2 · CONFRONTO DIRETO', 'amarelo', 5, 39); som(sfx.clique); }], [.36, () => { chip('3 · CONSIDERAÇÕES FINAIS', 'amarelo', 5, 51); som(sfx.clique); }],
+      ev: [[.15, () => { chip('1 · PROPOSTAS', 'amarelo', 5, 27); som(sfx.clique); }], [.27, () => { chip('2 · CONFRONTO DIRETO', 'amarelo', 5, 39); som(sfx.clique); }], [.42, () => { chip('3 · CONSIDERAÇÕES FINAIS', 'amarelo', 5, 51); som(sfx.clique); }],
         [.58, () => { fx.innerHTML = ''; est.mediadoraFalando(true); est.setLED({ modo: 'texto', cabecalho: 'PERGUNTA DA JORNALISTA', texto: 'Como você vai acabar com o trânsito nas grandes cidades?' }); }], [.8, () => { est.mediadoraFalando(false); som(sfx.vez); }]],
       quadro: c => { if (c.k < .8) return; const s = Math.max(0, 60 - Math.floor(c.u - c.d * .8)); if (s !== S.seg) { S.seg = s; est.telaPodio(VOCE, { titulo: 'TEMPO', texto: `0${s / 60 | 0}:${String(s % 60).padStart(2, '0')}`, destaque: true }); if (s < 60) som(sfx.tique); } },
       cam: c => {
@@ -190,7 +190,7 @@ export function tocarTutorial(est, op = {}) {
     dica: {
       ini: () => { palcoHud(); hud({ modo: 'dica' }, '#h-acao', 1.42, false); realce('#h-dica-b'); nota('📝 Botão Dica: a assessoria ajuda'); },
       ev: [[.36, () => { hud({ modo: 'papel' }, '#papel-dica', 1.12); realce(null); nota('🎁 1 anotação grátis por debate'); som(sfx.nota); }],
-        [.72, () => { vitrine(true); tela('loja', { aba: 'assessoria' }); monitor(true, null, 1, false); reanima($('.tut-flash')); realce('.loja-grade'); nota('🛒 Loja › Assessoria: compre mais dicas'); som(sfx.clique); }]],
+        [.76, () => { vitrine(true); tela('loja', { aba: 'assessoria' }); monitor(true, null, 1, false); reanima($('.tut-flash')); realce('.loja-grade'); nota('🛒 Loja › Assessoria: compre mais dicas'); som(sfx.clique); }]],
       cam: () => S.vit ? camVitrine() : camOlhos(),
     },
     emotes: {

@@ -23,7 +23,7 @@ export const TUTORIAL = [
   { id: 'advertencia', ms: 7549, cena: 'advertencia', fala: 'Preconceito ou ameaça: duas advertências. Juntou três? Banido da sala, sem voto e sem moeda!', legenda: 'Preconceito/ameaça = 2 advertências (repetiu, expulsão) · 3 advertências = banido', dica: '⚠ 3 = BANIDO' },
   { id: 'emotes', ms: 6949, cena: 'emotes', fala: 'Na carinha tem emojis grátis, emotes, danças, provocações e ações. Cada ação, só uma vez por debate!', dica: '😀 EMOTES E AÇÕES' },
   { id: 'cadeirada', ms: 6170, cena: 'caldeirada', fala: 'E a cadeirada? Tem na loja, mas custa advertência e votos, e a vítima ganha simpatia!', dica: '🪑 +1 ADVERTÊNCIA' },
-  { id: 'plateia', ms: 5104, cena: 'plateia', fala: 'A plateia vaia, aplaude, e tudo vira meme na Xzona!', dica: '👏 PLATEIA' },
+  { id: 'plateia', ms: 4432, cena: 'plateia', fala: 'A plateia vaia, aplaude, e tudo vira meme na Xzona!', dica: '👏 PLATEIA' },
   { id: 'votacao', ms: 4803, cena: 'votacao', fala: 'No fim, o eleitor decide. Ninguém levou de primeira? Segundo turno!', dica: '🗳 APURAÇÃO' },
   { id: 'vitoria', ms: 3518, cena: 'comemoracao', fala: 'Ganhou? Pode comemorar, que a faixa é sua!', dica: '🏆 ELEITO!' },
   { id: 'carreira', ms: 5578, cena: 'xp', fala: 'Cada debate dá XP e moedas: de vereador... até presidente!', legenda: 'XP e moedas a cada debate: Vereador → … → Presidente', dica: '+XP  +🪙' },
