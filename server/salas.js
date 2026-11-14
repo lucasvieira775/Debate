@@ -27,7 +27,7 @@ import { PACOTES_MOEDAS } from '../shared/loja.js';
 import { gerarDica } from './dicas.js';
 import { revisarFala } from './revisao.js';
 import { Replays, REPLAY } from './replays.js';
-import { ITEM, AV_ITEM, ACAO_ESPERA_MS } from '../shared/loja.js';
+import { ITEM, AV_ITEM, ACAO_ESPERA_MS, REACAO } from '../shared/loja.js';
 import { postsDaFala, postsDe } from '../shared/xzona.js';
 import * as xz from '../shared/xzona.js'; // xz.postsDaAcao (repercussão das ações), se existir
 const VOZES_GRITO = ['Fenrir', 'Leda']; // um homem e uma mulher gritando na plateia
@@ -39,7 +39,6 @@ const OPC_PLATEIA = { conferir: false, dir: DIR_PLATEIA };
 const MAX = 5, MIN = 2;
 const AUSENCIA_MS = Number(process.env.AUSENCIA_MS) || 60000; // quem cai/fecha o jogo no meio da partida tem 1 min para voltar
 const BOAS_VINDAS = 'Bem-vindo ao Debate Presidencial!';
-const REACOES = ['aplauso', 'vaia', 'risada', 'pensativo', 'mao'];
 const dur = txt => Math.round(txt.length * 62 + 900); // estimativa do tempo de fala da mediadora
 const gerarCodigo = () => Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[crypto.randomInt(32)]).join('');
 const uid = () => crypto.randomBytes(8).toString('hex');
@@ -1148,7 +1147,7 @@ export class Salas {
     // celular que soltou o chat de voz para transcrever: a frase vira voz sintetizada nos outros (só na própria vez, fala ativa e sem conteúdo moderado)
     socket.on('frase', d => { const s = sala(), t = String(d?.t || '').slice(0, 500).trim(); if (s && t && s.passo?.falante === socket.data.pid && ['ativo', 'encerrando'].includes(s.fala?.status) && !moderar(t).expulsa) socket.to(s.code).emit('frase', { id: socket.data.pid, t }); });
     socket.on('reacao', tipo => {
-      const s = sala(), j = eu(); if (!s || !j || !s.cfg.reacoes || !REACOES.includes(tipo)) return;
+      const s = sala(), j = eu(); if (!s || !j || !s.cfg.reacoes || !Object.hasOwn(REACAO, tipo)) return;
       if (Date.now() - (j.ultReacao || 0) < 900) return; j.ultReacao = Date.now();
       this.io.to(s.code).emit('reacao', { id: j.id, tipo });
     });

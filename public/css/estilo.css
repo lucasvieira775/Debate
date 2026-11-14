@@ -327,9 +327,6 @@ body:has(.tela.vitrine) #cena{cursor:grab}body:has(.tela.vitrine) #cena:active{c
 .regras-painel{max-height:calc(92*var(--vh));overflow:auto}
 .regras-painel p{margin:8px 0;line-height:1.35}
 .redondo{width:56px;height:56px;border-radius:50%;border:3px solid #fff;background:linear-gradient(#5a46d6,#3b2a99);color:#fff;font-size:24px;display:grid;place-items:center;box-shadow:0 4px 0 #1f1466}
-.reacoes{display:flex;gap:6px;background:rgba(26,16,82,.9);border:3px solid var(--borda);border-radius:999px;padding:6px}
-.reacoes button{border:0;background:transparent;font-size:26px;width:44px;height:44px;border-radius:50%}
-.reacoes button:hover{background:rgba(255,255,255,.12)}
 .dica-olhar{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);background:rgba(8,6,28,.7);padding:10px 18px;border-radius:999px;font-size:15px;transition:opacity 1s}
 .escolha .alvos{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px}
 .escolha .alvos button{display:flex;align-items:center;gap:8px;border-radius:14px;border:3px solid var(--borda);background:#24176b;color:#fff;padding:6px 14px 6px 6px;font-weight:900}

@@ -77,3 +77,12 @@ export const nivelOk = (id, nivel = 1) => !(ITEM[id]?.nivel > nivel);
 export const possui = (id, itens = [], nivel = 1) => nivelOk(id, nivel) && (GRATIS.includes(id) || !!itens?.includes(id));
 // Ações: depois de usar uma, espera 1 min para usar outra; cada ação só pode ser usada uma vez por debate.
 export const ACAO_ESPERA_MS = 60000;
+// Emojis rápidos (grátis): aparecem flutuando sobre o púlpito. Os 5 primeiros também são usados pelos bots.
+export const REACOES = [
+  ['aplauso', '👏', 'Aplauso'], ['risada', '😂', 'Risada'], ['pensativo', '🤔', 'Hmm…'], ['vaia', '👎', 'Não curti'], ['mao', '✋', 'Pedir a palavra'],
+  ['pizza', '🍕', 'Vai dar pizza'], ['fogo', '🔥', 'Pegou fogo'], ['cem', '💯', 'Falou tudo'], ['palhaco', '🤡', 'Palhaçada'], ['mentira', '🤥', 'Mentira!'],
+  ['sono', '😴', 'Que sono'], ['revirar', '🙄', 'Ah, tá…'], ['choque', '😱', 'Chocado'], ['raiva', '😡', 'Revoltado'], ['explodiu', '🤯', 'Explodiu!'],
+  ['acordo', '🤝', 'Acordo'], ['brasil', '🇧🇷', 'Brasil'], ['urna', '🗳️', 'Vote em mim'], ['dinheiro', '💸', 'Cadê o dinheiro?'], ['grafico', '📈', 'Subindo'],
+  ['caindo', '📉', 'Caindo'], ['coracao', '❤️', 'Amei'], ['pipoca', '🍿', 'Pipoca'], ['sal', '🧂', 'Recalque'], ['relogio', '⏰', 'Tempo!'],
+];
+export const REACAO = Object.fromEntries(REACOES.map(([id, e]) => [id, e]));

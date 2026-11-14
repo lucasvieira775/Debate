@@ -10,7 +10,7 @@ import { termosAceitos, mostrarTermos } from './termos.js';
 import { Gravador } from './replay.js';
 import { PUNICAO, REGRAS_DEBATE } from '/shared/moderacao.js';
 import { postXzona, limparXzona, mostrarDica, esconderDica, recolherDica, aoLerDica,janela, janelaDenuncia, telaLoja, avisoGanhos, reais, htmlFanpage, janelaFanpage } from './extras.js';
-import { ITENS, ITEM, PACOTES_MOEDAS, itensDe, ACAO_ESPERA_MS, GRATIS, possui, nivelOk } from '/shared/loja.js';
+import { ITENS, ITEM, PACOTES_MOEDAS, itensDe, ACAO_ESPERA_MS, GRATIS, possui, nivelOk, REACOES, REACAO } from '/shared/loja.js';
 import { CARGOS, XP, XP_PUNICAO, cargo, brasao, htmlBrasao, nivelMax } from '/shared/niveis.js';
 import { animarPromocao } from './promocao.js';
 import { CADASTRO, validarNome, validarUser, validarIdade, formatarNome, formatarUser } from '/shared/cadastro.js';
@@ -289,7 +289,7 @@ socket.on('banido', d => {
   else toast(`${d.nome} foi banido(a) do debate por ${d.motivo}.`, 'erro');
 });
 socket.on('reacao', d => {
-  const em = { aplauso: '👏', vaia: '👎', risada: '😂', pensativo: '🤔', mao: '✋' }[d.tipo]; est.reacao(d.id, em);
+  const em = REACAO[d.tipo]; if (!em) return; est.reacao(d.id, em);
   if (!alguemFalando()) sfx.clique(); // reação é só do jogador: a plateia não reage
 });
 socket.on('expulso', () => { toast('Você foi removido da sala pelo anfitrião.', 'erro'); sairLocal(); });
@@ -981,7 +981,6 @@ function renderHUD() {
       <div class="botoes-esq p" id="h-botoes">
         <div class="painel painel-jog" id="h-jog" hidden></div>
         <button class="regras-b" id="h-regras-b" title="Regras do debate">⚖ REGRAS DO DEBATE<span id="h-adv"></span></button>
-        <div class="reacoes" id="h-reacoes">${[['aplauso', '👏'], ['risada', '😂'], ['pensativo', '🤔'], ['vaia', '👎'], ['mao', '✋']].map(([t, e]) => `<button data-r="${t}" title="${t}">${e}</button>`).join('')}</div>
         <div style="display:flex;gap:10px"><button class="redondo" id="h-jog-b" title="Jogadores no debate">👥</button><button class="redondo" id="h-emotes-b" title="Emotes, danças e provocações">😀</button><button class="redondo" id="h-mudo" title="Chat de voz: mudo / aberto">🎙</button>
           <button class="redondo" id="h-ajuda-b" title="Como jogar">?</button><button class="redondo" id="h-som" title="Voz da mediadora">${E.cfg.voz ? '🔊' : '🔇'}</button><button class="redondo" id="h-cfg" title="Configurações">⚙</button><button class="redondo" id="h-sair" title="Sair da partida">⏏</button></div>
       </div>
@@ -1000,17 +999,26 @@ function renderHUD() {
         ${REGRAS_DEBATE.map(([t, c]) => `<p><b>${t}</b><br>${c}</p>`).join('')}
         <p class="mut" style="font-size:13px">Estas regras fazem parte dos Termos de Uso que você aceitou ao entrar no jogo.</p>
         <button class="btn amarelo" id="h-regras-x">Entendi</button></div></div>`;
-    $$('[data-r]', hud).forEach(b => b.onclick = () => socket.emit('reacao', b.dataset.r));
-    // emotes / danças / provocações (itens da loja)
-    const EM_ABAS = [['acao', '💥', 'Ações'], ['emote', '😀', 'Emotes'], ['danca', '💃', 'Danças'], ['provocacao', '😈', 'Provocar']];
+    // emojis rápidos (grátis) / emotes / danças / provocações (itens da loja)
+    const EM_ABAS = [['emoji', '🍕', 'Emojis'], ['acao', '💥', 'Ações'], ['emote', '😀', 'Emotes'], ['danca', '💃', 'Danças'], ['provocacao', '😈', 'Provocar']];
     $('#h-emotes-b').onclick = (ev, manter) => {
       const p = $('#h-emotes'); if (!manter) p.hidden = !p.hidden; if (p.hidden) return;
-      const tem = id => possui(id, E.conta?.itens, nivelMax(E.conta)), aba = E.emAba ||= 'emote';
+      let aba = E.emAba ||= 'emoji'; if (aba === 'emoji' && !E.sala?.cfg?.reacoes) aba = E.emAba = 'emote';
+      const abas = EM_ABAS.filter(([k]) => k !== 'emoji' || E.sala?.cfg?.reacoes);
+      if (aba === 'emoji') {
+        p.innerHTML = `<div class="em-abas" style="grid-template-columns:repeat(${abas.length},1fr)">${abas.map(([k, e, n]) => `<button data-aba="${k}" class="${k === aba ? 'ativa' : ''}">${e}<small>${n}</small></button>`).join('')}</div>
+          <div class="em-sub"><span>Emojis grátis</span><span class="mut">aparecem sobre o seu púlpito</span></div>
+          <div class="em-grade em-emojis">${REACOES.map(([id, e, n]) => `<button data-r="${id}" title="${esc(n)}"><span>${e}</span><small>${esc(n)}</small></button>`).join('')}</div>`;
+        $$('[data-aba]', p).forEach(b => b.onclick = e => { e.stopPropagation(); E.emAba = b.dataset.aba; $('#h-emotes-b').onclick(null, true); });
+        $$('[data-r]', p).forEach(b => b.onclick = () => socket.emit('reacao', b.dataset.r)); // painel fica aberto: dá pra mandar vários
+        return;
+      }
+      const tem = id => possui(id, E.conta?.itens, nivelMax(E.conta));
       const bt = (i, at) => `<button ${at}="${i.id}" class="${tem(i.id) ? '' : 'bloq'}${E.acoesUsadas?.has(i.id) ? ' usada' : ''}" title="${esc(i.nome)}${tem(i.id) ? '' : ' (compre na loja)'}"><span>${i.emoji}</span><small>${esc(i.nome)}</small>${tem(i.id) ? '' : `<span class="em-preco">🔒 ${fmtN(i.preco)}</span>`}</button>`;
       const espera = Math.max(0, ACAO_ESPERA_MS - (Date.now() - (E.ultAcao || 0))), sEsp = Math.ceil(espera / 1000), mmss = `${sEsp / 60 | 0}:${String(sEsp % 60).padStart(2, '0')}`;
       const lista = ITENS.filter(i => i.tipo === aba).sort((a, b) => tem(b.id) - tem(a.id) || a.preco - b.preco), meus = lista.filter(i => tem(i.id)).length;
       const info = aba === 'acao' ? (espera ? `⏳ próxima em ${mmss}` : '1× por debate') : aba === 'danca' ? 'também na vitória' : aba === 'provocacao' ? 'com som · 1 min de espera' : '';
-      p.innerHTML = `<div class="em-abas">${EM_ABAS.map(([k, e, n]) => `<button data-aba="${k}" class="${k === aba ? 'ativa' : ''}">${e}<small>${n}</small></button>`).join('')}</div>
+      p.innerHTML = `<div class="em-abas" style="grid-template-columns:repeat(${abas.length},1fr)">${abas.map(([k, e, n]) => `<button data-aba="${k}" class="${k === aba ? 'ativa' : ''}">${e}<small>${n}</small></button>`).join('')}</div>
         <div class="em-sub"><span>${meus}/${lista.length} liberados</span><span class="mut">${info}</span></div>
         <div class="em-grade">${lista.map(i => bt(i, aba === 'acao' ? 'data-ac' : 'data-em')).join('') || '<div class="em-vazio">Nada aqui ainda.</div>'}</div>`;
       $$('[data-aba]', p).forEach(b => b.onclick = e => { e.stopPropagation(); E.emAba = b.dataset.aba; $('#h-emotes-b').onclick(null, true); });
@@ -1043,7 +1051,6 @@ function renderHUD() {
     $('#cena').addEventListener('pointerdown', esconderDica, { once: true }); setTimeout(esconderDica, 9000);
   }
   const s = E.sala, p = s.passo, res = s.fase === 'resultado';
-  $('#h-reacoes').style.display = s.cfg.reacoes ? '' : 'none';
   // topo
   $('#h-topo').style.display = res ? 'none' : '';
   if (!res && p) {

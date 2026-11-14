@@ -141,6 +141,9 @@ img.xz-av{object-fit:cover;background:#1d2a4a}
 .painel-emotes .em-grade .bloq small{color:var(--mut)}
 .painel-emotes .em-grade .usada{opacity:.35;filter:grayscale(1)}
 .painel-emotes .em-grade [data-ac]:not(.bloq){background:#5b1430}
+.painel-emotes .em-emojis{grid-template-columns:repeat(4,1fr)}
+.painel-emotes .em-emojis button{padding:6px 2px 4px;font-size:24px}
+.painel-emotes .em-emojis button small{font-size:9.5px}
 .painel-emotes .em-vazio{grid-column:1/-1;text-align:center;font-size:12px;color:var(--mut);padding:10px}
 .painel-emotes .em-tit{font-size:13px;font-weight:800;color:#facc15}
 .painel-emotes .em-obs{font-size:11px;line-height:1.35;color:#fde68a;background:rgba(127,29,29,.45);border:1px solid rgba(250,204,21,.35);border-radius:8px;padding:6px 8px}
