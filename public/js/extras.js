@@ -38,7 +38,7 @@ const fmtSeg = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 function htmlReplay(p, fp, img, dono) {
   if (!p.replay || !/^[a-f0-9]{16}$/.test(p.replay)) return '';
   return `<div class="rp-thumb rp-play" data-replay="${p.replay}" role="button" tabindex="0" title="Assistir o replay">
-      <div class="rp-fb">${img ? `<img src="${img}" alt="">` : ''}<div><b>★ NOTA 10</b><span>${esc(fp.nome)}</span></div></div>
+      <div class="rp-fb">${img ? `<img src="${img}" alt="">` : ''}<div><b>★ NOTA ${p.nota >= 9.95 ? 10 : esc(Number(p.nota || 0).toFixed(1).replace('.', ','))}</b><span>${esc(fp.nome)}</span></div></div>
       ${p.thumb === false ? '' : `<img class="rp-img" src="/replays/${p.replay}.jpg" alt="" loading="lazy">`}
       <span class="rp-go">▶</span>${p.dur ? `<span class="rp-dur">${fmtSeg(p.dur)}</span>` : ''}</div>
       ${dono ? `<button class="rp-fav${p.fav ? ' on' : ''}" data-fav="${p.replay}" title="${p.fav ? 'Tirar dos favoritos' : 'Fixa este replay no topo da sua Xzona e ele nunca expira (1 por vez)'}">${p.fav ? '⭐ Favorito · desafixar' : '☆ Favoritar (fixar no topo)'}</button>` : ''}`;

@@ -4,9 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-// porConta: máx. de replays por conta, contando o favorito (que nunca é apagado nem expira). notaMin: 9,95 aparece "10.0" na tela;
-// para testar sem tirar 10 de verdade: variável de ambiente REPLAY_NOTA_MIN (ex.: 5).
-export const REPLAY = { maxBytes: 2.5 * 1024 * 1024, porConta: 5, dias: 90, tokenMs: 10 * 60000, maxPontos: 2400, maxSeg: 240, maxThumb: 120000, notaMin: Math.min(10, /^\d+([.,]\d+)?$/.test(process.env.REPLAY_NOTA_MIN || '') ? Number(process.env.REPLAY_NOTA_MIN.replace(',', '.')) : 9.95) }; // aceita 0
+// porConta: máx. de replays por conta, contando o favorito (que nunca é apagado nem expira). notaMin: falas com nota 9 ou mais viram replay;
+// para testar com nota menor: variável de ambiente REPLAY_NOTA_MIN (ex.: 5).
+export const REPLAY = { maxBytes: 2.5 * 1024 * 1024, porConta: 5, dias: 90, tokenMs: 10 * 60000, maxPontos: 2400, maxSeg: 240, maxThumb: 120000, notaMin: Math.min(10, /^\d+([.,]\d+)?$/.test(process.env.REPLAY_NOTA_MIN || '') ? Number(process.env.REPLAY_NOTA_MIN.replace(',', '.')) : 9) }; // aceita 0
 const hex = n => crypto.randomBytes(n).toString('hex');
 const ID_OK = /^[a-f0-9]{16}$/;
 export const idValido = id => ID_OK.test(String(id || ''));

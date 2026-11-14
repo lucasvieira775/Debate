@@ -219,7 +219,7 @@ socket.on('ganhos', g => { avisoGanhos(g); sfx.nota();
   if (g.xp?.depois > g.xp?.antes) setTimeout(() => { const c = CARGOS[g.xp.depois - 1]; animarPromocao({ n: c.n, nome: c.nome, recompensa: g.xp.premio || 0, bonus: c.bonus }); }, 2500); });
 socket.on('xzona', post => { if (emJogo()) postXzona(post); });
 socket.on('pedirReplay', d => { if (!d?.token) return; if (E.cfg.replays === false) return console.warn('[replay] fala nota 10, mas "Publicar replays" está desligado nas Configurações');
-  grav.enviar(d.token, d.i, d.meta).then(r => { if (r?.ok) { if (r.conta) atualizarConta(r.conta); toast('🎬 Sua fala nota 10 virou replay na sua fanpage da Xzona!'); } }); });
+  grav.enviar(d.token, d.i, d.meta).then(r => { if (r?.ok) { if (r.conta) atualizarConta(r.conta); toast('🎬 Sua fala virou replay na sua fanpage da Xzona!'); } }); });
 socket.on('folheando', d => { est.folhear(d.id); if (d.id !== E.eu) sfx.clique(); });
 // mediação ou candidato falando: emotes e danças ficam mudos (só a animação); provocações tocam o som sempre (3 min de espera)
 const alguemFalando = () => !!(est.medFalando || narrador.tocando || ['ativo', 'encerrando'].includes(E.sala?.fala?.status));
@@ -781,7 +781,7 @@ function painelConfig(ui, refazer) {
     <div class="cfg-linha"><span>Qualidade gráfica</span><div class="seletor"><button data-q="baixa">‹</button><span>${c.qualidade === 'alta' ? 'Alta (brilho e sombras)' : 'Baixa (mais leve)'}</span><button data-q="alta">›</button></div></div>
     <div class="cfg-linha"><span>Sensibilidade para olhar em volta</span><input type="range" min=".4" max="2" step=".1" value="${c.sens}" id="t-sens"></div>
     <div class="cfg-linha"><span>Mostrar nomes sobre os candidatos</span><button class="toggle ${c.nomes ? 'on' : ''}" id="t-nomes"></button></div>
-    <div class="cfg-linha"><span>Publicar replays das minhas falas nota 10<br><small class="mut">grava sua voz só na sua vez de falar</small></span><button class="toggle ${c.replays !== false ? 'on' : ''}" id="t-replays"></button></div>
+    <div class="cfg-linha"><span>Publicar replays das minhas falas nota 9 ou mais<br><small class="mut">grava sua voz só na sua vez de falar</small></span><button class="toggle ${c.replays !== false ? 'on' : ''}" id="t-replays"></button></div>
     <div class="cfg-linha" style="border:0"><button class="btn peq amarelo" id="t-mic">🎙 Testar microfone</button><span id="t-mic-out" class="mut" style="flex:1;text-align:right;font-size:14px"></span></div>
     <p class="mut" style="font-size:13px;margin-bottom:0">Transcrição: ${temReconhecimento ? 'disponível' : 'indisponível neste navegador (use Chrome ou Edge)'} · Endereço ${contextoSeguro ? 'seguro ✔' : 'NÃO seguro (microfone bloqueado)'}</p>`;
   const g = () => { salvarConfig(c); est.cfg.sens = c.sens; est.cfg.nomes = c.nomes; };

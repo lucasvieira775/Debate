@@ -966,7 +966,8 @@ export class Salas {
     this.pagamentos = new Pagamentos(raiz, this.contas);
     this.dub = new Dublagem(raiz);
     this.replays = new Replays(raiz);
-    this.replays.aoApagar = () => this.contas.tirarReplays(id => this.replays.existe(id)); this.replays.aoApagar(); // post de replay apagado/expirado some da fanpage
+    this.replays.aoApagar = () => this.contas.tirarReplays(id => this.replays.existe(id)); this.replays.aoApagar(); // replay apagado/expirado: o post fica só com o texto
+    this.contas.aoCortar = ids => ids.forEach(id => this.replays.apagar(id)); // post saiu dos 10 mais recentes: o replay dele vai junto
     // vinheta de abertura e falas fixas dos dois jornalistas, geradas aos poucos e guardadas em disco
     this.dub.sintetizar(BOAS_VINDAS, 'locutor', 'alta');
     this.dub.vinheta();
