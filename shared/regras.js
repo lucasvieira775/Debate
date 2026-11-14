@@ -461,10 +461,10 @@ export const AV_CELSO = AV_J({ genero: 'masculino', pele: '#e6b28e', cabelo: 'ca
 export const JORNALISTAS = [
   { id: 'helena', nome: 'Poliana Cabrita', genero: 'feminino', voz: 'jornalistaF', avatar: AV_MEDIADORA },
   { id: 'ricardo', nome: 'Cezinha Tralha', genero: 'masculino', voz: 'jornalistaM', avatar: AV_MEDIADOR },
-  { id: 'maju', nome: 'Maju Caldinho', genero: 'feminino', voz: 'jornalistaF', avatar: AV_MAJU },
+  { id: 'maju', nome: 'Caju Caldinho', genero: 'feminino', voz: 'jornalistaF', avatar: AV_MAJU },
   { id: 'sandra', nome: 'Sandra AnenBrega', genero: 'feminino', voz: 'jornalistaF', avatar: AV_SANDRA },
   { id: 'fatima', nome: 'Fátima Berinjela', genero: 'feminino', voz: 'jornalistaF', avatar: AV_FATIMA },
-  { id: 'gloria', nome: 'Glória Marmita', genero: 'feminino', voz: 'jornalistaF', avatar: AV_GLORIA },
+  { id: 'gloria', nome: 'Graucia Maria', genero: 'feminino', voz: 'jornalistaF', avatar: AV_GLORIA },
   { id: 'william', nome: 'William Boné', genero: 'masculino', voz: 'jornalistaM', avatar: AV_WILLIAM },
   { id: 'evaristo', nome: 'Evaristo Coxinha', genero: 'masculino', voz: 'jornalistaM', avatar: AV_EVARISTO },
   { id: 'rodrigo', nome: 'Rodrigo Bocadinho', genero: 'masculino', voz: 'jornalistaM', avatar: AV_RODRIGO },

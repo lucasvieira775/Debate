@@ -3,7 +3,7 @@
 import { TEMAS, TEMA, pick } from '../shared/regras.js';
 
 const n = nome => `${nome},`;
-const abertura = jorn => `Boa noite, Brasil! Está começando o grande Debate Presidencial! Eu sou ${jorn.nome}, e vou mediar este debate.`;
+const abertura = jorn => `Bem-vindos à TV Grobe para o Debate Presidencial de hoje! Boa noite, Brasil! Eu sou ${jorn.nome}, e vou mediar este debate.`;
 const CUMPRIMENTEM = 'Candidatos, antes de começar, vocês podem se cumprimentar.', FRENTE = 'Então, vamos lá! Nesta noite, frente a frente, estão:';
 export const ORDENS = [
   'Ordem, gente! Vamos manter a postura. Isso é um debate sério, não uma sala de aula de quinta série.',
