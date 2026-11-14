@@ -75,5 +75,5 @@ export const GRATIS = ITENS.filter(i => TUDO_LIBERADO || i.preco === 0).map(i =>
 export const nivelOk = (id, nivel = 1) => !(ITEM[id]?.nivel > nivel);
 /** O jogador pode usar o item: tem o cargo exigido e (é grátis ou comprou). Mesma regra no cliente e no servidor. */
 export const possui = (id, itens = [], nivel = 1) => nivelOk(id, nivel) && (GRATIS.includes(id) || !!itens?.includes(id));
-// Ações: depois de usar uma, espera 3 min para usar outra; cada ação só pode ser usada uma vez por debate.
-export const ACAO_ESPERA_MS = 3 * 60000;
+// Ações: depois de usar uma, espera 1 min para usar outra; cada ação só pode ser usada uma vez por debate.
+export const ACAO_ESPERA_MS = 60000;
