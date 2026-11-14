@@ -429,7 +429,10 @@ class Sala {
     this.emit();
   }
   /** Histórico de perguntas (mediação + perguntas/réplicas entre candidatos) para os jogadores consultarem. */
-  registrarPergunta(x) { if (x.texto) { this.perguntas.push({ ...x, n: this.i }); if (this.perguntas.length > 40) this.perguntas.shift(); } }
+  registrarPergunta(x) {
+    // mesmo tema para dois candidatos (ex.: duelo): cada um recebe um "lado" e vê dicas diferentes no "?"
+    if (x.mediador && x.tema) { const outros = new Set(this.perguntas.filter(y => y.mediador && y.tema === x.tema && y.para !== x.para).map(y => y.para)); x.lado = this.perguntas.find(y => y.mediador && y.tema === x.tema && y.para === x.para)?.lado ?? outros.size; }
+    if (x.texto) { this.perguntas.push({ ...x, n: this.i }); if (this.perguntas.length > 40) this.perguntas.shift(); } }
   // ---------- candidatos da IA ----------
   /** Escreve (uma vez) a fala de um candidato da IA e já começa a gerar a voz, para ficar pronta a tempo. */
   escreverFalaBot(p) {

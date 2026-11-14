@@ -1,7 +1,7 @@
 import { Estudio } from './estudio.js';
 import { retrato } from './avatar.js';
 import { Microfone, falar, calar, sfx, somItem, nivelDoAudio, setVolume, testarMicrofone, temReconhecimento, contextoSeguro, configurarAmbiente, ajustarAmbiente, setVolumeAmbiente, setVolumeMusica, abafarAmbiente, pararSonsRevelacao } from './voz.js';
-import { PARTIDOS, PARTIDO, IDEO, AV, TEMA, TEMAS, KIND_NOME, ETAPAS, JORN, DIFICULDADES, avatarAleatorio, textoVitoria } from '/shared/regras.js';
+import { PARTIDOS, PARTIDO, IDEO, AV, TEMA, TEMAS, KIND_NOME, ETAPAS, JORN, DIFICULDADES, avatarAleatorio, textoVitoria, dicaLado } from '/shared/regras.js';
 import { $, $$, esc, fmtN, fmtP, fmtT, lerPerfil, salvarPerfil, lerConfig, salvarConfig, lerSessao, salvarSessao, logoPartido, toast, tutorialVisto, marcarTutorial, locutorOuvido, marcarLocutor } from './util.js';
 import { tocarTutorial } from './tutorial.js';
 import { Voip } from './voip.js';
@@ -1092,8 +1092,8 @@ function renderPerguntas() {
     const praMim = x.para === E.eu, para = jog(x.para)?.nome || '';
     const tit = x.mediador ? `🎙 ${esc(x.de)} → ${esc(para)} · ${rot[x.kind] || ''}` : `⚔ ${esc(x.de)} → ${esc(para)} · ${x.kind === 'replica' ? 'Réplica' : 'Pergunta'}`;
     const t = x.tema && TEMA[x.tema], id = x.n + x.kind + x.para, res = x.mediador && t?.resumo;
-    const ajuda = res ? `<button class="perg-ajuda ${aj.has(id) ? 'on' : praMim ? 'guia' : ''}" data-aj="${esc(id)}" title="Resumo do tema">?</button>` : '';
-    return `<div class="perg ${praMim ? 'minha' : ''} ${x.mediador ? '' : 'adv'}">${ajuda}<small>${tit}${t ? ` · ${t.uf}` : ''}</small><div>${esc(x.texto)}</div>${res && aj.has(id) ? `<div class="perg-resumo"><b>${esc(t.titulo)}</b> ${esc(t.resumo)}</div>` : ''}</div>`;
+    const ajuda = res ? `<button class="perg-ajuda ${aj.has(id) ? 'on' : praMim ? 'guia' : ''}" data-aj="${esc(id)}" title="Dica de fala">?</button>` : '';
+    return `<div class="perg ${praMim ? 'minha' : ''} ${x.mediador ? '' : 'adv'}">${ajuda}<small>${tit}${t ? ` · ${t.uf}` : ''}</small><div>${esc(x.texto)}</div>${res && aj.has(id) ? `<div class="perg-resumo"><b>${esc(t.titulo)}</b><span class="dica-rot">DICA DE FALA:</span> ${esc(dicaLado(t.resumo, x.lado || 0))}</div>` : ''}</div>`;
   }).join('');
   const rol = $('.perg-lista', el)?.scrollTop || 0; // mantém a rolagem ao atualizar
   el.innerHTML = `<div class="hud-box"><button class="perg-tog" id="h-perg-t">📋 Perguntas (${lista.length}) <span>${E.pergFechado ? '▸' : '▾'}</span></button>${E.pergFechado ? '' : `<div class="perg-lista">${itens}</div>`}</div>`;

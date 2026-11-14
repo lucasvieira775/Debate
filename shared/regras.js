@@ -215,7 +215,15 @@ const VICIOS = ['=ne', 'tipo assim', '=ahn', '=hum', '=eh', 'sei la', '=hmm'];
 const ATAQUE_KW = ['mentir', 'mentiroso', 'fracass', 'corrupt', 'incompeten', 'vergonh', 'escandalo', 'hipocri', 'falso', 'farsa', 'enganar', 'irresponsav', 'desastre', 'roubo', '=ladrao', 'demagog', 'populis', 'extremis', 'covard', 'omiss'];
 const MENCAO_GENERICA = ['adversari', 'oponente', '=candidato', '=candidata', 'o senhor', 'a senhora'];
 
-export const SEGUNDOS = { cumprimento: 10, proposta: 60, pergunta: 30, resposta: 60, replica: 45, treplica: 45, final: 60 };
+/** Dica de fala do "?": divide os "Pontos:" do resumo entre os candidatos que receberam o mesmo tema (lado 0 = pares, lado 1 = ímpares). */
+export const dicaLado = (res, lado = 0) => {
+  const m = /^(.*?)\s*Pontos:\s*(.+?)\.?\s*$/.exec(res || ''); if (!m) return res || '';
+  const ps = m[2].split(/,\s*(?![^(]*\))/), u = ps.pop(), k = u.lastIndexOf(' e '); ps.push(...(k > 0 && !/^\p{Lu}/u.test(u.slice(k + 3)) ? [u.slice(0, k), u.slice(k + 3)] : [u]));
+  if (ps.length < 2) return res;
+  const meus = ps.filter((_, i) => i % 2 === lado % 2), lst = meus.length > 1 ? meus.slice(0, -1).join(', ') + ' e ' + meus.at(-1) : meus[0];
+  return `${m[1]} Foque em: ${lst}.`;
+};
+export const SEGUNDOS ={ cumprimento: 10, proposta: 60, pergunta: 30, resposta: 60, replica: 45, treplica: 45, final: 60 };
 export const DUR_MULT = { curto: .5, normal: 1, longo: 1.5 };
 export const KIND_NOME = { proposta: 'Apresentação de proposta', pergunta: 'Pergunta', resposta: 'Resposta', replica: 'Réplica', treplica: 'Tréplica', final: 'Considerações finais' };
 export const ETAPAS = ['Propostas', 'Confronto', 'Considerações finais'];
