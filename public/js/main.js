@@ -426,6 +426,7 @@ function onEstado(s) {
   if (s.fase !== 'resultado') { pararRevelacao(); est.confetes(false); est.festa(null); E.celebrar = false; clearTimeout(E.celebrarT); }
   if (s.fase === 'lobby') limparXzona();
   ajustarCamera();
+  est.setApuracao(s.fase === 'resultado' && apurando(r) && emJogo()); // apuração ao vivo: cinegrafistas e câmera no telão da votação
   renderUI();
 }
 /** Modo da câmera; na comemoração, o vencedor dança sozinho no centro do palco. */
@@ -515,7 +516,7 @@ function sairLocal() {
   calar(); pararNarracao(); grav.parar(); E.gravI = null; voip.sair(); E.voipTentou = false; limparXzona(); esconderDica(); pararRevelacao();
   E.sala = null; E.eu = null; salvarSessao(null); E.tela = 'menu'; history.replaceState(null, '', '/');
   E.jornAtual = null;
-  est.setFalante(null); est.confetes(false); est.festa(null); est.setDuelo(null); est.setPoltronas(null, true); est.setPulpito(false, true); est.setModo('menu'); est.setJogadores(bots(), null); renderUI();
+  est.setFalante(null); est.confetes(false); est.festa(null); est.setApuracao(false); est.setDuelo(null); est.setPoltronas(null, true); est.setPulpito(false, true); est.setModo('menu'); est.setJogadores(bots(), null); renderUI();
 }
 function sairSala() { socket.emit('sair'); sairLocal(); }
 /** Sair no meio do debate = abandono: confirma e avisa da punição (2 abandonos em 24 h → 1 h de suspensão + perde seguidores). */
@@ -1518,6 +1519,7 @@ if (demo) setTimeout(() => {
   est.setLED({ modo: 'fala', nome: 'Carlos Mendes', partido: 'MSD', tempo: '00:42', texto: 'Vou criar um programa nacional de mobilidade, com metrô e corredores de ônibus, e investir 20 bilhões no primeiro ano.', rotulo: 'Pergunta · SP · Mobilidade na metrópole' });
   setInterval(() => est.setFalaNivel('bot1', Math.random()), 120);
   est.reacao('bot3', '👏');
+  if (demo === 'apuracao') { const q = new URLSearchParams(location.search); est.setFalante(null); if (q.get('tv')) est.setModo('tv'); est.setLED({ modo: 'resultado', titulo: 'APURAÇÃO AO VIVO · 62% DAS URNAS', lista: [['Carlos Mendes', 'MSD', 41.2], ['Ana Brasil', 'PUN', 35.7], ['Rui Barraco', 'MSD', 23.1]].map(([nome, partido, pct]) => ({ nome, partido, pct })), rodape: 'VOTOS VÁLIDOS · RESULTADO PARCIAL' }); est.setApuracao(true); est.prog = { c: est.camerasTV[2], t0: 0 }; for (let k = 0; k < 240; k++) est.animarCameras(1 / 30, k / 30); return; } // ?demo=apuracao[&tv=1]: cinegrafistas e câmera no telão (sem o painel da HUD)
   { const q = new URLSearchParams(location.search), led = q.get('led'); // ?demo=1&led=titulo|texto|tema|poll (confere os modos do telão)
     if (led) est.setLED({ titulo: { modo: 'titulo', sub: 'SALA #AB12 · 3/5 CANDIDATOS' }, texto: { modo: 'texto', cabecalho: 'CUMPRIMENTOS', texto: 'Os candidatos se cumprimentam · o debate já vai começar' }, tema: { modo: 'tema', tema: TEMAS[0].key, cabecalho: 'APRESENTAÇÃO DE PROPOSTA · ' + (q.get('nome') || 'CARLOS MENDES').toUpperCase() }, poll: { modo: 'poll', titulo: 'PESQUISA DE INTENÇÃO DE VOTO', lista: bots().map((j, i) => ({ nome: j.nome, partido: j.partido, pct: 32 - i * 5 })), rodape: 'VOTOS VÁLIDOS · MARGEM DE ERRO DE 2 P.P.' } }[led]);
     if (q.has('oy') || q.has('op')) est.olhar = { y: +q.get('oy') || 0, p: +q.get('op') || 0 }; // ?demo=1&oy=3&op=.3&vinheta=2&vt=2 (telão curvo)

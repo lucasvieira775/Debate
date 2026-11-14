@@ -17,6 +17,7 @@ import { desenharVinheta, desenharOcioso, aquecerVinhetas, tocarSomVinheta, VINH
 import { desenharGrobe } from './grobe.js';
 
 const CENTRO = new THREE.Vector3(0, 0, -3.2);   // mesa da mediadora
+const TELAO = new THREE.Vector3(0, 4.6, -10.4); // centro do telão de LED (16 x 6 m)
 const RAIO = 6.4;                                // raio do arco de púlpitos
 const ANGULOS = { 1: [0], 2: [-20, 20], 3: [-32, 0, 32], 4: [-45, -15, 15, 45], 5: [-50, -25, 0, 25, 50] };
 const DUELO = new THREE.Vector3(0, 0, .6);       // púlpitos do confronto direto (centro do palco)
@@ -316,24 +317,27 @@ export class Estudio {
     if (ag && !ag.focoCam) { const s = Math.random() < .5; ag.focoCam = ag.perto ? [Math.random() < .5, Math.random() < .5] : [s, !s]; }
     const D = 180 / Math.PI, fren = fal && this.camFrente(fal), agc = ag && this.camAgressao(ag);
     for (const [i, c] of (this.camerasTV || []).entries()) {
-      let close = false, sep = 0;
-      if (c.med && this.duelo) alvo.set(DUELO.x, 1.85, DUELO.z); // bloco 2: da plateia, por cima dos púlpitos, enquadra o 1x1
+      let close = false, sep = 0; const apu = this.apurando && !ag; // apuração: todos os cinegrafistas viram para a votação no telão
+      if (apu) alvo.copy(TELAO);
+      else if (c.med && this.duelo) alvo.set(DUELO.x, 1.85, DUELO.z); // bloco 2: da plateia, por cima dos púlpitos, enquadra o 1x1
       else if (c.med) this.mediadora.cabeca.getWorldPosition(alvo).y += .05;
       else if (c === agc) { ag.atk.ator.getWorldPosition(alvo); ag.alvo.ator.getWorldPosition(_v2); sep = Math.hypot(alvo.x - _v2.x, alvo.z - _v2.z); alvo.lerp(_v2, .5).setY(1.3); } // golpe: atacante + vítima
       else if (ag) (ag.focoCam[i] ? ag.atk : ag.alvo).ator.getWorldPosition(alvo).setY(1.5);
       else if (c === fren) { fal.avatar.cabeca.getWorldPosition(alvo).y += .12; close = true; } // close no rosto (origem da cabeça fica no pescoço)
       else if (this.duelo) alvo.set(DUELO.x, 1.5, DUELO.z); else if (fal) fal.ator.getWorldPosition(alvo).setY(1.45); else alvo.set(0, 1.5, -1);
       const p = c.g.position, dx = alvo.x - p.x, dz = alvo.z - p.z, hd = Math.hypot(dx, dz);
-      const ocioso = c.med || ag || fal || this.duelo ? 0 : Math.sin(t * .23 + c.fase) * .22;
+      const ocioso = c.med || ag || fal || this.duelo || apu ? 0 : Math.sin(t * .23 + c.fase) * .22;
       let yaw = Math.atan2(dx, dz) - c.g.rotation.y + ocioso; yaw = Math.atan2(Math.sin(yaw), Math.cos(yaw));
       const trem = c.med || close ? .2 : 1; // teleobjetiva/close: tremida bem menor (no close qualquer balanço aparece)
-      c.yaw += (clamp(yaw, -1.1, 1.1) + Math.sin(t * .7 + c.fase) * .012 * trem - c.yaw) * k;
+      const lim = apu ? 1.25 : 1.1; // as laterais giram um pouco mais para alcançar o telão
+      c.yaw += (clamp(yaw, -lim, lim) +Math.sin(t * .7 + c.fase) * .012 * trem - c.yaw) * k;
       c.pitch += (-Math.atan2(alvo.y - (p.y + 1.75), hd) + Math.sin(t * .5 + c.fase) * .01 * trem - c.pitch) * k; // lente a ~1,75 m acima da base
       c.pan.rotation.y = c.yaw; c.tilt.rotation.x = c.pitch;
       const noProg = this.prog?.c === c;
       let fov, direto = false;
       // jornalista (longe, na plateia): no ar faz um zoom in lento (6° → 4°); fora do ar volta a abrir
-      if (c.med) { fov = this.duelo ? 13.5 : noProg ? 4 + 2 * Math.exp(-(t - this.prog.t0) / 5) : 6; direto = noProg && !this.duelo; }
+      if (apu) fov = c.med ? 2 * Math.atan(4.85 / hd) * D : 30; // a da plateia (de frente) enquadra o telão inteiro: 16 m de largura + margem, em 16:9
+      else if (c.med) { fov = this.duelo ? 13.5 : noProg ? 4 + 2 * Math.exp(-(t - this.prog.t0) / 5) : 6; direto = noProg && !this.duelo; }
       else if (c === agc) { const u = clamp((t - ag.tCam) / 2.2, 0, 1), fim = 2 * Math.atan(Math.max((sep / 2 + 1) / 1.78, 1.2) / hd) * D; fov = ag.fov0 + (fim - ag.fov0) * u * u * (3 - 2 * u); direto = true; } // zoom-out lento até caber o golpe
       else if (ag) fov = 17;
       else if (close) { const base = 2 * Math.atan(.8 / hd) * D; fov = noProg ? base * (.78 + .22 * Math.exp(-(t - this.prog.t0) / 4)) : base; direto = noProg; } // no ar: zoom in lento
@@ -1206,6 +1210,15 @@ export class Estudio {
     const av = this.podios.get(this.meuId)?.avatar; if (!av) return;
     if (on) av.animar('folhear', 9999); else if (av.anim?.nome === 'folhear') av.anim = null;
   }
+  /** Apuração ao vivo: cinegrafistas e programa das telas laterais no telão (animarCameras/dirigir); a câmera de TV enquadra o telão (loop)
+   *  e, na 1ª pessoa, o seu olhar vira para ele sem travar (mouse/setas continuam valendo), como em lerDica. */
+  setApuracao(v) {
+    if (!!v === !!this.apurando) return; this.apurando = !!v;
+    const o = this.olhar, a = this.olharAntesApu;
+    if (v && this.modo === 'fp' && !this.andandoEu()) { this.olharAntesApu = { ...o }; this.olharPara(TELAO); this.olharApu = { ...o }; }
+    else if (!v && a) { if (Math.abs(o.y - this.olharApu.y) < .2 && Math.abs(o.p - this.olharApu.p) < .2) { o.y = a.y; o.p = a.p; } this.olharAntesApu = null; } // só devolve se você não mexeu no olhar
+    this.suaveAte = this.t + 1.4;
+  }
   confetes(v) { const c = this.confete; c.ativo = v; c.im.visible = v; if (v) c.ps.forEach(p => this.resetConfete(p, true)); }
   resetConfete(p, espalhar) { p.x = (Math.random() - .5) * 16; p.z = -3 + (Math.random() - .5) * 14; p.y = espalhar ? Math.random() * 10 : 9 + Math.random() * 2; p.vy = .8 + Math.random() * 1.2; p.rx = Math.random() * 6; p.ry = Math.random() * 6; p.vr = 2 + Math.random() * 4; }
   agitarPlateia(intens = 1, ms = 2500) { this.excitacao = Math.max(this.excitacao, intens); this.excitacaoAte = performance.now() + ms; }
@@ -1463,11 +1476,12 @@ export class Estudio {
     const C = this.camerasTV, P = this.prog ||= { c: C[0], t0: t }, med = C.find(c => c.med), est = C.filter(c => !c.med);
     const ag = this.agressao();
     if (ag) { const c = this.camAgressao(ag); if (c !== P.c) { P.c = c; P.t0 = t; this.desenharLateral(); } return P.c; } // corte imediato: o golpe não pode ficar fora do ar
-    if (this.replay?.fase === 'grava') return P.c; // sem cortes durante a gravação do replay
+    if (this.grav) return P.c; // sem cortes durante a gravação do replay
     const fal = this.falante && this.podios.get(this.falante), dt = t - P.t0;
     const alterna = (a, b, ta, tb) => P.c === a ? (dt > ta ? b : a) : P.c === b ? (dt > tb ? a : b) : a; // a fica ta s no ar, b fica tb s
     let quer;
-    if (this.duelo) quer = fal ? alterna(med, this.camFrente(fal), 7, 6) : med; // bloco 2: 1x1 da plateia, cortando p/ o close de quem fala
+    if (this.apurando && med) quer = med; // apuração: a câmera da plateia (de frente para o telão) fica no ar com a votação
+    else if (this.duelo) quer = fal ? alterna(med, this.camFrente(fal), 7, 6) : med; // bloco 2: 1x1 da plateia, cortando p/ o close de quem fala
     else if (this.medFalando && med) quer = med;
     else if (fal) { const frente = this.camFrente(fal); quer = alterna(frente, est.find(c => c !== frente) || frente, 10, 3.5); } // close, de vez em quando um plano aberto
     else { const giro = [...est, med]; quer = dt > 7 || !giro.includes(P.c) ? giro[(giro.indexOf(P.c) + 1) % giro.length] : P.c; }
@@ -1479,18 +1493,24 @@ export class Estudio {
   renderTelasLat(t) {
     const T = this.telasLat, C = this.camerasTV; if (!T || !C || this.modo === 'vitrine') return;
     const R = this.atualizarReplay(t), cam = this.dirigir(t)?.lente; if (!cam) return;
-    if (R?.fase === 'grava') { // a REPLAY.fps, direto num quadro do buffer (as duas telas mostram o último)
+    const G = this.grav, ao = !R || this.aoVivoLat(R);
+    if (G) { // gravando (mesmo com o replay anterior no ar): a REPLAY.fps, direto num quadro do buffer; ao vivo, as telas mostram o último
       if (t - (this.ultLat || 0) < 1 / REPLAY.fps) return; this.ultLat = t;
-      const q = R.quadros[R.n % R.max]; R.n++;
-      this.filmar(cam, q); for (const tela of T) tela.m.material.map = tela.m.userData.mix.map2.value = q.texture;
+      const q = G.quadros[G.n % G.max]; G.n++;
+      this.filmar(cam, q); if (ao) this.telasAoVivo();
       return;
     }
-    if (R && !this.aoVivoLat(R)) return; // reprisando: as telas mostram os quadros gravados (atualizarReplay)
+    if (!ao) return; // reprisando: as telas mostram os quadros gravados (atualizarReplay)
     if (t - (this.ultLat || 0) < 1 / 30) return; this.ultLat = t;
     this.filmar(cam, T[0].rt);
   }
-  /** As telas mostram o ao vivo: esperando o replay, 1ª metade da vinheta de entrada e 2ª metade da de saída. */
-  aoVivoLat(R) { const meio = R.u > REPLAY.trans / 2; return R.fase === 'espera' || (R.fase === 'entra' && !meio) || (R.fase === 'sai' && meio); }
+  /** As telas mostram o ao vivo: 1ª metade da vinheta de entrada e 2ª metade da de saída (sem replay no ar, sempre). */
+  aoVivoLat(R) { const meio = R.u > REPLAY.trans / 2; return (R.fase === 'entra' && !meio) || (R.fase === 'sai' && meio); }
+  /** Põe o ao vivo nas telas: o último quadro da gravação em curso (ela não renderiza o rt das telas) ou o rt do programa. */
+  telasAoVivo() {
+    const G = this.grav, q = G?.n ? G.quadros[(G.n - 1) % G.max].texture : null;
+    for (const tela of this.telasLat) { tela.m.material.map = tela.m.userData.mix.map2.value = q || tela.rt.texture; tela.m.userData.mix.mixK.value = 0; }
+  }
   /** Renderiza a cena pela lente de uma câmera de estúdio num render target. */
   filmar(cam, rt) {
     const eu = this.podios.get(this.meuId)?.avatar, oculta = eu && !eu.cabeca.visible;
@@ -1501,50 +1521,61 @@ export class Estudio {
     ets.forEach(([e, v]) => e.visible = v);
     this.telasLat.forEach((x, j) => x.m.visible = vis[j]); if (oculta) eu.ocultarCabeca(true);
   }
-  /** Agressão em andamento (não demo) que merece replay, ou null. */
-  agressao() { return this.acoes.lista.find(a => !a.demo && REPLAY.itens.has(a.it.id) && (a.atkVivo || a.vitViva)) || null; }
-  /** Máquina do replay: null → 'grava' → (impacto + depois) 'entra' → 'toca' → 'sai' → null. Devolve o estado. */
+  /** Agressões em andamento (não demo) que merecem replay. */
+  agressoes() { return this.acoes.lista.filter(a => !a.demo && REPLAY.itens.has(a.it.id) && (a.atkVivo || a.vitViva)); }
+  /** A agressão que as câmeras seguem (ou null): a que está sendo gravada; senão a que ainda vai bater; senão a mais antiga. */
+  agressao() { const L = this.agressoes(), g = this.grav?.a; return (L.includes(g) ? g : L.find(a => !a.bateu) || L[0]) || null; }
+  /** Buffer de quadros para um replay: reaproveita os livres; no máximo 4 (1 gravando + 3 na fila/no ar), alocados só numa cadeia de agressões. */
+  bufReplay() {
+    const max = Math.ceil((REPLAY.antes + REPLAY.depois) * REPLAY.fps) + 2, livres = this.buffersReplay ||= [];
+    if (livres.length) return livres.pop();
+    if ((this.nBuffersReplay || 0) >= 4) return null;
+    this.nBuffersReplay = (this.nBuffersReplay || 0) + 1;
+    return Array.from({ length: max }, () => new THREE.WebGLRenderTarget(REPLAY.W, REPLAY.H, { type: THREE.HalfFloatType }));
+  }
+  /** Replays em FILA. A gravação (this.grav) é independente da reprise (this.replay): cada agressão grava no seu buffer e entra em
+   *  this.filaReplay; as reprises tocam uma por vez, na ordem: 'entra' (vinheta) → 'toca' → 'sai' → próxima. Devolve a reprise no ar ou null. */
   atualizarReplay(t) {
-    let R = this.replay;
-    if (!R) {
-      const a = this.agressao(); if (!a || a === this.ultAgressao) return null;
-      this.ultAgressao = a;
-      const max = Math.ceil((REPLAY.antes + REPLAY.depois) * REPLAY.fps) + 2;
-      this.quadrosReplay ||= Array.from({ length: max }, () => new THREE.WebGLRenderTarget(REPLAY.W, REPLAY.H, { type: THREE.HalfFloatType })); // um buffer só (o programa), alocado uma vez (~15 MB)
-      R = this.replay = { fase: 'grava', a, n: 0, max, quadros: this.quadrosReplay, nImp: -1, t0: t, u: 0 };
+    const F = REPLAY.fps, fila = this.filaReplay ||= []; let G = this.grav, R = this.replay;
+    // ---- gravação: uma agressão por vez, desde antes do impacto (a que já bateu sem ser gravada fica sem replay) ----
+    if (!G) {
+      const a = this.agressoes().find(a => !a.bateu && !a.noReplay), quadros = a && this.bufReplay();
+      if (a) a.noReplay = true;
+      if (quadros) G = this.grav = { a, n: 0, max: quadros.length, quadros, nImp: -1 };
     }
-    const T = this.telasLat, F = REPLAY.fps;
-    if (R.fase === 'grava') {
-      if (R.a.bateu && R.nImp < 0) { R.nImp = R.n; R.tImp = t; }
-      const morreu = !this.acoes.lista.includes(R.a);
-      if (R.nImp < 0 && morreu) return this.fimReplay(); // abortou sem impacto: nada a reprisar
-      if (R.nImp >= 0 && (R.n - R.nImp >= REPLAY.depois * F || morreu)) { // gravação pronta: as telas voltam ao vivo até a hora do replay
-        const ini = Math.max(R.n - R.max + 1, R.nImp - Math.round(REPLAY.antes * F), 0);
-        R.seq = Array.from({ length: R.n - ini }, (_, j) => (ini + j) % R.max); R.fase = 'espera';
-        for (const tela of T) { tela.m.material.map = tela.m.userData.mix.map2.value = tela.rt.texture; tela.m.userData.mix.mixK.value = 0; }
+    if (G) {
+      if (G.a.bateu && G.nImp < 0) { G.nImp = G.n; G.tImp = t; }
+      const morreu = !this.acoes.lista.includes(G.a);
+      if (G.nImp < 0 ? morreu : G.n - G.nImp >= REPLAY.depois * F || morreu) { // abortou sem impacto (nada a reprisar) ou gravação pronta: vai para a fila
+        const ini = Math.max(G.n - G.max + 1, G.nImp - Math.round(REPLAY.antes * F), 0);
+        if (G.nImp < 0 || G.n - ini < 2) this.buffersReplay.push(G.quadros);
+        else fila.push({ a: G.a, quadros: G.quadros, seq: Array.from({ length: G.n - ini }, (_, j) => (ini + j) % G.max), tImp: G.tImp });
+        G = this.grav = null; this.ultLat = 0; // as telas voltam ao vivo já neste quadro
+        if (!R || this.aoVivoLat(R)) this.telasAoVivo();
       }
-      return R;
     }
-    if (R.fase === 'espera') { if (t - R.tImp < REPLAY.espera) return R; R.fase = 'entra'; R.t0 = t; }
+    // ---- reprise: a próxima da fila só entra com a anterior encerrada, REPLAY.espera s depois do impacto dela e sem golpe sendo gravado ----
+    if (!R) {
+      if (fila.length && !G && t - fila[0].tImp >= REPLAY.espera) R = this.replay = { ...fila.shift(), fase: 'entra', t0: t, u: 0 };
+      else { if (!G && !fila.length && this.buffersReplay?.length > 1) { this.buffersReplay.pop().forEach(q => q.dispose()); this.nBuffersReplay--; } return null; } // ocioso: fica só 1 buffer
+    }
     R.u = t - R.t0;
     if (R.fase === 'entra' && R.u >= REPLAY.trans) { R.fase = 'toca'; R.t0 = t; R.u = 0; }
     else if (R.fase === 'toca' && R.u >= R.seq.length / F / REPLAY.lenta) { R.fase = 'sai'; R.t0 = t; R.u = 0; }
     else if (R.fase === 'sai' && R.u >= REPLAY.trans) return this.fimReplay();
     // o que cada tela mostra: ao vivo (aoVivoLat) ou os quadros (lentos e fundidos); na 2ª metade da saída, o ao vivo
-    const ao = this.aoVivoLat(R);
-    const pos = R.fase === 'entra' ? 0 : R.fase === 'toca' ? R.u * F * REPLAY.lenta : R.seq.length - 1;
-    T.forEach((tela, i) => {
-      const mix = tela.m.userData.mix, mt = tela.m.material;
-      if (ao) { mt.map = mix.map2.value = tela.rt.texture; mix.mixK.value = 0; return; }
+    if (this.aoVivoLat(R)) this.telasAoVivo();
+    else {
+      const pos = R.fase === 'toca' ? R.u * F * REPLAY.lenta : R.fase === 'entra' ? 0 : R.seq.length - 1;
       const j = Math.min(Math.floor(pos), R.seq.length - 1), j2 = Math.min(j + 1, R.seq.length - 1);
-      mt.map = R.quadros[R.seq[j]].texture; mix.map2.value = R.quadros[R.seq[j2]].texture; mix.mixK.value = pos - j;
-    });
+      for (const tela of this.telasLat) { const mix = tela.m.userData.mix; tela.m.material.map = R.quadros[R.seq[j]].texture; mix.map2.value = R.quadros[R.seq[j2]].texture; mix.mixK.value = pos - j; }
+    }
     if (R.fase !== 'toca' || t - (R.tDes || 0) > .25) { R.tDes = t; this.desenharLateral(); } // tarja: a cada quadro só nas vinhetas
     return R;
   }
   fimReplay() {
-    this.replay = null; for (const tela of this.telasLat) { tela.m.material.map = tela.m.userData.mix.map2.value = tela.rt.texture; tela.m.userData.mix.mixK.value = 0; }
-    this.desenharLateral(); return null;
+    const R = this.replay; this.replay = null; if (R) this.buffersReplay.push(R.quadros); // o buffer volta a ficar livre para a próxima gravação
+    this.telasAoVivo(); this.ultLat = 0; this.desenharLateral(); return null;
   }
 
   // ===================== LOOP =====================
@@ -1628,7 +1659,8 @@ export class Estudio {
       const plano = Math.floor(t / 12) % 3, m = Math.sin(t * .2), P = this.pulp, C = this.camTV ||= { pos: new THREE.Vector3(-6.2, 2.9, -5.4), alvo: new THREE.Vector3(1.4, 1.5, 2) };
       const pos = C.posQ ||= new THREE.Vector3(), alvo = C.alvoQ ||= new THREE.Vector3();
       // (sempre deslocada para o lado, para a cabeça do(a) jornalista não tapar o centro)
-      if (((P.fase === 'entrando' && P.trav !== 2) || P.fase === 'saindo') && !this.duelo) { const c = this.dueloObj.carro.position, cx = clamp(c.x, -6, 6); pos.set(2.4 + cx * .45, 5.2, -6.4); alvo.set(cx * .85, 1.0, clamp(c.z, -1.5, .6)); }
+      if (this.apurando) { pos.set(m * .4, 4.1, .8); alvo.set(0, 4.5, -10.4); } // apuração: plano do telão com a votação, por cima das cabeças
+      else if (((P.fase === 'entrando' && P.trav !== 2) || P.fase === 'saindo') && !this.duelo) { const c = this.dueloObj.carro.position, cx = clamp(c.x, -6, 6); pos.set(2.4 + cx * .45, 5.2, -6.4); alvo.set(cx * .85, 1.0, clamp(c.z, -1.5, .6)); }
       else if (this.duelo) { pos.set(3.2 + m * .3, 2.3, -2.6); alvo.set(0, 1.25, DUELO.z); } // pelo lado da mesa: jornalista fora do quadro
       else if (plano === 0) { pos.set(-6.2 + m * .6, 2.9, -5.4); alvo.set(1.4, 1.5, 2); }
       else if (plano === 1) { pos.set(6.2 - m * .6, 2.9, -5.4); alvo.set(-1.4, 1.5, 2); }
