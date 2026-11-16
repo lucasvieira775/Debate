@@ -223,7 +223,7 @@ socket.on('pedirReplay', d => { if (!d?.token) return; if (E.cfg.replays === fal
 socket.on('folheando', d => { est.folhear(d.id); if (d.id !== E.eu) sfx.clique(); });
 // mediação ou candidato falando: emotes e danças ficam mudos (só a animação); provocações tocam o som sempre (1 min de espera)
 const alguemFalando = () => !!(est.medFalando || narrador.tocando || ['ativo', 'encerrando'].includes(E.sala?.fala?.status));
-socket.on('emote', d => { const it = ITEM[d.item]; if (!it) return; est.emote(d.id, it); if (it.tipo === 'provocacao') { somItem(it.id, sfx.vaia); est.agitarPlateia(.5, 1500); } else if (alguemFalando()) return; else if (it.tipo !== 'danca') somItem(it.id, sfx.clique); }); // dança no debate é muda: som só na comemoração
+socket.on('emote', d => { const it = ITEM[d.item]; if (!it) return; est.emote(d.id, it); if (it.tipo === 'provocacao') { somItem(it.id, sfx.vaia); est.agitarPlateia(.5, 1500); } else if (alguemFalando()) return; else if (it.tipo !== 'danca') somItem(it.id, sfx.clique, it.vol); }); // dança no debate é muda: som só na comemoração
 socket.on('advertencia', d => {
   anunciar(`⚠ ${d.nome.toUpperCase()} ADVERTIDO(A) · ${d.n}/${d.max}`); sfx.martelo();
   toast(`${d.id === E.eu ? 'Você recebeu' : d.nome + ' recebeu'} ${d.dupla ? '2 advertências' : 'uma advertência'} da moderação: ${d.motivo} (${d.n}/${d.max}).${d.id === E.eu && d.n === d.max - 1 ? ' Mais uma e você está fora!' : ''}`, 'erro');
@@ -417,7 +417,7 @@ function onEstado(s) {
   // resultado: primeiro a apuração ao vivo; a comemoração (com a dança do vencedor) só depois do anúncio
   if (s.fase === 'resultado' && ant?.fase !== 'resultado') aoResultado(s);
   const r = s.resultado, ra = ant?.resultado;
-  const comemorar = () => { E.celebrar = true; clearTimeout(E.celebrarT); E.celebrarT = setTimeout(() => celebrar(false), 15000); $('#xzona')?.classList.add('min'); est.confetes(true); const it = ITEM[r.dancas?.[r.vencedor]] || ITEM.comemorar; est.festa(r.vencedor, it.anim); sfx.vitoria(); somItem(it.id); sfx.aplausos(3.5, .3); est.festejarPlateia(8000); };
+  const comemorar = () => { E.celebrar = true; clearTimeout(E.celebrarT); E.celebrarT = setTimeout(() => celebrar(false), 15000); est.confetes(true); const it = ITEM[r.dancas?.[r.vencedor]] || ITEM.comemorar; est.festa(r.vencedor, it.anim); sfx.vitoria(); somItem(it.id); sfx.aplausos(3.5, .3); est.festejarPlateia(8000); };
   // anúncio do vencedor: cinemática de revelação (jornalista → telão ao vivo → festa); a festa de sempre entra no fim
   // quem chega depois do anúncio (sem ter visto a apuração) não vê a cinemática do zero, sem a narração: vai direto à festa
   const revelar = () => { const v = ant?.fase === 'resultado' && s.jogadores.find(j => j.id === r.vencedor); if (!v) return comemorar(); revelarVencedor(v, (ITEM[r.dancas?.[r.vencedor]] || ITEM.comemorar).anim, () => { comemorar(); ajustarCamera(); E.resKey = ''; renderResultado(); }); };
@@ -493,6 +493,7 @@ function aoNovoPasso(s) {
   if (p.tipo === 'pesquisa') sfx.sorteio();
 }
 function aoResultado(s) {
+  $('#xzona')?.classList.remove('min'); // apuração e festa: a Xzona fica aberta, a todo vapor (viradas, novo presidente)
   const r = s.resultado;
   const k = s.code + ':' + s.total + ':' + r.vencedor;
   if (E.contado !== k && r.vencedor) { // 2º turno: só conta quando o vencedor sai, no fim do debate final

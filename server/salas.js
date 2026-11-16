@@ -724,9 +724,20 @@ class Sala {
     };
     const nome = id => this.porId(id).nome;
     this.antecipar([...N.suspense(), ...(eleito1 ? N.vence1(nome(r1.res[0].id)) : [...N.segundoTurno(nome(r1.res[0].id), nome(r1.res[1].id)), ...N.turno2(nome(r1.res[0].id), nome(r1.res[1].id)), ...N.final2()])]);
-    this.narrar(N.apuracao());
+    this.narrar(N.apuracao()); this.xzonaApuracao(this.resultado.contagem);
     this.later(4000 + APURACAO_MS, () => this.anunciar1());
     this.emit();
+  }
+  /** Xzona a todo vapor na apuração: ansiedade no começo, quem larga na frente, cada virada na hora em que acontece no telão e a reta final. */
+  xzonaApuracao(c) {
+    const { ids, quadros } = c.quadros, N = quadros.length - 1, em = k => c.ini - Date.now() + c.dur * k / N, d = id => this.dadosPost(this.porId(id));
+    const post = (ms, grupo, a, b, n) => this.later(Math.max(0, ms), () => { if (this.fase === 'resultado' && this.resultado?.contagem === c) this.postarXzona(postsDe(grupo, b ? { ...d(a), alvo: d(b).nome, generoAlvo: d(b).genero } : a ? d(a) : {}, n)); });
+    post(0, 'apuracao', null, null, 3); post(em(N * .5), 'apuracao', null, null, 2); post(em(N * .82), 'apuracao', null, null, 3);
+    let l = null;
+    quadros.forEach((q, k) => {
+      const ord = q.pct.map((v, i) => [v, i]).sort((x, y) => y[0] - x[0]); if (k < 3 || (ord[1] && ord[0][0] - ord[1][0] < .3)) return; // empate técnico: ainda não virou
+      const n = ids[ord[0][1]]; if (l === null) post(em(k), 'lidera', n, null, 2); else if (n !== l) post(em(k), 'virada', n, l, 3); l = n;
+    });
   }
   anunciar1() {
     const r = this.resultado; if (!r || r.anunciado1) return;
@@ -735,6 +746,7 @@ class Sala {
     if (r.eleito1) { this.revelarNome(N.vence1(nome(r.vencedor))); this.encerrarPartida(); }
     else {
       this.narrar(N.segundoTurno(nome(r.r1.res[0].id), nome(r.r1.res[1].id))); this.later(14000, () => this.iniciarTurno2());
+      { const [a, b] = [r.r1.res[0].id, r.r1.res[1].id].map(id => this.dadosPost(this.porId(id))); this.postarXzona(postsDe('turno2', { ...a, alvo: b.nome, generoAlvo: b.genero }, 3)); }
       this.later(5000, () => { this.sentarBots(); this.emit(); }); // bots eliminados vão para as poltronas que sobrarem
     }
     this.emit();
@@ -802,7 +814,7 @@ class Sala {
     r.contagem = { turno: 2, ini: Date.now() + 3000, dur: APURACAO_MS, quadros: quadrosApuracao(r.r2.res) };
     const nomeV = this.porId(r.vencedor).nome;
     this.antecipar([...N.suspense(), ...N.vence2(nomeV)]);
-    this.narrar(N.apuracao2());
+    this.narrar(N.apuracao2()); this.xzonaApuracao(r.contagem);
     this.later(4000 + APURACAO_MS, () => { r.mostrar2 = true; this.revelarNome(N.vence2(nomeV)); this.encerrarPartida(); this.emit(); });
     this.emit();
   }
@@ -814,7 +826,8 @@ class Sala {
   /** Fim: moedas dos candidatos e ranking. */
   encerrarPartida() {
     const r = this.resultado; if (!r || r.pago) return; r.pago = true;
-    this.postarXzona(postsDe('vitoria', this.dadosPost(this.porId(r.vencedor)), 3));
+    // festa do novo presidente na Xzona: só depois que o telão revela o nome (não entrega o vencedor antes), em duas levas
+    { const dv = { ...this.dadosPost(this.porId(r.vencedor)), tema: 'tudo o que prometeu' }, cod = this.code; for (const ms of [REVELA_TELAO_MS, REVELA_TELAO_MS + 10500]) setTimeout(() => this.resultado === r && this.code === cod && this.postarXzona(postsDe('vitoria', dv, 4)), ms); }
     const candidatos = this.emAtivo();
     const finalistas = r.eleito1 ? [] : [r.r1.res[0].id, r.r1.res[1].id];
     for (const j of this.jog) {

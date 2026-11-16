@@ -170,6 +170,63 @@ export const POSTS = {
     'Os outros candidatos tão procurando onde foi que erraram 😅',
     'Que @#$% de noite! {nome} ganhou e eu ganhei a aposta 💰',
     'Já tô cobrando: e aquela promessa sobre {tema}, {nome}? 📝',
+    'TEMOS PRESIDENTE! {nome} venceu! O Brasil escolheu 🇧🇷🎆',
+    'Carreata do {partido} já tá passando aqui na rua! {nome} presidente! 🚗📢',
+    'Chorei com o anúncio. {nome} eleito(a)! 😭🎉',
+    'Buzinaço na cidade inteira! Deu {num}! 🎺',
+    'Minha rua virou carnaval: {nome} presidente! 🎊',
+    'O novo presidente do Brasil é {nome}. Que venham os próximos quatro anos 🙏',
+    'Soltaram tanto fogos que o cachorro se escondeu. Parabéns, {nome}! 🐶🎆',
+  ],
+  // ---- apuração ao vivo (salas.js xzonaApuracao) ----
+  apuracao: [
+    'COMEÇOU A APURAÇÃO! Ninguém respira nesta casa 😰🗳️',
+    'Tô atualizando o telão de 2 em 2 segundos. Socorro.',
+    'Meu coração não aguenta essa contagem de votos 💓',
+    'Urna por urna, voto por voto. Que agonia boa! 🗳️',
+    'Roendo a unha do pé já, porque a da mão acabou 💅',
+    'Minha vó tá rezando o terço na frente da TV 📿',
+    'Alguém segura a minha mão, pelo amor de Deus 🫣',
+    'Essa apuração tá melhor que final de Copa ⚽🔥',
+    'O Brasil inteiro grudado no telão agora 🇧🇷',
+    'Tá apertado demais! Cada urna muda tudo 😱',
+    'Não pisquem! Do jeito que tá, vira a qualquer momento 👀',
+    'O grupo da família silenciou. Todo mundo vendo a apuração 📱',
+    'Faltam poucas urnas e eu já suei a camisa inteira 🥵',
+    'Quem inventou apuração ao vivo queria me matar do coração ❤️‍🔥',
+    'Reta final da apuração! Segura, Brasil! 🏁',
+  ],
+  lidera: [
+    '{nome} largou na frente nas primeiras urnas! 🏃💨',
+    'Primeira parcial: {nome} na liderança. Mas tem muita urna ainda 👀',
+    'O {partido} já tá soltando rojão com o {nome} na frente. Calma, gente 🎆',
+    '{nome} abriu vantagem no começo. Será que segura? 🤔',
+    'Começou com {nome} em primeiro. O {num} tá voando nas urnas 🗳️',
+    'Comitê do {nome} em festa com a primeira parcial 🥳',
+  ],
+  virada: [
+    'VIROOOOU! {nome} passou o {alvo}! 🔥🔥🔥',
+    'QUE VIRADA! {nome} assume a liderança! Tô gritando aqui 😱',
+    'O {alvo} tava na frente e o {nome} atropelou! Virou o jogo! 🔄',
+    'MEU DEUS, VIROU! {nome} na frente agora! Vizinhança inteira gritando 📢',
+    'Eu avisei que o {nome} ia virar! Chupa, {alvo}! 😎',
+    'Comitê do {partido} explodiu de alegria: {nome} virou! 🎉',
+    'Não acredito! O {alvo} perdeu a liderança pro {nome} 😭',
+    'É VIRADA! O {num} tomou a ponta! 🗳️🚀',
+    'Torcida do {alvo} em silêncio agora. {nome} virou! 🤫',
+    'Soltei fogos aqui em casa! {nome} na liderança! 🎆🎇',
+    'Essa virada do {nome} vai passar no jornal a semana inteira 📺',
+    'O {alvo} comemorou cedo demais. {nome} virou! ⏰',
+    'Quem saiu pra ir no banheiro perdeu: {nome} virou em cima do {alvo}! 🚽😂',
+    'Virou de novo?! Essa eleição tá uma montanha-russa 🎢 {nome} na frente!',
+  ],
+  turno2: [
+    'VAI TER SEGUNDO TURNO! {nome} x {alvo}. Ninguém dorme hoje 😱',
+    'Segundo turno confirmado: {nome} contra {alvo}. Que disputa! 🥊',
+    'Não acabou! {nome} e {alvo} vão se enfrentar de novo 🔥',
+    'Agora é mano a mano: {nome} x {alvo}. Escolham o lado 👇',
+    'Meu coração não aguenta um segundo turno entre {nome} e {alvo} 💓',
+    'E os votos de quem ficou de fora, vão pra quem? {nome} ou {alvo}? 🤔',
   ],
   // comentários soltos, que aparecem no meio do feed
   geral: [
@@ -231,9 +288,9 @@ function montar(grupos, dados, nivel) {
     let txt; do txt = pick(POSTS[g]); while (usados.has(txt) && POSTS[g].length > usados.size);
     usados.add(txt);
     const [nomeP, user] = perfis[k];
-    const viral = ['paulada', 'cadeirada'].includes(nivel) ? 8 : ['pessima', 'otima', 'xingou', 'banido', 'vitoria'].includes(nivel) ? 6 : TAGS_ACAO[nivel] ? 3 : 1;
+    const viral = ['paulada', 'cadeirada'].includes(nivel) ? 8 : ['pessima', 'otima', 'xingou', 'banido', 'vitoria', 'virada', 'turno2'].includes(nivel) ? 6 : TAGS_ACAO[nivel] ? 3 : 1;
     if (Math.random() < (TAGS_ACAO[g] ? .6 : .35)) { // hashtag no fim, às vezes
-      const t = pick(TAGS_ACAO[g] || (['pessima', 'ruim', 'xingou', 'banido', 'silencio'].includes(g) ? TAGS.ruim : ['boa', 'otima', 'vitoria'].includes(g) ? TAGS.bom : TAGS.geral));
+      const t = pick(TAGS_ACAO[g] || (['pessima', 'ruim', 'xingou', 'banido', 'silencio'].includes(g) ? TAGS.ruim : ['boa', 'otima', 'vitoria', 'virada', 'lidera'].includes(g) ? TAGS.bom : TAGS.geral));
       txt += ' ' + t;
     }
     const subst = (_, c) => dados[c] ?? '';

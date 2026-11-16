@@ -74,7 +74,10 @@ img.xz-av{object-fit:cover;background:#1d2a4a}
 .fp-banner{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 14px;font-size:14px;max-width:460px}
 
 /* ---------- anotação da assessoria (papel) ---------- */
-.papel-cena{position:absolute;left:50%;top:calc(50% - 95px);width:min(520px,90*var(--vw));height:min(540px,100*var(--vh) - 340px);min-height:220px;transform:translate(-50%,-52%);perspective:1400px;z-index:40}
+/* à esquerda, logo depois da coluna da Xzona (sem cobri-la), abaixo da faixa do tema e acima do campo de resposta: o centro/direita ficam livres para ver o púlpito */
+/* termina acima da legenda (nome · número · partido de quem fala, bottom:190px) e não entra na coluna da direita (perguntas) */
+.papel-cena{position:absolute;left:calc(min(340px,30*var(--vw)) + 30px);top:90px;width:min(640px,max(380px,100*var(--vw) - min(340px,30*var(--vw)) - 394px));height:min(640px,100*var(--vh) - 425px);min-height:220px;perspective:1400px;z-index:40}
+@media(max-width:760px){.papel-cena{left:14px;width:calc(100*var(--vw) - 28px)}}
 /* enquanto a anotação está aberta, o campo de resposta/microfone fica À FRENTE dela (dá para ler e falar/digitar ao mesmo tempo) */
 #hud:has(#papel-dica) .acao{z-index:45}
 .papel{position:absolute;inset:0;border-radius:4px;box-shadow:0 18px 40px rgba(0,0,0,.45)}
@@ -87,10 +90,10 @@ img.xz-av{object-fit:cover;background:#1d2a4a}
   transform:rotate(-1.5deg) translateY(30px);opacity:0;animation:aparece .5s ease 1.25s forwards;overflow:auto}
 .nota::before{content:"";position:absolute;left:46px;top:0;bottom:0;width:2px;background:#ef9a9a}
 @keyframes aparece{to{opacity:1;transform:rotate(-1.5deg) translateY(0)}}
-.papel-cena.sai{animation:papelSai .45s ease forwards}@keyframes papelSai{to{opacity:0;transform:translate(-50%,-30%) rotate(6deg)}}
-.nota .cab{font:700 11px "Segoe UI",Arial;letter-spacing:.14em;text-transform:uppercase;color:#7a8bb5}
-.nota h3{font:400 30px "Caveat","Comic Sans MS",cursive;margin:4px 0 6px;color:#0f2a6b;text-decoration:underline wavy #c33 1px}
-.mao{font:500 23px/1.25 "Caveat","Comic Sans MS",cursive;color:#1b2a52;margin:6px 0}
+.papel-cena.sai{animation:papelSai .45s ease forwards}@keyframes papelSai{to{opacity:0;transform:translateY(60px) rotate(6deg)}}
+.nota .cab{font:700 12px "Segoe UI",Arial;letter-spacing:.14em;text-transform:uppercase;color:#7a8bb5}
+.nota h3{font:400 35px"Caveat","Comic Sans MS",cursive;margin:4px 0 6px;color:#0f2a6b;text-decoration:underline wavy #c33 1px}
+.mao{font:500 27px/1.2"Caveat","Comic Sans MS",cursive;color:#1b2a52;margin:6px 0}
 .nota ul.mao{padding-left:18px}.nota li{margin:4px 0}
 .mao.destaque{background:linear-gradient(transparent 55%,#fff176 55%);display:inline}
 .mao.alerta{color:#b91c1c}

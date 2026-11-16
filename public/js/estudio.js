@@ -1198,8 +1198,9 @@ export class Estudio {
   /** X na tela (px) dos pés do avatar da vitrine, para alinhar botões embaixo dele. */
   xVitrine() { const v = new THREE.Vector3(); if (!this.vitrine || this.demoV) { const r = this.canvas.getBoundingClientRect(); return r.left + r.width / 2; } // demo de ação: centralizado (o atacante anda)
     this.vitrine.root.getWorldPosition(v).project(this.camera); const r = this.canvas.getBoundingClientRect(); return r.left + (v.x + 1) / 2 * r.width; }
-  folhear(id) { this.podios.get(id)?.avatar.animar('folhear', id === this.meuId && this.lendo ? 9999 : 3.4); }
-  /** Lendo a anotação da assessoria: a câmera desce suave até o papel do púlpito e o avatar fica folheando até guardar. */
+  folhear(id) { this.podios.get(id)?.avatar.animar('folhear', id === this.meuId ? 2.1 : 3.4); }
+  /** Lendo a anotação da assessoria: a câmera desce suave até o papel do púlpito; o avatar só folheia enquanto procura (até a anotação aparecer),
+   *  depois volta ao corpo normal e gesticula de novo quando começa a falar. */
   guiarMic(mic, ok) { this.guia = { mic, ok }; }
   lerDica(on) {
     if (!!on === !!this.lendo) return; this.lendo = !!on;
@@ -1211,7 +1212,7 @@ export class Estudio {
       this.suaveAte = this.t + 1.4;
     }
     const av = this.podios.get(this.meuId)?.avatar; if (!av) return;
-    if (on) av.animar('folhear', 9999); else if (av.anim?.nome === 'folhear') av.anim = null;
+    if (on) av.animar('folhear', 1.8); else if (av.anim?.nome === 'folhear') av.anim = null;
   }
   /** Apuração ao vivo: cinegrafistas e programa das telas laterais no telão (animarCameras/dirigir); a câmera de TV enquadra o telão (loop)
    *  e, na 1ª pessoa, o seu olhar vira para ele sem travar (mouse/setas continuam valendo), como em lerDica. */
