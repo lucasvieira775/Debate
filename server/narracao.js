@@ -16,10 +16,30 @@ export const ORDENS = [
   'Vamos com calma! Ataque pessoal não é proposta de governo.',
   'Atenção, candidatos! Mais respeito, por favor. Quem perde com isso é o eleitor.',
   'Chega! Vamos voltar ao debate de ideias. É isso que o país quer ver hoje.',
+  'Olha o palavreado! Tem criança acordada assistindo a este debate.',
+  'Epa! Esse vocabulário não cabe aqui. Vamos elevar o nível, por favor.',
+  'Assim não dá! Discordar pode, ofender não. Vamos voltar às propostas.',
+  'Menos, gente, menos! Xingamento não ganha voto, só perde a razão.',
+  'Candidatos, respirem fundo! O microfone está aberto e o Brasil está ouvindo tudo.',
 ];
 export const ORDEM = ORDENS[0];
-export const BANIDO = 'esse tipo de ofensa não é tolerado neste debate. A sua candidatura está fora desta disputa.';
-export const ADVERTENCIA = 'esta é uma advertência formal da mediação. Respeite as regras do debate. Na terceira advertência, a candidatura está fora.';
+export const BANIDOS = [
+  'esse tipo de ofensa não é tolerado neste debate. A sua candidatura está fora desta disputa.',
+  'passou de todos os limites. Por decisão da mediação, a sua candidatura está fora deste debate.',
+  'chega! Isso é inaceitável em rede nacional. A sua participação termina aqui.',
+  'eu avisei. Ofensa desse tipo não tem espaço aqui. A sua candidatura está eliminada.',
+  'o debate é de ideias, não de agressões. Por favor, deixe o púlpito. A sua candidatura está fora.',
+  'lamento, mas regra é regra. Com esse comportamento, a sua candidatura está fora desta disputa.',
+];
+export const ADVERTENCIAS = [
+  'esta é uma advertência formal da mediação. Respeite as regras do debate. Na terceira advertência, a candidatura está fora.',
+  'advertência registrada. Modere as palavras. Na terceira advertência, a candidatura está fora.',
+  'a mediação está advertindo você. Critique as ideias, não a pessoa. Na terceira, a candidatura está fora.',
+  'atenção: isso vale uma advertência. Mais respeito com os adversários. Na terceira advertência, é eliminação.',
+  'cartão amarelo da mediação! Esse tipo de fala não é aceito aqui. Na terceira advertência, a candidatura está fora.',
+  'advertência formal. O eleitor merece respeito, e os adversários também. Na terceira, a candidatura está fora.',
+];
+export const BANIDO = BANIDOS[0], ADVERTENCIA = ADVERTENCIAS[0];
 export const APURACAO ='Urnas fechadas! Começa agora a apuração, ao vivo. Acompanhe no telão os votos chegando de todo o Brasil!';
 export const APURACAO2 = 'Começa agora a apuração do segundo turno! Quem vai levar? Acompanhe ao vivo!';
 // frases neutras de gênero (não entregam o vencedor antes da hora)
@@ -51,6 +71,11 @@ export const FALAS_ACAO = [
   'Que é isso, minha gente! Segura essa emoção aí! Pode levantar, o debate continua!',
   'Ai, meu Deus! Corta pro intervalo! Não, não, estamos ao vivo! Levanta, não foi nada!',
   'Vamos respeitar o adversário, por favor! Pode levantar, foi só um susto!',
+  'Minha Nossa Senhora! Segurança! Não, espera, já passou. Levanta devagar, tá tudo bem!',
+  'Gente, o que é isso?! Em trinta anos de jornalismo eu nunca vi isso! Levanta, por favor!',
+  'Opa! Caiu! Alguém traz uma água! Respira, levanta e vamos seguir com o debate!',
+  'Isso vai parar em todos os jornais amanhã! Levante, por favor, o Brasil está assistindo!',
+  'Parou, parou, parou! Aqui se debate com argumento, não com pancada! Pode levantar!',
 ];
 // tomate, torta, balde: o alvo não cai (sem "levante")
 export const FALAS_LEVE = [
@@ -60,6 +85,11 @@ export const FALAS_LEVE = [
   'Calma, calma! Ninguém se machucou de verdade. Vamos manter o nível, por favor!',
   'Que é isso, minha gente! Segura essa emoção aí! Respira fundo, o debate continua!',
   'Vamos respeitar o adversário, por favor! Foi só um susto, vamos seguir!',
+  'Eita! Acertou em cheio! Produção, traz um pano, por favor! Vamos seguir!',
+  'Gente, isso aqui não é programa de auditório! Limpa aí e vamos continuar!',
+  'Ai, que sujeira! Quem vai limpar este estúdio depois? Segue o debate, por favor!',
+  'Olha a bagunça! O figurino não merecia isso. Respira fundo, vamos em frente!',
+  'Pontaria boa, educação nenhuma! Vamos manter o respeito, por favor!',
 ];
 export const FALAS_FLORES = [
   'Que lindo! Olha só, gente, finalmente um pouco de amor neste debate!',
@@ -67,6 +97,11 @@ export const FALAS_FLORES = [
   'Que carinho! Até a bancada da mediação ficou emocionada!',
   'Flores no debate! A política brasileira tem jeito, sim, senhoras e senhores!',
   'Que coisa mais fofa! Guardem esse momento, porque não acontece todo dia!',
+  'Olha que gentileza! Assim até dá gosto de mediar este debate!',
+  'Flores para o adversário! Será que vem aliança por aí, minha gente?',
+  'Ah, que amor! O estúdio ficou até mais perfumado!',
+  'Que momento! Paz e amor em pleno debate presidencial. Quem diria!',
+  'Um buquê no meio do debate! O eleitor em casa deve estar suspirando!',
 ];
 
 export const N = {
@@ -93,8 +128,8 @@ export const N = {
   treplica: (nome, s) => [n(nome), 'a sua tréplica.', seg(s)],
   final: (nome, s, v = 0) => [n(nome), ['suas considerações finais. Por que o eleitor deve votar em você?', 'suas considerações finais. O que o eleitor ganha votando em você?'][v % 2], seg(s)],
   ordem: () => [pick(ORDENS)],
-  banido: nome => [n(nome), BANIDO],
-  advertencia: nome => [n(nome), ADVERTENCIA],
+  banido: nome => [n(nome), pick(BANIDOS)],
+  advertencia: nome => [n(nome), pick(ADVERTENCIAS)],
   apuracao: () => [APURACAO],
   apuracao2: () => [APURACAO2],
   // revelação: suspense no close (sem nome) e, 3,5 s depois, o nome exclamado quando o telão mostra o vencedor
@@ -117,7 +152,7 @@ export function trechosFixos(jorn) {
     'suas considerações finais. Por que o eleitor deve votar em você?', 'suas considerações finais. O que o eleitor ganha votando em você?',
     SUSPENSE, VITORIA1, VITORIA2,
     'Apuração encerrada. Nenhum candidato alcançou a maioria dos votos válidos. Vão para o segundo turno:', 'Em instantes, o debate do segundo turno.',
-    FIM_DUELO, VOLTEM, SEGUNDO_TURNO, REGRA_T2, TEMA_LIVRE, FINAL2, ...COBRANCAS, ...segundos.map(seg), ...ORDENS, BANIDO, ADVERTENCIA, APURACAO, APURACAO2,
+    FIM_DUELO, VOLTEM, SEGUNDO_TURNO, REGRA_T2, TEMA_LIVRE, FINAL2, ...COBRANCAS, ...segundos.map(seg), ...ORDENS, ...BANIDOS, ...ADVERTENCIAS, APURACAO, APURACAO2,
   ];
 }
 export const sortearVariacao = () => ({ v: Math.random() * 2 | 0, cob: Math.random() < .35 ? Math.random() * COBRANCAS.length | 0 : -1 });

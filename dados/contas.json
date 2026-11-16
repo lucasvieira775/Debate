@@ -140,7 +140,7 @@
  "852c87d5-ca24-481d-8c57-ebced570b133": {
   "uid": "852c87d5-ca24-481d-8c57-ebced570b133",
   "nome": "Lula Meupau",
-  "moedas": 10000,
+  "moedas": 10500,
   "dicasExtra": 0,
   "partidas": 3,
   "vitorias": 2,
@@ -211,9 +211,25 @@
     "t": 1794408801947,
     "valor": 136,
     "motivo": "Partida de debate"
+   },
+   {
+    "t": 1794798070964,
+    "valor": 250,
+    "motivo": "Melhor candidato da semana de 2026-11-09"
+   },
+   {
+    "t": 1794831759031,
+    "valor": 250,
+    "motivo": "Melhor candidato da semana de 2026-11-09"
    }
   ],
-  "cargoMax": 2
+  "cargoMax": 2,
+  "titulos": {
+   "semanal": [
+    "2026-11-09",
+    "2026-11-09"
+   ]
+  }
  },
  "6e594cd3-ec84-44cd-8d17-f56d7438067f": {
   "uid": "6e594cd3-ec84-44cd-8d17-f56d7438067f",
@@ -2861,10 +2877,6 @@
      "texto": "Chegou a hora, meus camaradas. Olho para você no seu olho e venho falar do nosso projeto de futuro coletivo. Vou começar criando dois milhões de vagas de trabalho verde até o final do primeiro ano. Vou eliminar a extrema pobreza do nosso país em até 36 meses e universalizar o acesso ao ensino técnico integral em até quatro anos de mandato. No meu governo, vai ter esperança e justiça; a família bra",
      "tema": "",
      "nota": 10,
-     "replay": "5ce517bf08edd0ba",
-     "dur": 60,
-     "thumb": true,
-     "titulo": "🎬 Fala nota 10",
      "delta": 0,
      "curtidas": 443,
      "reposts": 75,
@@ -2875,10 +2887,6 @@
      "texto": "Primeiramente, eu trabalho com números reais, não com mentiras igual a você, Roberta Azevedo. Ana Ribeiro, fale para o povo brasileiro. O povo está cansado de mentira. Eu vou isentar os mais pobres de tributos; vou fazer a devolução do dinheiro que essas pessoas pagaram de impostos nos últimos quatro anos para quem ganha menos de R$ 5.000. Vou declarar o fim da guerra fiscal e sanar esse problema ",
      "tema": "Transição da reforma tributária",
      "nota": 9.7,
-     "replay": "4ad04aff319a4a76",
-     "dur": 60,
-     "thumb": true,
-     "titulo": "🎬 Fala nota 9,7",
      "delta": 0,
      "curtidas": 635,
      "reposts": 108,
@@ -2889,10 +2897,6 @@
      "texto": "Bom, Ana Ribeiro, o país disputa centros de dados com incentivos fiscais. Eu quero saber o que você vai fazer para conseguir criar empregos e aumentar a tecnologia e os dados dos brasileiros que são guardados no nosso país. Qual tecnologia você vai criar para proteger esses dados de hackers e dos problemas?",
      "tema": "Data centers e soberania digital",
      "nota": 9.5,
-     "replay": "bd20947ba94513ec",
-     "dur": 30,
-     "thumb": true,
-     "titulo": "🎬 Fala nota 9,5",
      "delta": 0,
      "curtidas": 582,
      "reposts": 124,
@@ -2903,10 +2907,6 @@
      "texto": "Boa noite a todos. Primeiramente, é uma alegria estar aqui e, ao mesmo tempo, uma tristeza estar ao lado de pessoas como esses candidatos, Ana Ribeiro e Roberta Azevedo, né? Mas vamos lá, o que o Brasil e o povo querem saber: as facções já ordenaram ataques a partir dos presídios, toda vez tem a mesma notícia. Eu vou controlar no meu governo, vou criar um controle das prisões com inteligência. Vou",
      "tema": "Ataques do crime organizado",
      "nota": 9.2,
-     "replay": "ebe5dd2e6f5c0572",
-     "dur": 60,
-     "thumb": true,
-     "titulo": "🎬 Fala nota 9,2",
      "delta": 0,
      "curtidas": 204,
      "reposts": 43,
@@ -2917,15 +2917,10 @@
      "texto": "Educação não é gasto, é investimento! No meu governo, toda escola pública vai ter tempo integral, internet de verdade e professor bem pago. Vamos investir quarenta bilhões em cinco anos, com metas claras e prestação de contas todo mês. Porque um país que cuida da sua criança hoje não precisa construir presídio amanhã!",
      "tema": "Educação",
      "nota": 9.6,
-     "replay": "748dba8fe501e87b",
-     "dur": 25,
-     "thumb": true,
-     "titulo": "🎬 Fala nota 9,6",
      "delta": 0,
      "curtidas": 431,
      "reposts": 136,
-     "respostas": 117,
-     "fav": true
+     "respostas": 117
     },
     {
      "t": 1794624220753,
