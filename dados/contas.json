@@ -1319,10 +1319,10 @@
  },
  "a7be5498-0d2d-40ff-8360-ed1cbfc16039": {
   "uid": "a7be5498-0d2d-40ff-8360-ed1cbfc16039",
-  "moedas": 10055,
+  "moedas": 10195,
   "dicasExtra": 0,
-  "partidas": 2,
-  "vitorias": 1,
+  "partidas": 3,
+  "vitorias": 2,
   "criadaEm": 1794485250517,
   "cadastro": {
    "idade": 32,
@@ -1331,9 +1331,9 @@
    "criadoEm": 1794488309950
   },
   "nome": "Lulatron Bozossauro",
-  "xp": 402,
+  "xp": 586,
   "abandonos": [
-   1794600728030
+   1794833897440
   ],
   "extrato": [
    {
@@ -1345,16 +1345,66 @@
     "t": 1794602134034,
     "valor": 15,
     "motivo": "Partida de debate"
+   },
+   {
+    "t": 1794833585512,
+    "valor": 100,
+    "motivo": "Promoção a Vereador"
+   },
+   {
+    "t": 1794833585514,
+    "valor": 40,
+    "motivo": "Partida de debate"
    }
   ],
   "fanpage": {
    "nome": "Lulatron Bozossauro",
    "user": "lulatron",
    "bio": "",
-   "seguidores": 0,
+   "seguidores": 502,
    "criadaEm": 1794602171022,
-   "posts": []
-  }
+   "posts": [
+    {
+     "t": 1794833585524,
+     "texto": "O Brasil está assistindo agora, então vou começar garantindo o primeiro emprego com carteira assinada para meio milhão de jovens em dois anos. Vou criar bolsas de permanência universitária para zerar a evasão escolar até o final do mandato. Vamos ampliar o crédito popular para os jovens empreendedores nos primeiros 100 dias de governo. Aqui vou trabalhar com a realidade, olhando para o povo necess",
+     "tema": "",
+     "nota": 8.9,
+     "delta": 486,
+     "curtidas": 1247,
+     "reposts": 253,
+     "respostas": 112
+    },
+    {
+     "t": 1794833545860,
+     "texto": "O Brasil está assistindo agora, então vou começar garantindo o primeiro emprego com carteira assinada para meio milhão de jovens em dois anos. Vou criar bolsas de permanência universitária para zerar a evasão escolar até o final do mandato e vou ampliar o crédito popular para os jovens empreendedores nos primeiros 100 dias de governo. Aqui vou trabalhar com a realidade, olhando para o povo necessi",
+     "tema": "",
+     "nota": 10,
+     "replay": "ef6c8a1d5911770e",
+     "dur": 59,
+     "thumb": true,
+     "titulo": "🎬 Fala nota 10",
+     "delta": 0,
+     "curtidas": 547,
+     "reposts": 191,
+     "respostas": 124
+    },
+    {
+     "t": 1794832624795,
+     "texto": "Boa noite a todos. O vício em apostas é algo terrível. Muitas pessoas não sabem, mas é comparado ao vício da cocaína, e ele cresceu rápido. Esse vício está endividando famílias e fazendo pessoas se matarem. Eu vou regulamentar e criar uma proteção a beneficiários de programas sociais que estão viciados. Assim como existem os Alcoólicos Anônimos, eu vou criar os \"Viciados em Apostas Anônimos\", com ",
+     "tema": "Vício em apostas online",
+     "nota": 9,
+     "replay": "c5180227e7a8a1a6",
+     "dur": 60,
+     "thumb": true,
+     "titulo": "🎬 Fala nota 9,0",
+     "delta": 0,
+     "curtidas": 961,
+     "reposts": 85,
+     "respostas": 97
+    }
+   ]
+  },
+  "cargoMax": 2
  },
  "17d3980c-bb5f-4792-917f-ad01407a9aa3": {
   "uid": "17d3980c-bb5f-4792-917f-ad01407a9aa3",
@@ -3270,5 +3320,29 @@
   "partidas": 0,
   "vitorias": 0,
   "criadaEm": 1794832179905
+ },
+ "4f9d0f1b-4e69-445f-913d-95a9dd94ef41": {
+  "uid": "4f9d0f1b-4e69-445f-913d-95a9dd94ef41",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794833511911
+ },
+ "dbf60f5a-7c6b-4fba-b668-2cea92f863cd": {
+  "uid": "dbf60f5a-7c6b-4fba-b668-2cea92f863cd",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794833543690
+ },
+ "1a5ef499-8d7b-47ec-b8c2-797ae02dac08": {
+  "uid": "1a5ef499-8d7b-47ec-b8c2-797ae02dac08",
+  "moedas": 10000,
+  "dicasExtra": 0,
+  "partidas": 0,
+  "vitorias": 0,
+  "criadaEm": 1794833850908
  }
 }

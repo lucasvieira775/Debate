@@ -1,7 +1,34 @@
 {
  "semana": {
   "id": "2026-11-16",
-  "ranking": {}
+  "ranking": {
+   "lulatron bozossauro": {
+    "nome": "Lulatron Bozossauro",
+    "pts": 1290,
+    "partidas": 1,
+    "vitorias": 1,
+    "avatar": {
+     "genero": "masculino",
+     "pele": "#f6d3b3",
+     "cabelo": "repartido",
+     "corCabelo": "#a0522d",
+     "barba": "cheia",
+     "oculos": "nenhum",
+     "chapeu": "cartola",
+     "roupa": "polo",
+     "corRoupa": "#1e2a4a",
+     "corCamisa": "#f9a8d4",
+     "corGravata": "#111827",
+     "brinco": false,
+     "broche": true,
+     "extra": "nenhum",
+     "corpo": "magro",
+     "expressao": "simpatico"
+    },
+    "partido": "FPB",
+    "uid": "a7be5498-0d2d-40ff-8360-ed1cbfc16039"
+   }
+  }
  },
  "mes": {
   "id": "2026-11",
@@ -60,9 +87,9 @@
    },
    "lulatron bozossauro": {
     "nome": "Lulatron Bozossauro",
-    "pts": 1872,
-    "partidas": 2,
-    "vitorias": 1,
+    "pts": 3162,
+    "partidas": 3,
+    "vitorias": 2,
     "avatar": {
      "genero": "masculino",
      "pele": "#f6d3b3",

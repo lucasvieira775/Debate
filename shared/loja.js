@@ -13,7 +13,7 @@ export const ITENS = [
   { id: 'coracao', som: 'Audience going awww sweetly with soft harp glissando', seg: 2.5, tipo: 'emote', nome: 'Coração para o eleitor', preco: 100, anim: 'coracao', emoji: '❤️', frase: '' },
   { id: 'continencia', som: 'Short military bugle salute call with a boot stomp', seg: 2.5, tipo: 'emote', nome: 'Continência', preco: 150, anim: 'continencia', emoji: '🫡', frase: '' },
   { id: 'facepalm', som: 'Hand slapping forehead followed by a long disappointed sigh', seg: 2, tipo: 'emote', nome: 'Mão na testa', preco: 150, anim: 'facepalm', emoji: '🤦', frase: '' },
-  { id: 'micdrop', som: 'Microphone dropping on a wooden stage with loud thud and speaker feedback, crowd ooohs', seg: 3, tipo: 'emote', nome: 'Largar o microfone', preco: 300, anim: 'micdrop', emoji: '🎤', frase: 'Mic drop!' },
+  { id: 'micdrop', som: 'Loud long comedic cartoon fart, whoopee cushion sound, then crowd groaning eww and laughing', seg: 3, tipo: 'emote', nome: 'Soltar um peido', preco: 300, anim: 'peido', emoji: '💨', frase: 'Ops… escapou!' }, // id antigo ("largar o microfone") mantido: quem já comprou continua com o item
   { id: 'aceno', som: 'Friendly crowd cheering and clapping hello', seg: 2.5, tipo: 'emote', nome: 'Aceno ao povo', preco: 130, anim: 'aceno', emoji: '👋', frase: '' },
   // ---- provocações ----
   { id: 'chorao', som: 'Person laughing out loud hysterically, mocking belly laugh, ha ha ha', seg: 3, tipo: 'provocacao', nome: 'Chora mais', preco: 200, anim: 'gargalhada', emoji: '😭', frase: 'Chora mais!' },

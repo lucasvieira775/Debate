@@ -710,6 +710,24 @@ export class Avatar {
       if (s > 0 && pip.visible) pip.quaternion.copy(mo.getWorldQuaternion(_qA).invert().multiply(this.torso.getWorldQuaternion(_qB))); // balde sempre em pé // a pipoca da pinça aparece depois de pegar
     }
     if (pose?.coracoes || this.cors?.length) this.coracoes(dt, pose?.coracoes && t - (this.anim?.ini ?? t) > .4); // espera as mãos chegarem
+    if (pose?.gases || this.gas?.length) this.gases(dt, !!pose?.gases);
+  }
+  /** Nuvenzinhas verdes que saem de trás do quadril no emote "peido": vão para trás, sobem, crescem e somem. */
+  gases(dt, emitir) {
+    this.gas ||= [];
+    if (emitir && (this.tGas = (this.tGas || 0) - dt) <= 0) {
+      this.tGas = .07;
+      const me = new THREE.Mesh(geo('gas', () => new THREE.SphereGeometry(1, 10, 8)), new THREE.MeshBasicMaterial({ color: Math.random() < .4 ? '#b9d646' : '#8fbf3a', transparent: true, depthWrite: false }));
+      me.position.set((Math.random() - .5) * .7, .75 + Math.random() * .2 + (this.descida || 0), -.24);
+      me.userData = { v: new THREE.Vector3((Math.random() - .5) * 1.5, .2 + Math.random() * .55, -.35 - Math.random() * .3), vida: 0, tam: .09 + Math.random() * .07 }; // espalha para os lados: dá para ver a nuvem também de frente
+      this.root.add(me); this.gas.push(me);
+    }
+    this.gas = this.gas.filter(c => {
+      const u = c.userData; u.vida += dt; const k = u.vida / 1.6;
+      if (k >= 1) { this.root.remove(c); c.material.dispose(); return false; }
+      c.position.addScaledVector(u.v, dt * (1 - k * .6)); c.scale.setScalar(u.tam * (1 + k * 2.2)); c.material.opacity = .7 * (1 - k * k);
+      return true;
+    });
   }
   /** Coraçõezinhos que saem das mãos no emote "coração": sobem, balançam e somem. */
   coracoes(dt, emitir) {
@@ -816,7 +834,9 @@ const POSES = {
   coracao: u => ({ esq: Q.coracao, dir: Q.coracao, coracoes: true, cabeca: -.1, inclina: sen(u * 3) * .05 }),
   continencia: u => ({ dir: Q.continencia, esq: [-.1, .05, -.05, 0, 0, 'reta'], cabecaZ: .08 }),
   facepalm: u => ({ dir: Q.facepalm, esq: REP, cabeca: .45, cabecaZ: .25 }),
-  micdrop: u => (u < 1.2 ? { dir: Q.mic1, esq: REP } : { dir: Q.mic2, esq: REP, cabeca: -.15 }),
+  // "Soltar um peido": faz força de olhos fechados levantando uma perna, solta (nuvem verde atrás) e depois abana o nariz, aliviado
+  peido: u => u < 1 ? { esq: REP, dir: REP, olhosFechados: true, inclina: .1 * Math.max(0, Math.min(1, u * 3)), pernaE: passo(Math.max(0, Math.min(1, u * 3)), .45), pulo: abs(sen(u * 40)) * .012, cabeca: .12 }
+    : { esq: REP, dir: u > 1.6 ? [-2.02, -.56 + sen(u * 14) * .2, -1.21, -.57, 1.36, 'aberta', .74] : REP, gases: u < 1.9, inclina: u < 1.5 ? .1 : 0, ...(u < 1.5 ? { pernaE: passo(1, .45) } : {}), sorriso: .9, cabeca: -.1, cabecaZ: u > 1.6 ? .15 : 0 },
   aceno: u => ({ dir: [-2.42, .59 + sen(u * 12) * .18, -.19 - pos(sen(u * 12)) * .3, -.69, -.68 + sen(u * 12) * .25, 'aberta'], esq: REP }),
   apontar: u => ({ dir: [-1.57, -.15 + sen(u * 10) * .05, 0, 0, 0, 'aponta'], esq: REP, inclina: .05 }),
   // jornalista apresentando o telão: braço direito estendido para cima/para fora (ela fica de 3/4 para o telão)
@@ -832,7 +852,7 @@ const POSES = {
   pipoca: u => { const k = onda(u, 4); return { esq: Q.pipE, dir: lerpQ(Q.pipBaixo, Q.pipBoca, k), cabeca: k * .28, pipoca: 1 + k, boca: k > .8 ? (k - .8) * 2 : 0 }; },
 };
 // sorriso largo nas danças e nos emotes alegres
-for (const [k, s] of Object.entries({ festa: 1, samba: 1, robo: .6, passinho: 1, disco: 1, carnaval: 1, joinha: .8, coracao: .8, aceno: .9, micdrop: .6 })) {
+for (const [k, s] of Object.entries({ festa: 1, samba: 1, robo: .6, passinho: 1, disco: 1, carnaval: 1, joinha: .8, coracao: .8, aceno: .9 })) {
   const f = POSES[k]; POSES[k] = u => ({ sorriso: s, ...f(u) });
 }
 export const ANIMACOES = Object.keys(POSES);
