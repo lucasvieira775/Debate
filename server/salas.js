@@ -171,7 +171,7 @@ class Sala {
     const ids = [];
     if (this.passo && (this.passo.tipo === 'fala' || this.passo.tipo === 'escolha') && !this.porId(this.passo.falante)?.banido) ids.push(this.passo.falante);
     // 2º turno: eliminados nas poltronas comentam nos intervalos (nunca durante a fala de um finalista)
-    if (this.turno2 && !['ativo', 'encerrando'].includes(this.fala?.status)) ids.push(...Object.keys(this.poltronas).filter(id => !this.porId(id)?.bot));
+    if (this.turno2 && !['ativo', 'encerrando'].includes(this.fala?.status)) ids.push(...Object.keys(this.poltronas).filter(id => !this.porId(id)?.bot && !this.porId(id)?.banido));
     return ids;
   }
   conta(j) { return j?.uid ? this.mgr.contas.conta(j.uid, j.nome) : null; }
@@ -532,7 +532,7 @@ class Sala {
     if (!j || j.banido || this.fase !== 'debate') return;
     const p = this.passo, daVez = p?.falante === j.id; // se não é a vez dele, o debate segue sem interromper quem está falando
     if (daVez) this.limpar();
-    j.banido = true; j.motivoBan = motivo;
+    j.banido = true; j.motivoBan = motivo; this.sentarBanido(j);
     if (!j.bot) { const r = this.mgr.contas.registrarBanSala(this.conta(j), motivo); if (r) this.socketDe(j.id)?.emit('punicao', { ...r, motivo }); }
     if (!daVez) {
       this.fila = this.fila.filter((q, k) => k <= this.i || (q.falante !== j.id && q.alvo !== j.id));
@@ -758,7 +758,13 @@ class Sala {
     if (i === undefined) return 'As poltronas já estão ocupadas: você assiste do seu púlpito.';
     this.poltronas[j.id] = i; return null;
   }
-  liberarPoltrona(id) { delete this.poltronas[id]; this.sentarBots(); }
+  /** Banido: o personagem caminha até uma poltrona livre e fica sentado até o fim da partida (mesmo se o jogador for para o lobby). */
+  sentarBanido(j) {
+    if (this.poltronas[j.id] !== undefined) return;
+    const usadas = new Set(Object.values(this.poltronas)), i = [...Array(POLTRONAS).keys()].find(k => !usadas.has(k));
+    if (i !== undefined) this.poltronas[j.id] = i;
+  }
+  liberarPoltrona(id) { if (this.porId(id)?.banido) return; delete this.poltronas[id]; this.sentarBots(); } // a poltrona do banido nunca é liberada
   /** Bots eliminados sentam nas poltronas que sobrarem — sem tomar o lugar de humanos eliminados (conectados) que ainda não escolheram. */
   sentarBots() {
     const r = this.resultado; if (!r || r.eleito1 || !r.anunciado1 || r.mostrar2) return;

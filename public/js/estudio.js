@@ -831,6 +831,7 @@ export class Estudio {
     const k = JSON.stringify(mapa || {}); if (k === this.poltronasKey && !inst) return; this.poltronasKey = k;
     this.sentados = mapa || {};
     this.aplicarDuelo(inst);
+    if (this.listaJog) this.atualizarConexoes(this.listaJog);
   }
   /** Do púlpito até a poltrona sem atravessar nada: sai por trás do púlpito, contorna o arco de púlpitos por fora
    *  (raio RAIO + 1,5 em volta da mesa, longe do púlpito central), chega pela frente da poltrona e senta. */
@@ -922,9 +923,11 @@ export class Estudio {
   }
   atualizarNiveis(lista) { for (const j of lista) { const p = this.podios.get(j.id); if (p && p.et && (j.nivel || 0) !== p.nivel) { p.nivel = j.nivel || 0; desenharEtiqueta(p.et, j, p.partido); } } }
   atualizarConexoes(lista) {
+    this.listaJog = lista;
     for (const j of lista) {
       const p = this.podios.get(j.id); if (!p) continue;
-      const presente = (j.conectado || j.id === this.meuId) && !j.banido; // banido: o púlpito fica vazio
+      // banido: o púlpito fica vazio e o personagem vai sentar na poltrona (fica lá mesmo se o jogador sair); sem poltrona livre, some
+      const presente = j.banido ? this.sentados?.[j.id] !== undefined : j.conectado || j.id === this.meuId;
       p.avatar.root.visible = presente; p.etiqueta.visible = presente && this.cfg.nomes && j.id !== this.meuId;
       p.faixaLuz.visible = !j.banido;
     }

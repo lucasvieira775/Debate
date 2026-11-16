@@ -1214,7 +1214,10 @@ function renderAcao(forcar) {
   if (k === E.hudKey && !forcar) return; E.hudKey = k; est.guiarMic?.(false, false);
   const nome = id => esc(jog(id)?.nome || '');
   const podeDigitar = s.cfg.permitirTexto || !temReconhecimento || !contextoSeguro;
-  if (eu()?.banido && s.fase === 'debate') { if (E.hudKey !== 'banido') { E.hudKey = 'banido'; el.innerHTML = '<div class="hud-box" style="text-align:center;border-color:var(--vermelho)">🚫 Você foi retirado do debate pela moderação. Acompanhe a disputa até o fim.</div>'; } return; }
+  if (eu()?.banido && s.fase === 'debate') { if (E.hudKey !== 'banido') { E.hudKey = 'banido'; el.innerHTML = E.banOk ? '<div class="hud-box" style="text-align:center;border-color:var(--vermelho)">🚫 Você está fora do debate, assistindo da poltrona. <button class="btn" id="ban-sair" style="margin-left:10px">🏠 Ir para o lobby</button></div>'
+      : '<div class="hud-box" style="text-align:center;border-color:var(--vermelho)">🚫 Você foi retirado do debate pela moderação.<br><small class="mut">Seu candidato fica sentado na poltrona até o fim da partida.</small><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px"><button class="btn amarelo" id="ban-ver">👀 Ficar assistindo</button><button class="btn" id="ban-sair">🏠 Ir para o lobby</button></div></div>';
+    $('#ban-sair').onclick = () => sairSala(); const v = $('#ban-ver'); if (v) v.onclick = () => { E.banOk = true; renderAcao(true); }; } return; }
+  E.banOk = false;
   if (k.startsWith('nada')) { el.innerHTML = ''; return; }
   if (k.startsWith('cumprfalse')) { el.innerHTML = '<div class="hud-box" style="text-align:center">🎙️ A mediação está abrindo o debate…</div>'; return; }
   if (k.startsWith('cumpr')) { if (E.cumprAnun !== s.i) { E.cumprAnun = s.i; anunciar('CUMPRIMENTEM-SE!'); sfx.vez(); } el.innerHTML = `<div class="hud-box" style="text-align:center">🤝 <b>Cumprimentem-se!</b> Microfones abertos para todos. O debate começa em <b id="h-cump">${Math.max(0, Math.ceil(((s.autoEm || 0) - agora()) / 1000))}s</b></div>`; return; }
@@ -1610,7 +1613,8 @@ if (demo) setTimeout(() => {
     const q = new URLSearchParams(location.search), n = Math.max(0, Math.min(3, +(q.get('n') ?? 3)));
     const elim = ['bot4', 'bot2', 'bot0'].slice(0, n), mapa = Object.fromEntries(elim.map((id, i) => [id, i]));
     const eu = q.get('eu') === 'finalista' ? 'bot1' : q.get('eu') === 'sentado' ? elim[0] || 'bot2' : null;
-    E.eu = eu; est.setJogadores(bots(), eu); est.setFalante(null); est.setPoltronas(null, true);
+    const js = bots(); if (q.has('ban') && elim[0]) Object.assign(js.find(j => j.id === elim[0]), { banido: true, conectado: false }); // &ban=1: o 1º é um banido que foi para o lobby
+    E.eu = eu; est.setJogadores(js, eu); est.setFalante(null); est.setPoltronas(null, true);
     const cam = (q.get('cam') || '1.5,3.4,9.5,-4.8,.8,3').split(',').map(Number);
     if (eu) { est.setModo('fp'); est.olhar = { y: +q.get('oy') || 0, p: +q.get('op') || -.1 }; }
     else { est.cine = () => { est.camera.position.set(cam[0], cam[1], cam[2]); est.camera.lookAt(cam[3], cam[4], cam[5]); }; est.setModo('cine'); }
