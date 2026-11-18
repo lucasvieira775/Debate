@@ -27,6 +27,32 @@
     },
     "partido": "FPB",
     "uid": "a7be5498-0d2d-40ff-8360-ed1cbfc16039"
+   },
+   "carlinho minhoca": {
+    "nome": "Carlinho Minhoca",
+    "pts": 1084,
+    "partidas": 1,
+    "vitorias": 1,
+    "avatar": {
+     "genero": "feminino",
+     "pele": "#a8714a",
+     "cabelo": "cacheado",
+     "corCabelo": "#8a8a8a",
+     "barba": "nenhuma",
+     "oculos": "quadrado",
+     "chapeu": "nenhum",
+     "roupa": "terno_aberto",
+     "corRoupa": "#2b2f36",
+     "corCamisa": "#93c5fd",
+     "corGravata": "#15803d",
+     "brinco": true,
+     "broche": true,
+     "extra": "nenhum",
+     "corpo": "medio",
+     "expressao": "simpatico"
+    },
+    "partido": "PUN",
+    "uid": "39eb3b5e-e54e-4e0f-a75f-5f68e8bab826"
    }
   }
  },
@@ -188,6 +214,32 @@
     },
     "partido": "MVB",
     "uid": "5e9163c4-adfb-4b57-93c1-32af4fc8a8ef"
+   },
+   "carlinho minhoca": {
+    "nome": "Carlinho Minhoca",
+    "pts": 1084,
+    "partidas": 1,
+    "vitorias": 1,
+    "avatar": {
+     "genero": "feminino",
+     "pele": "#a8714a",
+     "cabelo": "cacheado",
+     "corCabelo": "#8a8a8a",
+     "barba": "nenhuma",
+     "oculos": "quadrado",
+     "chapeu": "nenhum",
+     "roupa": "terno_aberto",
+     "corRoupa": "#2b2f36",
+     "corCamisa": "#93c5fd",
+     "corGravata": "#15803d",
+     "brinco": true,
+     "broche": true,
+     "extra": "nenhum",
+     "corpo": "medio",
+     "expressao": "simpatico"
+    },
+    "partido": "PUN",
+    "uid": "39eb3b5e-e54e-4e0f-a75f-5f68e8bab826"
    }
   }
  },

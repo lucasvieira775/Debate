@@ -1,6 +1,7 @@
 // "Anotação da assessoria": dica sobre o tema da vez, escrita pelo Gemini (texto) ou, sem ele, por modelos locais.
 import { TEMA, PARTIDO, IDEO, pontosTema, pontosLado } from '../shared/regras.js';
 import { FINAIS, CUIDADOS_FINAIS } from './dicas-finais.js';
+import { PERGUNTAS, DESVIOS, FRACOS, CUIDADOS_CONFRONTO } from './dicas-confronto.js';
 
 const LADO = { 'esquerda': 'esq', 'centro-esquerda': 'esq', 'centro': 'cen', 'centro-direita': 'dir', 'direita': 'dir' };
 const MODELOS = ['gemini-flash-lite-latest', 'gemini-flash-latest'];
@@ -18,6 +19,12 @@ const CUIDADOS = ['Evite ataques pessoais: o eleitor de centro não gosta.', 'N�
 
 function dicaLocal(ctx) {
   const t = ctx.tema ? TEMA[ctx.tema] : null; const p = PARTIDO[ctx.partido]; const lado = LADO[p.ideo], n = (ctx.n || 0) % 10;
+  if (!t && ctx.kind !== 'final') { // 2º turno, confronto de tema livre: pergunta ao adversário ou como desviar da pergunta dele
+    const perg = ctx.kind === 'pergunta', f = (perg ? PERGUNTAS : DESVIOS)[(ctx.n || 0) % 20], a = ctx.alvo, pa = a && PARTIDO[a.partido];
+    const sub = s => s.replaceAll('{a}', a?.nome || 'candidato').replaceAll('{s}', pa?.sigla || 'seu partido').replaceAll('{n}', p.numero).replaceAll('{m}', p.sigla);
+    return { titulo: perg ? 'Confronto · sua pergunta' : 'Confronto · como responder', abertura: sub(f[0]), pontos: [...f.slice(1).map(sub), perg && pa ? FRACOS[LADO[pa.ideo]] : `Linha do partido: ${METAS[lado][n]}.`],
+      palavras: [p.sigla, p.numero, ...METAS[lado].slice(n % 5, n % 5 + 3)], cuidado: CUIDADOS_CONFRONTO[(ctx.n || 0) % CUIDADOS_CONFRONTO.length] };
+  }
   if (!t) { // considerações finais: 20 por espectro, com sorteio inicial por candidato (quase nunca repete)
     const lista = FINAIS[p.ideo] || FINAIS.centro, f = lista[(ctx.n || 0) % lista.length];
     const sub = s => s.replaceAll('{n}', p.numero).replaceAll('{s}', p.sigla).replaceAll('{l}', p.lema);
@@ -57,13 +64,13 @@ function dicaLocal(ctx) {
 }
 
 export async function gerarDica(chave, ctx) {
-  const t = ctx.tema ? TEMA[ctx.tema] : null; const p = PARTIDO[ctx.partido];
+  const t = ctx.tema ? TEMA[ctx.tema] : null; const p = PARTIDO[ctx.partido], livre = !t && ctx.kind !== 'final';
   if (!chave) return dicaLocal(ctx);
   const foco = t ? pontosLado(t.resumo, (ctx.lado || 0) + (ctx.n || 0)).pontos : [];
   const prompt = `Você é assessor(a) de campanha de um candidato fictício num jogo de debate presidencial brasileiro.
 Partido fictício: ${p.nome} (${p.sigla}), espectro: ${IDEO[p.ideo].nome}.
 Momento do debate: ${ctx.kind}${ctx.alvo ? ` (o adversário é ${ctx.alvo.nome}, do ${PARTIDO[ctx.alvo.partido].sigla}, ${IDEO[PARTIDO[ctx.alvo.partido].ideo].nome})` : ''}.
-${t ? `Tema: ${t.titulo} (${t.estado}). Pergunta da mediação: "${t.pergunta}"` : 'Tema livre: considerações finais.'}
+${t ? `Tema: ${t.titulo} (${t.estado}). Pergunta da mediação: "${t.pergunta}"` : livre ? (ctx.kind === 'pergunta' ? 'Confronto direto do 2º turno, tema livre: o candidato vai fazer UMA pergunta ao adversário (sem réplica). Na "abertura", escreva a pergunta pronta, curta e difícil de responder.' : 'Confronto direto do 2º turno, tema livre: o candidato vai responder à pergunta do adversário (sem réplica). Ensine a desviar com elegância e levar para a própria proposta.') : 'Tema livre: considerações finais.'}
 Escreva uma anotação rápida, como um bilhete passado às pressas ao candidato, coerente com o espectro do partido.
 ${t ? `Ângulo desta anotação (siga à risca, para ela ser diferente das outras): ${ANGULOS[(ctx.n || 0) % 10]}.` : `Ideia-base desta anotação (desenvolva com palavras suas): ${dicaLocal(ctx).abertura}`}${foco.length ? `\nPriorize estes pontos do tema: ${foco.join('; ')}.` : ''}${ctx.evitar?.length ? `\nNÃO repita nem parafraseie estas ideias já entregues: ${ctx.evitar.map(s => `"${s}"`).join('; ')}.` : ''}
 Não invente estatísticas reais; prefira metas e propostas. Português do Brasil, frases curtas.
@@ -81,7 +88,7 @@ Responda SOMENTE em JSON: {"abertura": "frase de abertura sugerida (até 20 pala
       const d = JSON.parse((j.candidates?.[0]?.content?.parts || []).map(x => x.text || '').join(''));
       if (!d.abertura || !Array.isArray(d.pontos)) continue;
       return {
-        titulo: t ? `${t.uf} · ${t.titulo}` : 'Considerações finais',
+        titulo: t ? `${t.uf} · ${t.titulo}` : livre ? dicaLocal(ctx).titulo : 'Considerações finais',
         abertura: String(d.abertura).slice(0, 200), pontos: d.pontos.slice(0, 3).map(s => String(s).slice(0, 160)),
         palavras: (d.palavras || []).slice(0, 6).map(s => String(s).slice(0, 30)), cuidado: String(d.cuidado || '').slice(0, 160),
       };
