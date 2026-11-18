@@ -22,6 +22,9 @@ const salas = new Salas(io, raiz);
 // som dos emotes/danças (ElevenLabs, gerado na 1ª vez e guardado); 404 = navegador usa o som sintetizado
 app.get('/api/som/:id', async (req, res) => {
   const it = ITEM[req.params.id]; if (!it?.som) return res.sendStatus(404);
+  // sons fixos (ex.: recortados de um vídeo) em dados/audio/sfx-fixos/<id>/: sorteia um a cada uso
+  const fixa = path.join(raiz, 'dados', 'audio', 'sfx-fixos', it.id), fixos = fs.existsSync(fixa) ? fs.readdirSync(fixa).filter(f => /\.(mp3|wav|ogg)$/i.test(f)) : [];
+  if (fixos.length) return res.set('Cache-Control', 'no-store').sendFile(path.join(fixa, fixos[Math.random() * fixos.length | 0]));
   const arq = await salas.dub.somItem(it.id, it.som, it.seg || 3);
   arq ? res.set('Cache-Control', 'public, max-age=86400').sendFile(arq) : res.sendStatus(404);
 });
